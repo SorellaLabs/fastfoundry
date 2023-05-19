@@ -66,10 +66,12 @@ clap_complete_fig = "4"
 ethereum-forkid = "0.12"
 
 # ethers
+ethers-reth = {git = "https://github.com/SorellaLabs/ethers-reth", branch = "main"}
 [target.'cfg(not(windows))'.dependencies]
 ethers = { workspace = true, features = ["rustls", "ws", "ipc"] }
 [target.'cfg(windows)'.dependencies]
 ethers = { workspace = true, features = ["rustls", "ws"] }
+
 
 [dev-dependencies]
 ethers = { workspace = true, features = ["abigen"] }

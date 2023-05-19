@@ -70,6 +70,8 @@ ethers-signers = { version = "2.0.4", default-features = false }
 ethers-middleware = { version = "2.0.4", default-features = false }
 ethers-etherscan = { version = "2.0.4", default-features = false }
 ethers-solc = { version = "2.0.4", default-features = false }
+ethers-reth = {git = "https://github.com/SorellaLabs/ethers-reth", branch = "main"}
+
 
 #[patch.crates-io]
 # ethers = { path = "../ethers-rs/ethers" }
