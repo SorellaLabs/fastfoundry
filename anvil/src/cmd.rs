@@ -316,6 +316,8 @@ pub struct AnvilEvmArgs {
     pub fork_url: Option<ForkUrl>,
 
     
+    pub reth_ipc_path: Option<String>,
+
 
     #[clap(
         long,
