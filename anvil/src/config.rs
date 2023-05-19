@@ -363,7 +363,7 @@ impl Default for NodeConfig {
             max_transactions: 1_000,
             silent: false,
             eth_rpc_url: None,
-            ipc_path: None,
+            reth_ipc_path: None,
             reth_db_path: None,
             fork_block_number: None,
             account_generator: None,
