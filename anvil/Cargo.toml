@@ -46,7 +46,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tokio = { version = "1", features = ["time"] }
 parking_lot = "0.12"
 futures = "0.3"
-async-trait = "0.1"
+async-trait = "0.1.68"
 
 # misc
 serde_json = "1"
@@ -66,6 +66,7 @@ clap_complete_fig = "4"
 ethereum-forkid = "0.12"
 
 # ethers
+ethers-providers = { workspace = true }
 ethers-reth = {git = "https://github.com/SorellaLabs/ethers-reth", branch = "main"}
 [target.'cfg(not(windows))'.dependencies]
 ethers = { workspace = true, features = ["rustls", "ws", "ipc"] }
