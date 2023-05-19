@@ -183,7 +183,6 @@ impl NodeArgs {
             .fork_request_retries(self.evm_opts.fork_request_retries)
             .fork_retry_backoff(self.evm_opts.fork_retry_backoff.map(Duration::from_millis))
             .fork_compute_units_per_second(compute_units_per_second)
-            .with_reth_db_path(self.evm_opts.reth_db_path.map(|fork: RethDbPath| fork.path ))
             .with_eth_rpc_url(self.evm_opts.fork_url.map(|fork| fork.url))
             .with_base_fee(self.evm_opts.block_base_fee_per_gas)
             .with_storage_caching(self.evm_opts.no_storage_caching)
@@ -308,26 +307,11 @@ pub struct AnvilEvmArgs {
     #[clap(
         long,
         short,
-        conflicts_with = "reth_db_path",
         visible_alias = "rpc-url",
         value_name = "URL",
-        help_heading = "Fork config",
+        help_heading = "Fork config"
     )]
     pub fork_url: Option<ForkUrl>,
-
-    
-    pub reth_ipc_path: Option<String>,
-
-
-    #[clap(
-        long,
-        short,
-        conflicts_with = "reth_db_path",
-        visible_alias = "reth-db-path",
-        value_name = "Path",
-        help_heading = "Fast Fork config"
-    )]
-    pub reth_db_path: Option<RethDbPath>,
 
     /// Timeout in ms for requests sent to remote JSON-RPC server in forking mode.
     ///
@@ -402,8 +386,7 @@ pub struct AnvilEvmArgs {
         requires = "fork_url",
         value_name = "NO_RATE_LIMITS",
         help_heading = "Fork config",
-        visible_alias = "no-rpc-rate-limit", 
-        default_value_if("reth_db_path", "*", "true")
+        visible_alias = "no-rpc-rate-limit"
     )]
     pub no_rate_limit: bool,
 
@@ -590,29 +573,9 @@ pub struct ForkUrl {
     pub block: Option<u64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RethDbPath {
-    /// The IPC path
-    pub ipc_path: String,
-    /// The db path
-    pub path: String,
-    /// Optional trailing block
-    pub block: Option<u64>,
-}
-
 impl fmt::Display for ForkUrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.url.fmt(f)?;
-        if let Some(block) = self.block {
-            write!(f, "@{block}")?;
-        }
-        Ok(())
-    }
-}
-
-impl fmt::Display for RethDbPath {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.path.fmt(f)?;
         if let Some(block) = self.block {
             write!(f, "@{block}")?;
         }
@@ -637,30 +600,6 @@ impl FromStr for ForkUrl {
             }
         }
         Ok(ForkUrl { url: s.to_string(), block: None })
-    }
-}
-
-impl FromStr for RethDbPath {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some((url_and_path, block)) = s.rsplit_once('@') {
-            if block == "latest" {
-                let (url, path) = url_and_path.rsplit_once('@')
-                    .ok_or("Failed to split url and path")?;
-                return Ok(RethDbPath {ipc_path: ipc_path.to_string(), path: path.to_string(), block: None })
-            }
-            // this will prevent false positives for auths `user:password@example.com`
-            if !block.is_empty() && !block.contains(':') && !block.contains('.') {
-                let block: u64 = block
-                    .parse()
-                    .map_err(|_| format!("Failed to parse block number: `{}`", block))?;
-                let (url, path) = url_and_path.rsplit_once('@')
-                    .ok_or("Failed to split url and path")?;
-                return Ok(RethDbPath {ipc_path: ipc_path.to_string(), path: path.to_string(), block: Some(block) })
-            }
-        }
-        Err("Invalid string format for RethDbPath".to_string())
     }
 }
 
