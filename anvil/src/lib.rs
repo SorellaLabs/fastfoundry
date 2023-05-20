@@ -21,7 +21,6 @@ use ethers::{
     signers::Signer,
     types::{Address, U256},
 };
-use ethers_reth::RethMiddleware;
 use foundry_evm::revm;
 use futures::{FutureExt, TryFutureExt};
 use parking_lot::Mutex;
@@ -38,6 +37,7 @@ use tokio::{
     runtime::Handle,
     task::{JoinError, JoinHandle},
 };
+use ethers_reth::RethMiddleware;
 
 /// contains the background service that drives the node
 mod service;

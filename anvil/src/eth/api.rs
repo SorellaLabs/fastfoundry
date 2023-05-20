@@ -2166,7 +2166,7 @@ impl EthApi {
         self.backend.chain_id().as_u64()
     }
 
-    pub fn get_fork(&self) -> Option<&ClientFork<M>> {
+    pub fn get_fork(&self) -> Option<&ClientFork> {
         self.backend.get_fork()
     }
 

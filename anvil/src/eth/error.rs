@@ -13,7 +13,9 @@ use ethers::{
 };
 use forge::revm::{self, primitives::EVMError};
 use foundry_common::SELECTOR_LEN;
-use foundry_evm::{executor::backend::DatabaseError, revm::interpreter::InstructionResult};
+use foundry_evm::{
+    abi::hevm::Rpc, executor::backend::DatabaseError, revm::interpreter::InstructionResult,
+};
 use serde::Serialize;
 use tracing::error;
 
@@ -47,6 +49,8 @@ pub enum BlockchainError {
     RpcUnimplemented,
     #[error("Rpc error {0:?}")]
     RpcError(RpcError),
+    #[error("Ipc error {0:?}")]
+    IpcError(RpcError),
     #[error(transparent)]
     InvalidTransaction(#[from] InvalidTransactionError),
     #[error(transparent)]

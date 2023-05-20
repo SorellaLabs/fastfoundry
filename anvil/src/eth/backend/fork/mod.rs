@@ -2,111 +2,147 @@
 
 use crate::eth::{backend::mem::fork_db::ForkedDatabase, error::BlockchainError};
 use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
+use anvil_rpc::error::RpcError;
 use ethers::{
     prelude::BlockNumber,
-    providers::{Middleware, ProviderError},
     types::{
         transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
         Filter, GethDebugTracingOptions, GethTrace, Log, Trace, Transaction, TransactionReceipt,
         TxHash, H256, U256,
     },
 };
+use ethers_providers::MiddlewareError;
 use foundry_common::{ProviderBuilder, RetryProvider};
 use foundry_evm::utils::u256_to_h256_be;
 use parking_lot::{
     lock_api::{RwLockReadGuard, RwLockWriteGuard},
     RawRwLock, RwLock,
 };
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
-
-use ::ethers_reth::RethMiddleware;
+use ethers::providers::{Ipc, Middleware, Provider, ProviderError};
+use ethers_reth::RethMiddleware;
 use async_trait::async_trait;
-use ethers::providers::Provider;
 use std::path::Path;
-pub mod ethers_reth;
-pub mod http;
-pub mod ipc;
+use ethers_providers::JsonRpcClient;
 
 /// Represents a fork of a remote client
 ///
 /// This type contains a subset of the [`EthApi`](crate::eth::EthApi) functions but will exclusively
 /// fetch the requested data from the remote client, if it wasn't already fetched.
 #[derive(Debug, Clone)]
-pub struct ClientFork<M> {
+pub struct ClientFork {
     /// Contains the cached data
     pub storage: Arc<RwLock<ForkedStorage>>,
     /// contains the info how the fork is configured
     // Wrapping this in a lock, ensures we can update this on the fly via additional custom RPC
     // endpoints
-    pub config: Arc<RwLock<ClientForkConfig<M>>>,
+    pub config: Arc<RwLock<dyn ClientForkConfigTrait>>,
     /// This also holds a handle to the underlying database
     pub database: Arc<AsyncRwLock<ForkedDatabase>>,
 }
 
-#[async_trait]
-pub trait ClientForkTrait<M>
-where
-    M: Middleware + 'static,
-{
+impl ClientFork {
     /// Creates a new instance of the fork
-    fn new(config: ClientForkConfig<M>, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
+    pub fn new<CC: ClientForkConfigTrait>(
+        config: CC,
+        database: Arc<AsyncRwLock<ForkedDatabase>>,
+    ) -> Self {
         Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
     }
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
-    async fn reset(
+    pub async fn reset(
         &self,
         url_or_path: Option<String>,
         block_number: impl Into<BlockId>,
-    ) -> Result<(), BlockchainError>;
+    ) -> Result<(), BlockchainError> {
+        let block_number = block_number.into();
+        {
+            self.database
+                .write()
+                .await
+                .reset(url_or_path.clone(), block_number)
+                .map_err(BlockchainError::Internal)?;
+        }
 
+        if let Some(url_or_path) = url_or_path {
+            self.config.write().update_url_or_path(url_or_path).await?;
+            let override_chain_id = self.config.read().override_chain_id.unwrap();
+            let chain_id = if let Some(chain_id) = override_chain_id {
+                chain_id.into()
+            } else {
+                self.provider().get_chainid().await?
+            };
+            self.config.write().chain_id = chain_id.as_u64();
+        }
+
+        let provider = self.provider();
+        let block =
+            provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
+        let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
+        let timestamp = block.timestamp.as_u64();
+        let base_fee = block.base_fee_per_gas;
+        let total_difficulty = block.total_difficulty.unwrap_or_default();
+
+        self.config.write().update_block(
+            block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
+            block_hash,
+            timestamp,
+            base_fee,
+            total_difficulty,
+        );
+
+        self.clear_cached_storage();
+        Ok(())
+    }
     /// Removes all data cached from previous responses
-    fn clear_cached_storage(&self) {
+    /// Removes all data cached from previous responses
+    pub fn clear_cached_storage(&self) {
         self.storage.write().clear()
     }
 
     /// Returns true whether the block predates the fork
-    fn predates_fork(&self, block: u64) -> bool {
+    pub fn predates_fork(&self, block: u64) -> bool {
         block < self.block_number()
     }
 
     /// Returns true whether the block predates the fork _or_ is the same block as the fork
-    fn predates_fork_inclusive(&self, block: u64) -> bool {
+    pub fn predates_fork_inclusive(&self, block: u64) -> bool {
         block <= self.block_number()
     }
 
-    fn timestamp(&self) -> u64 {
-        self.config.read().timestamp
+    pub fn timestamp(&self) -> u64 {
+        self.config.read().timestamp()
     }
 
-    fn block_number(&self) -> u64 {
-        self.config.read().block_number
+    pub fn block_number(&self) -> u64 {
+        self.config.read().block_number()
     }
 
-    fn total_difficulty(&self) -> U256 {
-        self.config.read().total_difficulty
+    pub fn total_difficulty(&self) -> U256 {
+        self.config.read().total_difficulty()
     }
 
-    fn base_fee(&self) -> Option<U256> {
-        self.config.read().base_fee
+    pub fn base_fee(&self) -> Option<U256> {
+        self.config.read().base_fee()
     }
 
-    fn block_hash(&self) -> H256 {
-        self.config.read().block_hash
+    pub fn block_hash(&self) -> H256 {
+        self.config.read().block_hash()
     }
 
-    fn eth_rpc_url(&self) -> String {
-        self.config.read().eth_rpc_url.clone()
+    pub fn eth_rpc_url(&self) -> String {
+        self.config.read().eth_rpc_url().clone()
     }
 
-    fn chain_id(&self) -> u64 {
-        self.config.read().chain_id
+    pub fn chain_id(&self) -> u64 {
+        self.config.read().chain_id()
     }
 
-    fn provider(&self) -> Arc<RetryProvider> {
-        self.config.read().provider.clone()
+    fn provider<M: Middleware + 'static>(&self) -> Arc<M> {
+        self.config.read().provider().clone()
     }
 
     fn storage_read(&self) -> RwLockReadGuard<'_, RawRwLock, ForkedStorage> {
@@ -118,7 +154,7 @@ where
     }
 
     /// Returns the fee history  `eth_feeHistory`
-    async fn fee_history(
+    pub async fn fee_history(
         &self,
         block_count: U256,
         newest_block: BlockNumber,
@@ -128,7 +164,7 @@ where
     }
 
     /// Sends `eth_getProof`
-    async fn get_proof(
+    pub async fn get_proof(
         &self,
         address: Address,
         keys: Vec<H256>,
@@ -138,7 +174,7 @@ where
     }
 
     /// Sends `eth_call`
-    async fn call(
+    pub async fn call(
         &self,
         request: &EthTransactionRequest,
         block: Option<BlockNumber>,
@@ -154,9 +190,7 @@ where
             }
         }
 
-        let tx = ethers::utils::serialize(request.as_ref());
-        let block_value = ethers::utils::serialize(&block);
-        let res: Bytes = self.provider().request("eth_call", [tx, block_value]).await?;
+        let res: Bytes = self.provider().call(request.into(), block).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -167,7 +201,7 @@ where
     }
 
     /// Sends `eth_call`
-    async fn estimate_gas(
+    pub async fn estimate_gas(
         &self,
         request: &EthTransactionRequest,
         block: Option<BlockNumber>,
@@ -196,7 +230,7 @@ where
     }
 
     /// Sends `eth_createAccessList`
-    async fn create_access_list(
+    pub async fn create_access_list(
         &self,
         request: &EthTransactionRequest,
         block: Option<BlockNumber>,
@@ -206,7 +240,7 @@ where
         self.provider().request("eth_createAccessList", [tx, block]).await
     }
 
-    async fn storage_at(
+    pub async fn storage_at(
         &self,
         address: Address,
         index: U256,
@@ -216,7 +250,7 @@ where
         self.provider().get_storage_at(address, index, number.map(Into::into)).await
     }
 
-    async fn logs(&self, filter: &Filter) -> Result<Vec<Log>, ProviderError> {
+    pub async fn logs(&self, filter: &Filter) -> Result<Vec<Log>, ProviderError> {
         if let Some(logs) = self.storage_read().logs.get(filter).cloned() {
             return Ok(logs)
         }
@@ -228,7 +262,11 @@ where
         Ok(logs)
     }
 
-    async fn get_code(&self, address: Address, blocknumber: u64) -> Result<Bytes, ProviderError> {
+    pub async fn get_code(
+        &self,
+        address: Address,
+        blocknumber: u64,
+    ) -> Result<Bytes, ProviderError> {
         trace!(target: "backend::fork", "get_code={:?}", address);
         if let Some(code) = self.storage_read().code_at.get(&(address, blocknumber)).cloned() {
             return Ok(code)
@@ -241,17 +279,25 @@ where
         Ok(code)
     }
 
-    async fn get_balance(&self, address: Address, blocknumber: u64) -> Result<U256, ProviderError> {
+    pub async fn get_balance(
+        &self,
+        address: Address,
+        blocknumber: u64,
+    ) -> Result<U256, ProviderError> {
         trace!(target: "backend::fork", "get_balance={:?}", address);
         self.provider().get_balance(address, Some(blocknumber.into())).await
     }
 
-    async fn get_nonce(&self, address: Address, blocknumber: u64) -> Result<U256, ProviderError> {
+    pub async fn get_nonce(
+        &self,
+        address: Address,
+        blocknumber: u64,
+    ) -> Result<U256, ProviderError> {
         trace!(target: "backend::fork", "get_nonce={:?}", address);
         self.provider().get_transaction_count(address, Some(blocknumber.into())).await
     }
 
-    async fn transaction_by_block_number_and_index(
+    pub async fn transaction_by_block_number_and_index(
         &self,
         number: u64,
         index: usize,
@@ -264,7 +310,7 @@ where
         Ok(None)
     }
 
-    async fn transaction_by_block_hash_and_index(
+    pub async fn transaction_by_block_hash_and_index(
         &self,
         hash: H256,
         index: usize,
@@ -277,7 +323,10 @@ where
         Ok(None)
     }
 
-    async fn transaction_by_hash(&self, hash: H256) -> Result<Option<Transaction>, ProviderError> {
+    pub async fn transaction_by_hash(
+        &self,
+        hash: H256,
+    ) -> Result<Option<Transaction>, ProviderError> {
         trace!(target: "backend::fork", "transaction_by_hash={:?}", hash);
         if let tx @ Some(_) = self.storage_read().transactions.get(&hash).cloned() {
             return Ok(tx)
@@ -291,7 +340,7 @@ where
         Ok(None)
     }
 
-    async fn trace_transaction(&self, hash: H256) -> Result<Vec<Trace>, ProviderError> {
+    pub async fn trace_transaction(&self, hash: H256) -> Result<Vec<Trace>, ProviderError> {
         if let Some(traces) = self.storage_read().transaction_traces.get(&hash).cloned() {
             return Ok(traces)
         }
@@ -303,7 +352,7 @@ where
         Ok(traces)
     }
 
-    async fn debug_trace_transaction(
+    pub async fn debug_trace_transaction(
         &self,
         hash: H256,
         opts: GethDebugTracingOptions,
@@ -319,7 +368,7 @@ where
         Ok(trace)
     }
 
-    async fn trace_block(&self, number: u64) -> Result<Vec<Trace>, ProviderError> {
+    pub async fn trace_block(&self, number: u64) -> Result<Vec<Trace>, ProviderError> {
         if let Some(traces) = self.storage_read().block_traces.get(&number).cloned() {
             return Ok(traces)
         }
@@ -331,7 +380,7 @@ where
         Ok(traces)
     }
 
-    async fn transaction_receipt(
+    pub async fn transaction_receipt(
         &self,
         hash: H256,
     ) -> Result<Option<TransactionReceipt>, ProviderError> {
@@ -348,7 +397,7 @@ where
         Ok(None)
     }
 
-    async fn block_by_hash(&self, hash: H256) -> Result<Option<Block<TxHash>>, ProviderError> {
+    pub async fn block_by_hash(&self, hash: H256) -> Result<Option<Block<TxHash>>, ProviderError> {
         if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
             return Ok(Some(block))
         }
@@ -356,7 +405,7 @@ where
         Ok(block)
     }
 
-    async fn block_by_hash_full(
+    pub async fn block_by_hash_full(
         &self,
         hash: H256,
     ) -> Result<Option<Block<Transaction>>, ProviderError> {
@@ -366,7 +415,7 @@ where
         self.fetch_full_block(hash).await
     }
 
-    async fn block_by_number(
+    pub async fn block_by_number(
         &self,
         block_number: u64,
     ) -> Result<Option<Block<TxHash>>, ProviderError> {
@@ -384,7 +433,7 @@ where
         Ok(block)
     }
 
-    async fn block_by_number_full(
+    pub async fn block_by_number_full(
         &self,
         block_number: u64,
     ) -> Result<Option<Block<Transaction>>, ProviderError> {
@@ -401,7 +450,7 @@ where
         self.fetch_full_block(block_number).await
     }
 
-    async fn fetch_full_block(
+    pub async fn fetch_full_block(
         &self,
         block_id: impl Into<BlockId>,
     ) -> Result<Option<Block<Transaction>>, ProviderError> {
@@ -419,7 +468,7 @@ where
         Ok(None)
     }
 
-    async fn uncle_by_block_hash_and_index(
+    pub async fn uncle_by_block_hash_and_index(
         &self,
         hash: H256,
         index: usize,
@@ -430,7 +479,7 @@ where
         Ok(None)
     }
 
-    async fn uncle_by_block_number_and_index(
+    pub async fn uncle_by_block_number_and_index(
         &self,
         number: u64,
         index: usize,
@@ -478,25 +527,42 @@ where
     }
 }
 
-pub enum ClientType {
-    Ipc,
-    Http,
-    Middleware,
+#[async_trait]
+pub trait ClientForkConfigTrait: Send + Sync + Debug {
+
+    fn provider<P>(&self) -> &Arc<Provider<P>> 
+    where 
+        P: JsonRpcClient;
+
+
+
+
+    /// Updates the provider URL or IPC path
+    ///
+    /// # Errors
+    ///
+    /// This will fail if no new provider could be established (erroneous URL or IPC path)
+
+    async fn update_url_or_path(&mut self, url_or_path: String) -> Result<(), BlockchainError>;
+
+    /// Updates the block forked off `(block number, block hash, timestamp)`
+    fn update_block(
+        &mut self,
+        block_number: u64,
+        block_hash: H256,
+        timestamp: u64,
+        base_fee: Option<U256>,
+        total_difficulty: U256,
+    );
 }
 
 /// Contains all fork metadata
 #[derive(Debug, Clone)]
-pub struct ClientForkConfig<M>
-where
-    M: Middleware + 'static,
-{
-    pub client_type: ClientType,
-    pub ipc_path: Option<String>,
-    pub db_path: Option<String>,
+pub struct ClientForkConfigHttp {
     pub eth_rpc_url: Option<String>,
     pub block_number: u64,
     pub block_hash: H256,
-    pub provider: Arc<M>,
+    pub provider: Arc<RetryProvider>,
     pub chain_id: u64,
     pub override_chain_id: Option<u64>,
     /// The timestamp for the forked block
@@ -515,56 +581,149 @@ where
     pub total_difficulty: U256,
 }
 
-impl<M> ClientForkConfig<M>
-where
-    M: Middleware + 'static,
-{
-    /// Updates the provider URL or IPC path
-    ///
-    /// # Errors
-    ///
-    /// This will fail if no new provider could be established (erroneous URL or IPC path)
-    fn update_url_or_path(&mut self, url_or_path: String) -> Result<(), BlockchainError> {
+#[async_trait]
+impl ClientForkConfigTrait for ClientForkConfigHttp {
+    // Can unwrap because it should always have default values
+    async fn update_url_or_path(&mut self, url_or_path: String) -> Result<(), BlockchainError> {
         let interval = self.provider.get_interval();
-
-        match self.client_type {
-            ClientType::Ipc => {
-                self.provider = Arc::new(
-                    Provider::connect_ipc(&url_or_path)
-                        .map_err(|_| BlockchainError::InvalidUrl(url_or_path.clone()))?,
-                );
-                trace!(target: "fork", "Updated IPC path  {}", url_or_path);
-                self.ipc_path = Some(url_or_path);
-            }
-            ClientType::Http => {
-                self.provider = Arc::new(
-                    ProviderBuilder::new(&url_or_path)
-                        .timeout(self.timeout)
-                        .timeout_retry(self.retries)
-                        .max_retry(10)
-                        .initial_backoff(self.backoff.as_millis() as u64)
-                        .compute_units_per_second(self.compute_units_per_second)
-                        .build()
-                        .map_err(|_| BlockchainError::InvalidUrl(url_or_path.clone()))?
-                        .interval(interval),
-                );
-                trace!(target: "fork", "Updated rpc url  {}", url_or_path);
-                self.eth_rpc_url = Some(url_or_path);
-            }
-            ClientType::Middleware => {
-                self.provider = Arc::new(RethMiddleware::new(
-                    Provider::connect_ipc(&url_or_path)
-                        .map_err(|_| BlockchainError::InvalidUrl(url_or_path.clone()))?,
-                    Path::new(self.db_path.as_ref().ok_or(BlockchainError::MissingDBPath)?),
-                ));
-            }
-        }
-
+        self.provider = Arc::new(
+            ProviderBuilder::new(&url_or_path)
+                .timeout(self.timeout.unwrap())
+                .timeout_retry(self.retries.unwrap())
+                .max_retry(10)
+                .initial_backoff(self.backoff.unwrap().as_millis() as u64)
+                .compute_units_per_second(self.compute_units_per_second.unwrap())
+                .build()
+                .map_err(|_| BlockchainError::InvalidUrl(url_or_path.clone()))?
+                .interval(interval),
+        );
+        trace!(target: "fork", "Updated rpc url  {}", url_or_path);
+        self.eth_rpc_url = Some(url_or_path);
         Ok(())
     }
 
-    /// Updates the block forked off `(block number, block hash, timestamp)`
-    pub fn update_block(
+    fn update_block(
+        &mut self,
+        block_number: u64,
+        block_hash: H256,
+        timestamp: u64,
+        base_fee: Option<U256>,
+        total_difficulty: U256,
+    ) {
+        self.block_number = block_number;
+        self.block_hash = block_hash;
+        self.timestamp = timestamp;
+        self.base_fee = base_fee;
+        self.total_difficulty = total_difficulty;
+        trace!(target: "fork", "Updated block number={} hash={:?}", block_number, block_hash);
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ClientForkConfigIpc {
+    pub ipc_path: Option<String>,
+    pub db_path: Option<String>,
+    pub block_number: u64,
+    pub block_hash: H256,
+    pub provider: Arc<Provider<Ipc>>,
+    pub chain_id: u64,
+    pub override_chain_id: Option<u64>,
+    /// The timestamp for the forked block
+    pub timestamp: u64,
+    /// The basefee of the forked block
+    pub base_fee: Option<U256>,
+    /// request timeout
+    pub timeout: Option<Duration>,
+    /// request retries for spurious networks
+    pub retries: Option<u32>,
+    /// request retries for spurious networks
+    pub backoff: Option<Duration>,
+    /// available CUPS
+    pub compute_units_per_second: Option<u64>,
+    /// total difficulty of the chain until this block
+    pub total_difficulty: U256,
+}
+
+#[derive(Debug, Clone)]
+pub struct ClientForkConfigMiddleware {
+    pub ipc_path: Option<String>,
+    pub db_path: Option<String>,
+    pub block_number: u64,
+    pub block_hash: H256,
+    pub provider: Arc<RethMiddleware<Provider<Ipc>>>,
+    pub chain_id: u64,
+    pub override_chain_id: Option<u64>,
+    /// The timestamp for the forked block
+    pub timestamp: u64,
+    /// The basefee of the forked block
+    pub base_fee: Option<U256>,
+    /// request timeout
+    pub timeout: Option<Duration>,
+    /// request retries for spurious networks
+    pub retries: Option<u32>,
+    /// request retries for spurious networks
+    pub backoff: Option<Duration>,
+    /// total difficulty of the chain until this block
+    pub total_difficulty: U256,
+}
+
+/*#[async_trait]
+impl ClientForkConfigTrait for ClientForkConfigMiddleware {
+    async fn update_url_or_path(&mut self, url_or_path: String) -> Result<(), BlockchainError> {
+        let provider = Provider::connect_ipc(url_or_path.clone())
+            .await
+            .map_err(|_| BlockchainError::InvalidUrl(url_or_path.clone()))?;
+
+        let middleware = RethMiddleware::new(
+            provider,
+            Path::new(
+                &self
+                    .db_path
+                    .as_ref()
+                    .ok_or_else(|| BlockchainError::Internal("db_path not set".to_string()))?,
+            ),
+        );
+
+        self.provider = Arc::new(middleware);
+        Ok(())
+    }
+
+    fn update_block(
+        &mut self,
+        block_number: u64,
+        block_hash: H256,
+        timestamp: u64,
+        base_fee: Option<U256>,
+        total_difficulty: U256,
+    ) {
+        self.block_number = block_number;
+        self.block_hash = block_hash;
+        self.timestamp = timestamp;
+        self.base_fee = base_fee;
+        self.total_difficulty = total_difficulty;
+        trace!(target: "fork", "Updated block number={} hash={:?}", block_number, block_hash);
+    }
+}
+*/
+
+#[async_trait]
+impl ClientForkConfigTrait for ClientForkConfigIpc {
+
+    fn provider(&self) -> Arc<Provider<Ipc>> {
+        self.provider.clone()
+    }
+
+    async fn update_url_or_path(&mut self, url_or_path: String) -> Result<(), BlockchainError> {
+        self.provider = Arc::new(
+            Provider::connect_ipc(&url_or_path)
+                .await
+                .map_err(|_| BlockchainError::InvalidUrl(url_or_path.clone()))?,
+        );
+        trace!(target: "fork", "Updated IPC path  {}", url_or_path);
+        self.ipc_path = Some(url_or_path);
+        Ok(())
+    }
+
+    fn update_block(
         &mut self,
         block_number: u64,
         block_hash: H256,

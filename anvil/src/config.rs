@@ -2,7 +2,7 @@ use crate::{
     eth::{
         backend::{
             db::{Db, SerializableState},
-            fork::{ClientFork, ClientForkConfig},
+            fork::{ClientFork, ClientForkConfigTrait},
             genesis::GenesisConfig,
             mem::fork_db::ForkedDatabase,
             time::duration_since_unix_epoch,
