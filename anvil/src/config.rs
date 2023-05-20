@@ -113,6 +113,10 @@ pub struct NodeConfig {
     pub silent: bool,
     /// url of the rpc server that should be used for any rpc calls
     pub eth_rpc_url: Option<String>,
+    /// path of the ipc server that should be used for any ipc calls
+    pub eth_ipc_path: Option<String>,
+    /// path of the local reth node that should be used for any reth DB calls
+    pub eth_reth_db: Option<String>,
     /// pins the block number for the state fork
     pub fork_block_number: Option<u64>,
     /// specifies chain id for cache to skip fetching from remote in offline-start mode
@@ -357,6 +361,8 @@ impl Default for NodeConfig {
             max_transactions: 1_000,
             silent: false,
             eth_rpc_url: None,
+            eth_ipc_path: None,
+            eth_reth_db: None,
             fork_block_number: None,
             account_generator: None,
             base_fee: None,
@@ -618,6 +624,20 @@ impl NodeConfig {
     #[must_use]
     pub fn with_eth_rpc_url<U: Into<String>>(mut self, eth_rpc_url: Option<U>) -> Self {
         self.eth_rpc_url = eth_rpc_url.map(Into::into);
+        self
+    }
+
+    /// Sets the `eth_ipc_path` to use when forking
+    #[must_use]
+    pub fn with_eth_ipc_path<U: Into<String>>(mut self, eth_ipc_path: Option<U>) -> Self {
+        self.eth_ipc_path = eth_ipc_path.map(Into::into);
+        self
+    }
+
+    /// Sets the `eth_reth_db` path to use when forking
+    #[must_use]
+    pub fn with_eth_reth_db<U: Into<String>>(mut self, eth_reth_db: Option<U>) -> Self {
+        self.eth_reth_db = eth_reth_db.map(Into::into);
         self
     }
 

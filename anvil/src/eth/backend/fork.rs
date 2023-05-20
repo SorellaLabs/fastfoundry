@@ -4,20 +4,21 @@ use crate::eth::{backend::mem::fork_db::ForkedDatabase, error::BlockchainError};
 use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
 use ethers::{
     prelude::BlockNumber,
-    providers::{Middleware, ProviderError},
+    providers::{ProviderError, MiddlewareError, JsonRpcClient, Middleware, RpcError, JsonRpcError, Provider, Ipc, Http},
     types::{
         transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
         Filter, GethDebugTracingOptions, GethTrace, Log, Trace, Transaction, TransactionReceipt,
         TxHash, H256, U256,
     },
 };
+use ethers_reth::RethMiddleware;
 use foundry_common::{ProviderBuilder, RetryProvider};
 use foundry_evm::utils::u256_to_h256_be;
 use parking_lot::{
     lock_api::{RwLockReadGuard, RwLockWriteGuard},
     RawRwLock, RwLock,
 };
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration, fmt::Debug};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
 
@@ -522,6 +523,15 @@ impl ClientFork {
     }
 }
 
+type IPC = Provider<Ipc>;
+type RPC = Provider<Http>;
+
+pub trait GenericProvider: Sync + Send + Debug {
+
+
+}
+
+
 /// Contains all fork metadata
 #[derive(Debug, Clone)]
 pub struct ClientForkConfig {
@@ -529,7 +539,7 @@ pub struct ClientForkConfig {
     pub block_number: u64,
     pub block_hash: H256,
     // TODO make provider agnostic
-    pub provider: Arc<RetryProvider>,
+    pub provider: Arc<dyn G>,
     pub chain_id: u64,
     pub override_chain_id: Option<u64>,
     /// The timestamp for the forked block
