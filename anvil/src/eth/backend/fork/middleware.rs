@@ -68,24 +68,6 @@ pub struct ClientForkConfigMiddleware {
 
 #[async_trait]
 impl ClientForkTrait for ClientForkMiddleware {
-    /// Creates a new instance of the fork via http
-    async fn new_http(
-        config: ClientForkConfigHttp,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self {
-        panic!("Cannot create a ClientForkMiddleware from an HTTP configuration");
-    }
-
-    fn new_ipc(config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
-        panic!("Cannot create a ClientForkMiddleware from an IPC configuration");
-    }
-
-    fn new_middleware(
-        config: ClientForkConfigMiddleware,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self {
-        Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
-    }
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
