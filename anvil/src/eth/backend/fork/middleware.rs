@@ -543,6 +543,13 @@ impl ClientForkTrait for ClientForkMiddleware {
 }
 
 impl ClientForkMiddleware {
+    /// Creates a new instance of the fork via middleware
+    /*fn new_middleware(
+        config: ClientForkConfigMiddleware,
+        database: Arc<AsyncRwLock<ForkedDatabase>>,
+    ) -> RethMiddleware<Ipc>;*/
+
+
     fn provider(&self) -> Arc<RethMiddleware<Ipc>> {
         self.config.read().provider.clone()
     }

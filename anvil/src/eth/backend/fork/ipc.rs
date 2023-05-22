@@ -27,7 +27,7 @@ use tracing::trace;
 
 use crate::eth::backend::fork::{
     ClientForkConfigHttp, /* ,ClientForkConfigMiddleware */
-    ClientForkTrait, ForkedStorage,
+    ClientForkTrait, ForkedStorage, ClientForkHttp
 };
 
 pub struct ClientForkIpc {
@@ -43,17 +43,6 @@ pub struct ClientForkIpc {
 
 #[async_trait]
 impl ClientForkTrait for ClientForkIpc {
-    /// Creates a new instance of the fork via http
-    async fn new_http(
-        config: ClientForkConfigHttp,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self {
-        panic!("Cannot create a ClientForkMiddleware from an HTTP configuration");
-    }
-
-    fn new_ipc(config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
-        Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
-    }
 
     /*fn new_middleware(
         config: ClientForkConfigMiddleware,
@@ -521,9 +510,14 @@ impl ClientForkTrait for ClientForkIpc {
 }
 
 impl ClientForkIpc {
+    fn new_ipc(config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
+        Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
+    }
+
     fn provider(&self) -> Arc<Provider<Ipc>> {
         self.config.read().provider.clone()
     }
+
 }
 
 #[derive(Debug, Clone)]
