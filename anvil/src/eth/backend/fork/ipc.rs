@@ -66,9 +66,8 @@ impl ClientForkTrait for ClientForkIpc {
     async fn reset(
         &self,
         path: Option<String>,
-        block_number: impl Into<BlockId> + Send,
+        block_number: BlockId,
     ) -> Result<(), BlockchainError> {
-        let block_number = block_number.into();
         {
             let mut db_write = self.database.write().await;
             db_write.reset(block_number).map_err(BlockchainError::Internal)?;
@@ -246,7 +245,7 @@ impl ClientForkTrait for ClientForkIpc {
         block: Option<BlockNumber>,
     ) -> Result<AccessListWithGasUsed, ProviderError> {
         let block = block.unwrap_or(BlockNumber::Latest);
-        self.config.read().provider.clone().create_access_list(request.into(), block).await
+        self.config.read().provider.clone().create_access_list(request.into(), block.into()).await
     }
 
     async fn storage_at(
@@ -395,7 +394,7 @@ impl ClientForkTrait for ClientForkIpc {
         if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
             return Ok(Some(block))
         }
-        let block = self.fetch_full_block(hash).await?.map(Into::into);
+        let block = self.fetch_full_block(hash.into()).await?.map(Into::into);
         Ok(block)
     }
 
@@ -441,14 +440,14 @@ impl ClientForkTrait for ClientForkIpc {
             return Ok(Some(self.convert_to_full_block(block)))
         }
 
-        self.fetch_full_block(block_number).await
+        self.fetch_full_block(block_number.into()).await
     }
 
     async fn fetch_full_block(
         &self,
-        block_id: impl Into<BlockId> + std::marker::Send,
+        block_id: BlockId,
     ) -> Result<Option<Block<Transaction>>, ProviderError> {
-        if let Some(block) = self.provider().get_block_with_txs(block_id.into()).await? {
+        if let Some(block) = self.provider().get_block_with_txs(block_id).await? {
             let hash = block.hash.unwrap();
             let block_number = block.number.unwrap().as_u64();
             let mut storage = self.storage_write();

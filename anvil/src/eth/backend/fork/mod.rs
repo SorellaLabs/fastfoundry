@@ -29,6 +29,7 @@ pub mod http;
 pub mod ipc;
 pub mod middleware;
 
+use crate::eth::backend::fork::{http::ClientForkHttp, ipc::ClientForkIpc};
 use http::ClientForkConfigHttp;
 use ipc::ClientForkConfigIpc;
 // use middleware::ClientForkConfigMiddleware;
@@ -42,17 +43,15 @@ use ipc::ClientForkConfigIpc;
 pub trait ClientForkTrait {
     /// Creates a new instance of the fork via http
     async fn new_http(
-        &self,
         config: ClientForkConfigHttp,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self;
+    ) -> ClientForkHttp;
 
     /// Creates a new instance of the fork via ipc
     fn new_ipc(
-        &self,
         config: ClientForkConfigIpc,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self;
+    ) -> ClientForkIpc;
 
     /// Creates a new instance of the fork via middleware
     /*fn new_middleware(
@@ -64,7 +63,7 @@ pub trait ClientForkTrait {
     async fn reset(
         &self,
         url_or_path: Option<String>,
-        block_number: impl Into<BlockId> + Send,
+        block_number: BlockId,
     ) -> Result<(), BlockchainError>;
 
     /// Removes all data cached from previous responses
@@ -177,7 +176,7 @@ pub trait ClientForkTrait {
         if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
             return Ok(Some(block))
         }
-        let block = self.fetch_full_block(hash).await?.map(Into::into);
+        let block = self.fetch_full_block(hash.into()).await?.map(Into::into);
         Ok(block)
     }
 
@@ -205,7 +204,7 @@ pub trait ClientForkTrait {
             return Ok(Some(block))
         }
 
-        let block = self.fetch_full_block(block_number).await?.map(Into::into);
+        let block = self.fetch_full_block(block_number.into()).await?.map(Into::into);
         Ok(block)
     }
 
@@ -223,12 +222,12 @@ pub trait ClientForkTrait {
             return Ok(Some(self.convert_to_full_block(block)))
         }
 
-        self.fetch_full_block(block_number).await
+        self.fetch_full_block(block_number.into()).await
     }
 
     async fn fetch_full_block(
         &self,
-        block_id: impl Into<BlockId> + Send,
+        block_id: BlockId,
     ) -> Result<Option<Block<Transaction>>, ProviderError>;
 
     async fn uncle_by_block_hash_and_index(
