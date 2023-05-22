@@ -48,7 +48,7 @@ pub struct ClientForkHttp {
     pub database: Arc<AsyncRwLock<ForkedDatabase>>,
 }
 
-impl ClientForkHttp where {
+impl ClientForkHttp {
     fn new_http(
         config: ClientForkConfigHttp,
         database: Arc<AsyncRwLock<ForkedDatabase>>,

@@ -24,6 +24,8 @@ use parking_lot::{
 use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
+use ethers::core::types::{
+    transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest};
 
 use crate::eth::backend::fork::{
     ClientForkConfigHttp, /* ,ClientForkConfigMiddleware */
@@ -189,7 +191,9 @@ impl ClientForkTrait for ClientForkIpc {
             }
         }
 
-        let res: Bytes = self.config.read().provider.clone().call(request.into(), block).await?;
+        let typed_tx = EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
+        let res: Bytes = self.provider().call(&ethers_tx.clone(), Some(block.into())).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -216,7 +220,9 @@ impl ClientForkTrait for ClientForkIpc {
             }
         }
 
-        let res = self.config.read().provider.clone().estimate_gas(request.into(), block).await?;
+        let typed_tx = EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
+        let res  = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -234,7 +240,9 @@ impl ClientForkTrait for ClientForkIpc {
         block: Option<BlockNumber>,
     ) -> Result<AccessListWithGasUsed, ProviderError> {
         let block = block.unwrap_or(BlockNumber::Latest);
-        self.config.read().provider.clone().create_access_list(request.into(), block.into()).await
+        let typed_tx = EthTransactionRequest::into_typed_request(request.clone().into()).unwrap();
+        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
+        self.provider().create_access_list(&ethers_tx, Some(block.into())).await
     }
 
     async fn storage_at(
@@ -394,7 +402,7 @@ impl ClientForkTrait for ClientForkIpc {
         if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
             return Ok(Some(self.convert_to_full_block(block)))
         }
-        self.fetch_full_block(hash).await
+        self.fetch_full_block(ethers::types::BlockId::Hash(hash)).await
     }
 
     async fn block_by_number(
@@ -411,7 +419,7 @@ impl ClientForkTrait for ClientForkIpc {
             return Ok(Some(block))
         }
 
-        let block = self.fetch_full_block(block_number).await?.map(Into::into);
+        let block = self.fetch_full_block(block_number.into()).await?.map(Into::into);
         Ok(block)
     }
 
