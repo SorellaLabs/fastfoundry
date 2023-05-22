@@ -25,6 +25,22 @@ use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duratio
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
 
+pub mod middleware;
+pub mod http;
+pub mod ipc;
+
+
+use ipc::ClientForkConfigIpc;
+use http::ClientForkConfigHttp;
+use middleware::ClientForkConfigMiddleware;
+
+
+pub enum ClientForkConfig {
+    Ipc(ClientForkConfigIpc),
+    Http(ClientForkConfigHttp),
+    Middleware(ClientForkConfigMiddleware),
+}
+
 /// Represents a fork of a remote client
 ///
 /// This type contains a subset of the [`EthApi`](crate::eth::EthApi) functions but will exclusively
@@ -33,58 +49,10 @@ use tracing::trace;
 #[async_trait]
 pub trait ClientForkTrait {
     /// Creates a new instance of the fork
-    fn new<>(
-        config: ClientForConfig,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self {
-        Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
-    }
+    fn new(config: ClientForkConfig, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self;
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
-    async fn reset(
-        &self,
-        url_or_path: Option<String>,
-        block_number: impl Into<BlockId>,
-    ) -> Result<(), BlockchainError> {
-        let block_number = block_number.into();
-        {
-            self.database
-                .write()
-                .await
-                .reset(url_or_path.clone(), block_number)
-                .map_err(BlockchainError::Internal)?;
-        }
-
-        if let Some(url_or_path) = url_or_path {
-            self.config.write().update_url_or_path(url_or_path).await?;
-            let override_chain_id = self.config.read().override_chain_id.unwrap();
-            let chain_id = if let Some(chain_id) = override_chain_id {
-                chain_id.into()
-            } else {
-                self.provider().get_chainid().await?
-            };
-            self.config.write().chain_id = chain_id.as_u64();
-        }
-
-        let provider = self.provider();
-        let block =
-            provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
-        let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
-        let timestamp = block.timestamp.as_u64();
-        let base_fee = block.base_fee_per_gas;
-        let total_difficulty = block.total_difficulty.unwrap_or_default();
-
-        self.config.write().update_block(
-            block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
-            block_hash,
-            timestamp,
-            base_fee,
-            total_difficulty,
-        );
-
-        self.clear_cached_storage();
-        Ok(())
-    }
+   
     /// Removes all data cached from previous responses
     /// Removes all data cached from previous responses
     fn clear_cached_storage(&self) {
