@@ -37,7 +37,7 @@ use tokio::{
     runtime::Handle,
     task::{JoinError, JoinHandle},
 };
-
+use crate::eth::backend::fork::ClientForkTrait;
 /// contains the background service that drives the node
 mod service;
 
@@ -221,7 +221,7 @@ impl NodeHandle {
     }
 
     /// Prints the launch info
-    pub(crate) fn print(&self, fork: Option<&ClientFork>) {
+    pub(crate) fn print(&self, fork: Option<Box<dyn ClientForkTrait>>) {
         self.config.print(fork);
         if !self.config.silent {
             println!("Listening on {}", self.socket_address())
