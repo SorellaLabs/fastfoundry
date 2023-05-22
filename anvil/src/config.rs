@@ -808,10 +808,7 @@ impl NodeConfig {
         };
         let fees = FeeManager::new(env.cfg.spec_id, self.get_base_fee(), self.get_gas_price());
 
-        let (mut db, mut fork): (
-            Arc<tokio::sync::RwLock<dyn Db>>,
-            Option<Arc<dyn ClientForkTrait>>,
-        ) = (Arc::new(tokio::sync::RwLock::new(MemDb::default())), None);
+        let (mut backend_db, mut client_fork): (Arc<tokio::sync::RwLock<dyn Db>>, Option<Arc<dyn ClientForkTrait>>) = (Arc::new(tokio::sync::RwLock::new(MemDb::default())), None);
 
         if let Some(eth_rpc_url) = self.eth_rpc_url {
             // TODO make provider agnostic
@@ -958,7 +955,7 @@ impl NodeConfig {
 
             let db =
                 Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
-            let fork = ClientForkHttp::new(
+            let fork = ClientForkHttp::new_http(
                 ClientForkConfigHttp {
                     eth_rpc_url: Some(eth_rpc_url),
                     block_number: fork_block_number,
@@ -977,8 +974,10 @@ impl NodeConfig {
                 Arc::clone(&db),
             );
 
-            (db, fork) = (db, Arc::new(Some(fork)))
-        }
+            backend_db = db;
+            client_fork = Some(Arc::new(fork));
+        } 
+        
 
         if let Some(eth_ipc_path) = self.eth_ipc_path {
             // TODO make provider agnostic
@@ -1117,11 +1116,9 @@ impl NodeConfig {
                     Some(fork_block_number.into()),
                 );
 
-                let db = Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(
-                    backend,
-                    block_chain_db,
-                )));
-                let fork = ClientForkMiddleware::new(
+                let db =
+                    Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
+                let fork = ClientForkMiddleware::new_middleware(
                     ClientForkConfigMiddleware {
                         ipc_path: Some(eth_ipc_path),
                         block_number: fork_block_number,
@@ -1139,7 +1136,10 @@ impl NodeConfig {
                     },
                     Arc::clone(&db),
                 );
-                (db, fork) = (db, Arc::new(Some(fork)))
+            
+                backend_db = db;
+                client_fork = Some(Arc::new(fork));
+
             } else {
                 // This will spawn the background thread that will use the provider to fetch
                 // blockchain data from the other client
@@ -1149,11 +1149,9 @@ impl NodeConfig {
                     Some(fork_block_number.into()),
                 );
 
-                let db = Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(
-                    backend,
-                    block_chain_db,
-                )));
-                let fork = ClientForkIpc::new(
+                let db =
+                    Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
+                let fork = ClientForkIpc::new_ipc(
                     ClientForkConfigIpc {
                         ipc_path: Some(eth_ipc_path),
                         block_number: fork_block_number,
@@ -1172,7 +1170,8 @@ impl NodeConfig {
                     },
                     Arc::clone(&db),
                 );
-                (db, fork) = (db, Arc::new(Some(fork)))
+                backend_db = db;
+                client_fork = Some(Arc::new(fork));
             }
         }
 
@@ -1191,11 +1190,11 @@ impl NodeConfig {
 
         // only memory based backend for now
         let backend = mem::Backend::with_genesis(
-            db,
+            backend_db,
             Arc::new(RwLock::new(env)),
             genesis,
             fees,
-            fork,
+            client_fork,
             self.enable_steps_tracing,
             self.prune_history,
             self.transaction_block_keeper,
