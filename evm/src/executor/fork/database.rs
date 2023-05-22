@@ -70,12 +70,9 @@ impl ForkedDatabase {
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     pub fn reset(
         &mut self,
-        _url: Option<String>,
         block_number: impl Into<BlockId>,
     ) -> Result<(), String> {
         self.backend.set_pinned_block(block_number).map_err(|err| err.to_string())?;
-
-        // TODO need to find a way to update generic provider via url
 
         // wipe the storage retrieved from remote
         self.inner().db().clear();

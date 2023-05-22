@@ -29,6 +29,17 @@ use ethers_providers::JsonRpcClient;
 
 
 
+pub struct ClientForkIpc {
+    /// Contains the cached data
+    pub storage: Arc<RwLock<ForkedStorage>>,
+    /// contains the info how the fork is configured
+    // Wrapping this in a lock, ensures we can update this on the fly via additional custom RPC
+    // endpoints
+    pub config: Arc<RwLock<ClientForkConfigIpc>>,
+    /// This also holds a handle to the underlying database
+    pub database: Arc<AsyncRwLock<ForkedDatabase>>,
+}
+
 
 
 #[derive(Debug, Clone)]

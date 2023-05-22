@@ -20,14 +20,15 @@ use parking_lot::{
 use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
-use ethers::providers::{Ipc, Middleware, Provider, ProviderError};
+use ethers::providers::{ Provider, ProviderError};
 use ethers_reth::RethMiddleware;
 use async_trait::async_trait;
 use std::path::Path;
 use ethers_providers::JsonRpcClient;
-
-
-
+use ethers_providers::{Middleware, Ipc};
+use crate::eth::backend::fork::ClientForkTrait;
+use crate::eth::backend::fork::{ClientForkConfigHttp, ClientForkConfigIpc};
+use crate::eth::backend::fork::ForkedStorage;
 pub struct ClientForkMiddleware {
     /// Contains the cached data
     pub storage: Arc<RwLock<ForkedStorage>>,
@@ -64,13 +65,394 @@ pub struct ClientForkConfigMiddleware {
     pub total_difficulty: U256,
 }
 
+#[async_trait]
+impl ClientForkTrait for ClientForkMiddleware {
+    /// Creates a new instance of the fork via http
+    async fn new_http(config: ClientForkConfigHttp, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
+    panic!("Cannot create a ClientForkMiddleware from an HTTP configuration");
+}
+
+    fn new_ipc(config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
+        panic!("Cannot create a ClientForkMiddleware from an IPC configuration");
+    }
+
+    fn new_middleware(config: ClientForkConfigMiddleware, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
+        Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
+    }
+    
+    /// Reset the fork to a fresh forked state, and optionally update the fork config
+    async fn reset(
+        &self,
+        url_or_path: Option<String>,
+        block_number: impl Into<BlockId>,
+    ) -> Result<(), BlockchainError> {
+        let block_number = block_number.into();
+        {
+            self.database
+                .write()
+                .await
+                .reset(block_number)
+                .map_err(BlockchainError::Internal)?;
+        }
+
+        if let Some(path) = url_or_path {
+            self.config.write().update_path(path).await?;
+            let override_chain_id = self.config.read().override_chain_id;
+            let chain_id = if let Some(chain_id) = override_chain_id {
+                chain_id.into()
+            } else {
+                self.config.read().provider.clone().get_chainid().await?
+            };
+            self.config.write().chain_id = chain_id.as_u64();
+        }
+
+        let provider = self.config.read().provider.clone();
+        let block =
+            provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
+        let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
+        let timestamp = block.timestamp.as_u64();
+        let base_fee = block.base_fee_per_gas;
+        let total_difficulty = block.total_difficulty.unwrap_or_default();
+
+        self.config.write().update_block(
+            block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
+            block_hash,
+            timestamp,
+            base_fee,
+            total_difficulty,
+        );
+
+        self.clear_cached_storage();
+        Ok(())
+    }
+
+    /// Removes all data cached from previous responses
+    fn clear_cached_storage(&self) {
+        self.storage.write().clear()
+    }
+
+    /// Returns true whether the block predates the fork
+    fn predates_fork(&self, block: u64) -> bool {
+        block < self.block_number()
+    }
+
+    /// Returns true whether the block predates the fork _or_ is the same block as the fork
+    fn predates_fork_inclusive(&self, block: u64) -> bool {
+        block <= self.block_number()
+    }
+
+    fn timestamp(&self) -> u64 {
+        self.config.read().timestamp
+    }
+
+    fn block_number(&self) -> u64 {
+        self.config.read().block_number
+    }
+
+    fn total_difficulty(&self) -> U256 {
+        self.config.read().total_difficulty
+    }
+
+    fn base_fee(&self) -> Option<U256> {
+        self.config.read().base_fee
+    }
+
+    fn block_hash(&self) -> H256 {
+        self.config.read().block_hash
+    }
+
+    fn chain_id(&self) -> u64 {
+        self.config.read().chain_id
+    }
+
+    fn storage_read(&self) -> RwLockReadGuard<'_, RawRwLock, ForkedStorage> {
+        self.storage.read()
+    }
+
+    fn storage_write(&self) -> RwLockWriteGuard<'_, RawRwLock, ForkedStorage> {
+        self.storage.write()
+    }
+    /// Returns the fee history  `eth_feeHistory`
+    async fn fee_history(
+        &self,
+        block_count: U256,
+        newest_block: BlockNumber,
+        reward_percentiles: &[f64],
+    ) -> Result<FeeHistory, ProviderError> {
+        self.config.read().provider.clone().fee_history(block_count, newest_block, reward_percentiles).await
+    }
+
+    /// Sends `eth_getProof`
+    async fn get_proof(
+        &self,
+        address: Address,
+        keys: Vec<H256>,
+        block_number: Option<BlockId>,
+    ) -> Result<AccountProof, ProviderError> {
+        self.config.read().provider.clone().get_proof(address, keys, block_number).await
+    }
+
+    /// Sends `eth_call`
+    async fn call(
+        &self,
+        request: &EthTransactionRequest,
+        block: Option<BlockNumber>,
+    ) -> Result<Bytes, ProviderError> {
+        let block = block.unwrap_or(BlockNumber::Latest);
+        let request = Arc::new(request.clone());
+
+        if let BlockNumber::Number(num) = block {
+            // check if this request was already been sent
+            let key = (request.clone(), num.as_u64());
+            if let Some(res) = self.storage_read().eth_call.get(&key).cloned() {
+                return Ok(res)
+            }
+        }
+
+        let res: Bytes = self.config.read().provider.clone().call(request.into(), block).await?;
+
+        if let BlockNumber::Number(num) = block {
+            // cache result
+            let mut storage = self.storage_write();
+            storage.eth_call.insert((request, num.as_u64()), res.clone());
+        }
+        Ok(res)
+    }
+
+    /// Sends `eth_call`
+    async fn estimate_gas(
+        &self,
+        request: &EthTransactionRequest,
+        block: Option<BlockNumber>,
+    ) -> Result<U256, ProviderError> {
+        let request = Arc::new(request.clone());
+        let block = block.unwrap_or(BlockNumber::Latest);
+
+        if let BlockNumber::Number(num) = block {
+            // check if this request was already been sent
+            let key = (request.clone(), num.as_u64());
+            if let Some(res) = self.storage_read().eth_gas_estimations.get(&key).cloned() {
+                return Ok(res)
+            }
+        }
+
+        let res = self.config.read().provider.clone().estimate_gas(request.into(), block).await?;
+
+        if let BlockNumber::Number(num) = block {
+            // cache result
+            let mut storage = self.storage_write();
+            storage.eth_gas_estimations.insert((request, num.as_u64()), res);
+        }
+
+        Ok(res)
+    }
+
+    /// Sends `eth_createAccessList`
+    async fn create_access_list(
+        &self,
+        request: &EthTransactionRequest,
+        block: Option<BlockNumber>,
+    ) -> Result<AccessListWithGasUsed, ProviderError> {
+        let block = block.unwrap_or(BlockNumber::Latest);
+        self.config.read().provider.clone().create_access_list(request.into(), block).await
+    }
+
+    async fn storage_at(
+        &self,
+        address: Address,
+        index: U256,
+        number: Option<BlockNumber>,
+    ) -> Result<H256, ProviderError> {
+        let index = u256_to_h256_be(index);
+        self.config.read().provider.clone().get_storage_at(address, index, number.map(Into::into)).await
+    }
+
+    async fn logs(&self, filter: &Filter) -> Result<Vec<Log>, ProviderError> {
+        if let Some(logs) = self.storage_read().logs.get(filter).cloned() {
+            return Ok(logs)
+        }
+
+        let logs = self.config.read().provider.clone().get_logs(filter).await?;
+
+        let mut storage = self.storage_write();
+        storage.logs.insert(filter.clone(), logs.clone());
+        Ok(logs)
+    }
+
+
+    async fn get_code(
+        &self,
+        address: Address,
+        blocknumber: u64,
+    ) -> Result<Bytes, ProviderError> {
+        trace!(target: "backend::fork", "get_code={:?}", address);
+        if let Some(code) = self.storage_read().code_at.get(&(address, blocknumber)).cloned() {
+            return Ok(code)
+        }
+
+        let code = self.provider().get_code(address, Some(blocknumber.into())).await?;
+        let mut storage = self.storage_write();
+        storage.code_at.insert((address, blocknumber), code.clone());
+
+        Ok(code)
+    }
+
+    async fn get_balance(
+        &self,
+        address: Address,
+        blocknumber: u64,
+    ) -> Result<U256, ProviderError> {
+        trace!(target: "backend::fork", "get_balance={:?}", address);
+        self.provider().get_balance(address, Some(blocknumber.into())).await
+    }
+
+    async fn get_nonce(
+        &self,
+        address: Address,
+        blocknumber: u64,
+    ) -> Result<U256, ProviderError> {
+        trace!(target: "backend::fork", "get_nonce={:?}", address);
+        self.provider().get_transaction_count(address, Some(blocknumber.into())).await
+    }
+
+    async fn transaction_by_block_number_and_index(
+        &self,
+        number: u64,
+        index: usize,
+    ) -> Result<Option<Transaction>, ProviderError>;
+
+    async fn transaction_by_block_hash_and_index(
+        &self,
+        hash: H256,
+        index: usize,
+    ) -> Result<Option<Transaction>, ProviderError>;
+
+    async fn transaction_by_hash(&self, hash: H256) -> Result<Option<Transaction>, ProviderError>;
+
+    async fn trace_transaction(&self, hash: H256) -> Result<Vec<Trace>, ProviderError>;
+
+    async fn debug_trace_transaction(
+        &self,
+        hash: H256,
+        opts: GethDebugTracingOptions,
+    ) -> Result<GethTrace, ProviderError>;
+
+    async fn trace_block(&self, number: u64) -> Result<Vec<Trace>, ProviderError>;
+
+    async fn transaction_receipt(
+        &self,
+        hash: H256,
+    ) -> Result<Option<TransactionReceipt>, ProviderError>;
+
+    async fn block_by_hash(&self, hash: H256) -> Result<Option<Block<TxHash>>, ProviderError> {
+        if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
+            return Ok(Some(block))
+        }
+        let block = self.fetch_full_block(hash).await?.map(Into::into);
+        Ok(block)
+    }
+
+    async fn block_by_hash_full(
+        &self,
+        hash: H256,
+    ) -> Result<Option<Block<Transaction>>, ProviderError> {
+        if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
+            return Ok(Some(self.convert_to_full_block(block)))
+        }
+        self.fetch_full_block(hash).await
+    }
+
+    async fn block_by_number(
+        &self,
+        block_number: u64,
+    ) -> Result<Option<Block<TxHash>>, ProviderError> {
+        if let Some(block) = self
+            .storage_read()
+            .hashes
+            .get(&block_number)
+            .copied()
+            .and_then(|hash| self.storage_read().blocks.get(&hash).cloned())
+        {
+            return Ok(Some(block))
+        }
+
+        let block = self.fetch_full_block(block_number).await?.map(Into::into);
+        Ok(block)
+    }
+
+    async fn block_by_number_full(
+        &self,
+        block_number: u64,
+    ) -> Result<Option<Block<Transaction>>, ProviderError> {
+        if let Some(block) = self
+            .storage_read()
+            .hashes
+            .get(&block_number)
+            .copied()
+            .and_then(|hash| self.storage_read().blocks.get(&hash).cloned())
+        {
+            return Ok(Some(self.convert_to_full_block(block)))
+        }
+
+        self.fetch_full_block(block_number).await
+    }
+
+    async fn fetch_full_block(
+        &self,
+        block_id: impl Into<BlockId>,
+    ) -> Result<Option<Block<Transaction>>, ProviderError>;
+
+    async fn uncle_by_block_hash_and_index(
+        &self,
+        hash: H256,
+        index: usize,
+    ) -> Result<Option<Block<TxHash>>, ProviderError> {
+        if let Some(block) = self.block_by_hash(hash).await? {
+            return self.uncles_by_block_and_index(block, index).await
+        }
+        Ok(None)
+    }
+
+    async fn uncle_by_block_number_and_index(
+        &self,
+        number: u64,
+        index: usize,
+    ) -> Result<Option<Block<TxHash>>, ProviderError> {
+        if let Some(block) = self.block_by_number(number).await? {
+            return self.uncles_by_block_and_index(block, index).await
+        }
+        Ok(None)
+    }
+
+    async fn uncles_by_block_and_index(
+        &self,
+        block: Block<H256>,
+        index: usize,
+    ) -> Result<Option<Block<TxHash>>, ProviderError>;
+
+    /// Converts a block of hashes into a full block
+    fn convert_to_full_block(&self, block: Block<TxHash>) -> Block<Transaction>;
+
+
+}
+
+impl ClientForkMiddleware {
+    fn provider(&self) -> Arc<RethMiddleware<Ipc>> {
+        self.config.read().provider.clone()
+    }
+}
+
+
+
+
+
 
 
 impl ClientForkConfigMiddleware {
-    async fn update_url_or_path(&mut self, url_or_path: String) -> Result<(), BlockchainError> {
-        let provider = Provider::connect_ipc(url_or_path.clone())
+    async fn update_path(&mut self, path: String) -> Result<(), BlockchainError> {
+        let provider: Provider<Ipc> = Provider::connect_ipc(path.clone())
             .await
-            .map_err(|_| BlockchainError::InvalidUrl(url_or_path.clone()))?;
+            .map_err(|_| BlockchainError::InvalidUrl(path.clone()))?;
 
         let middleware = RethMiddleware::new(
             provider,
@@ -101,9 +483,6 @@ impl ClientForkConfigMiddleware {
         self.total_difficulty = total_difficulty;
         trace!(target: "fork", "Updated block number={} hash={:?}", block_number, block_hash);
     }
-
-
-
 
 
 }
