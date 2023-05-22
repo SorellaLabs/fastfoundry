@@ -31,7 +31,7 @@ pub mod middleware;
 
 use http::ClientForkConfigHttp;
 use ipc::ClientForkConfigIpc;
-use middleware::ClientForkConfigMiddleware;
+// use middleware::ClientForkConfigMiddleware;
 
 /// Represents a fork of a remote client
 ///
@@ -50,10 +50,10 @@ pub trait ClientForkTrait {
     fn new_ipc(config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self;
 
     /// Creates a new instance of the fork via middleware
-    fn new_middleware(
+    /*fn new_middleware(
         config: ClientForkConfigMiddleware,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self;
+    ) -> Self;*/
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(

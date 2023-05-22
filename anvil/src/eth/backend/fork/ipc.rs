@@ -26,7 +26,7 @@ use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
 
 use crate::eth::backend::fork::{
-    ClientForkConfigHttp, ClientForkConfigMiddleware, ClientForkTrait, ForkedStorage,
+    ClientForkConfigHttp /* ,ClientForkConfigMiddleware*/, ClientForkTrait, ForkedStorage,
 };
 
 pub struct ClientForkIpc {
@@ -54,12 +54,12 @@ impl ClientForkTrait for ClientForkIpc {
         Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
     }
 
-    fn new_middleware(
+    /*fn new_middleware(
         config: ClientForkConfigMiddleware,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
     ) -> Self {
         panic!("Cannot create a ClientForkMiddleware from an IPC configuration");
-    }
+    }*/
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
