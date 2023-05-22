@@ -48,7 +48,7 @@ pub struct ClientForkHttp {
     pub database: Arc<AsyncRwLock<ForkedDatabase>>,
 }
 
-impl ClientForkHttp where {
+impl ClientForkHttp {
     fn new_http(
         config: ClientForkConfigHttp,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
@@ -64,33 +64,13 @@ impl ClientForkHttp where {
 
 #[async_trait]
 impl ClientForkTrait for ClientForkHttp {
-    /// Creates a new instance of the fork via http
-    async fn new_http(
-        &self,
-        config: ClientForkConfigHttp,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self {
-        Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
-    }
-
-    fn new_ipc(&self, config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
-        panic!("Cannot create a ClientForkMiddleware from an HTTP configuration");
-    }
-
-    /*fn new_middleware(
-        config: ClientForkConfigMiddleware,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self {
-        panic!("Cannot create a ClientForkMiddleware from an IPC configuration");
-    }*/
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,
         path: Option<String>,
-        block_number: impl Into<BlockId> + Send,
+        block_number: BlockId,
     ) -> Result<(), BlockchainError> {
-        let block_number = block_number.into();
         {
             let mut db_write = self.database.write().await;
             db_write.reset(block_number).map_err(BlockchainError::Internal)?;
@@ -254,8 +234,9 @@ impl ClientForkTrait for ClientForkHttp {
             }
         }
 
-        let ethers_tx = EthersTypedTransactionRequest::from(request.as_ref().into());
-        let res: Bytes = self.provider().estimate_gas(ethers_tx, Some(block.into())).await?;
+        let typed_tx = EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
+        let res  = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -273,8 +254,9 @@ impl ClientForkTrait for ClientForkHttp {
         block: Option<BlockNumber>,
     ) -> Result<AccessListWithGasUsed, ProviderError> {
         let block = block.unwrap_or(BlockNumber::Latest);
-        let ethers_tx = EthersTypedTransactionRequest::from(request.as_ref().into());
-        self.config.read().provider.clone().create_access_list(ethers_tx, Some(block.into())).await
+        let typed_tx = EthTransactionRequest::into_typed_request(request.clone().into()).unwrap();
+        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
+        self.provider().create_access_list(&ethers_tx, Some(block.into())).await
     }
 
     async fn storage_at(
@@ -423,7 +405,7 @@ impl ClientForkTrait for ClientForkHttp {
         if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
             return Ok(Some(block))
         }
-        let block = self.fetch_full_block(hash).await?.map(Into::into);
+        let block = self.fetch_full_block(BlockId::Hash(hash)).await?.map(Into::into);
         Ok(block)
     }
 
@@ -434,7 +416,7 @@ impl ClientForkTrait for ClientForkHttp {
         if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
             return Ok(Some(self.convert_to_full_block(block)))
         }
-        self.fetch_full_block(hash).await
+        self.fetch_full_block(BlockId::Hash(hash)).await
     }
 
     async fn block_by_number(
@@ -451,7 +433,7 @@ impl ClientForkTrait for ClientForkHttp {
             return Ok(Some(block))
         }
 
-        let block = self.fetch_full_block(block_number).await?.map(Into::into);
+        let block = self.fetch_full_block(block_number.into()).await?.map(Into::into);
         Ok(block)
     }
 
@@ -469,14 +451,14 @@ impl ClientForkTrait for ClientForkHttp {
             return Ok(Some(self.convert_to_full_block(block)))
         }
 
-        self.fetch_full_block(block_number).await
+        self.fetch_full_block(block_number.into()).await
     }
 
     async fn fetch_full_block(
         &self,
-        block_id: impl Into<BlockId> + std::marker::Send,
+        block_id: BlockId,
     ) -> Result<Option<Block<Transaction>>, ProviderError> {
-        if let Some(block) = self.provider().get_block_with_txs(block_id.into()).await? {
+        if let Some(block) = self.provider().get_block_with_txs(block_id).await? {
             let hash = block.hash.unwrap();
             let block_number = block.number.unwrap().as_u64();
             let mut storage = self.storage_write();
