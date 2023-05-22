@@ -3,31 +3,27 @@
 use crate::eth::{backend::mem::fork_db::ForkedDatabase, error::BlockchainError};
 use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
 use anvil_rpc::error::RpcError;
+use async_trait::async_trait;
 use ethers::{
     prelude::BlockNumber,
+    providers::{Ipc, Middleware, Provider, ProviderError},
     types::{
         transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
         Filter, GethDebugTracingOptions, GethTrace, Log, Trace, Transaction, TransactionReceipt,
         TxHash, H256, U256,
     },
 };
-use ethers_providers::MiddlewareError;
+use ethers_providers::{JsonRpcClient, MiddlewareError};
+use ethers_reth::RethMiddleware;
 use foundry_common::{ProviderBuilder, RetryProvider};
 use foundry_evm::utils::u256_to_h256_be;
 use parking_lot::{
     lock_api::{RwLockReadGuard, RwLockWriteGuard},
     RawRwLock, RwLock,
 };
-use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
+use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
-use ethers::providers::{Ipc, Middleware, Provider, ProviderError};
-use ethers_reth::RethMiddleware;
-use async_trait::async_trait;
-use std::path::Path;
-use ethers_providers::JsonRpcClient;
-
-
 
 pub struct ClientForkIpc {
     /// Contains the cached data
@@ -39,8 +35,6 @@ pub struct ClientForkIpc {
     /// This also holds a handle to the underlying database
     pub database: Arc<AsyncRwLock<ForkedDatabase>>,
 }
-
-
 
 #[derive(Debug, Clone)]
 pub struct ClientForkConfigIpc {
@@ -67,11 +61,7 @@ pub struct ClientForkConfigIpc {
     pub total_difficulty: U256,
 }
 
-
-
-
 impl ClientForkConfigIpc {
-
     fn provider(&self) -> Arc<Provider<Ipc>> {
         self.provider.clone()
     }

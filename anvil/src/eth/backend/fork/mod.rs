@@ -25,17 +25,13 @@ use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duratio
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
 
-pub mod middleware;
 pub mod http;
 pub mod ipc;
+pub mod middleware;
 
-
-use ipc::ClientForkConfigIpc;
 use http::ClientForkConfigHttp;
+use ipc::ClientForkConfigIpc;
 use middleware::ClientForkConfigMiddleware;
-
-
-
 
 /// Represents a fork of a remote client
 ///
@@ -45,7 +41,10 @@ use middleware::ClientForkConfigMiddleware;
 #[async_trait]
 pub trait ClientForkTrait {
     /// Creates a new instance of the fork via http
-    async fn new_http(config: ClientForkConfigHttp, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self;
+    async fn new_http(
+        config: ClientForkConfigHttp,
+        database: Arc<AsyncRwLock<ForkedDatabase>>,
+    ) -> Self;
 
     /// Creates a new instance of the fork via ipc
     fn new_ipc(config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self;
@@ -102,7 +101,7 @@ pub trait ClientForkTrait {
         address: Address,
         keys: Vec<H256>,
         block_number: Option<BlockId>,
-    ) -> Result<AccountProof, ProviderError>; 
+    ) -> Result<AccountProof, ProviderError>;
 
     /// Sends `eth_call`
     async fn call(
@@ -131,7 +130,6 @@ pub trait ClientForkTrait {
         index: U256,
         number: Option<BlockNumber>,
     ) -> Result<H256, ProviderError>;
-
 
     async fn logs(&self, filter: &Filter) -> Result<Vec<Log>, ProviderError>;
 
@@ -258,8 +256,6 @@ pub trait ClientForkTrait {
 
     /// Converts a block of hashes into a full block
     fn convert_to_full_block(&self, block: Block<TxHash>) -> Block<Transaction>;
-
-
 }
 
 /// Contains cached state fetched to serve EthApi requests
