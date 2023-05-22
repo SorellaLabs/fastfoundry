@@ -319,30 +319,101 @@ impl ClientForkTrait for ClientForkMiddleware {
         &self,
         number: u64,
         index: usize,
-    ) -> Result<Option<Transaction>, ProviderError>;
+    ) -> Result<Option<Transaction>, ProviderError> {
+        if let Some(block) = self.block_by_number(number).await? {
+            if let Some(tx_hash) = block.transactions.get(index) {
+                return self.transaction_by_hash(*tx_hash).await
+            }
+        }
+        Ok(None)
+    }
 
     async fn transaction_by_block_hash_and_index(
         &self,
         hash: H256,
         index: usize,
-    ) -> Result<Option<Transaction>, ProviderError>;
+    ) -> Result<Option<Transaction>, ProviderError> {
+        if let Some(block) = self.block_by_hash(hash).await? {
+            if let Some(tx_hash) = block.transactions.get(index) {
+                return self.transaction_by_hash(*tx_hash).await
+            }
+        }
+        Ok(None)
+    }
 
-    async fn transaction_by_hash(&self, hash: H256) -> Result<Option<Transaction>, ProviderError>;
+    async fn transaction_by_hash(
+        &self,
+        hash: H256,
+    ) -> Result<Option<Transaction>, ProviderError> {
+        trace!(target: "backend::fork", "transaction_by_hash={:?}", hash);
+        if let tx @ Some(_) = self.storage_read().transactions.get(&hash).cloned() {
+            return Ok(tx)
+        }
 
-    async fn trace_transaction(&self, hash: H256) -> Result<Vec<Trace>, ProviderError>;
+        if let Some(tx) = self.provider().get_transaction(hash).await? {
+            let mut storage = self.storage_write();
+            storage.transactions.insert(hash, tx.clone());
+            return Ok(Some(tx))
+        }
+        Ok(None)
+    }
+
+    async fn trace_transaction(&self, hash: H256) -> Result<Vec<Trace>, ProviderError> {
+        if let Some(traces) = self.storage_read().transaction_traces.get(&hash).cloned() {
+            return Ok(traces)
+        }
+
+        let traces = self.provider().trace_transaction(hash).await?;
+        let mut storage = self.storage_write();
+        storage.transaction_traces.insert(hash, traces.clone());
+
+        Ok(traces)
+    }
 
     async fn debug_trace_transaction(
         &self,
         hash: H256,
         opts: GethDebugTracingOptions,
-    ) -> Result<GethTrace, ProviderError>;
+    ) -> Result<GethTrace, ProviderError> {
+        if let Some(traces) = self.storage_read().geth_transaction_traces.get(&hash).cloned() {
+            return Ok(traces)
+        }
 
-    async fn trace_block(&self, number: u64) -> Result<Vec<Trace>, ProviderError>;
+        let trace = self.provider().debug_trace_transaction(hash, opts).await?;
+        let mut storage = self.storage_write();
+        storage.geth_transaction_traces.insert(hash, trace.clone());
+
+        Ok(trace)
+    }
+
+    async fn trace_block(&self, number: u64) -> Result<Vec<Trace>, ProviderError> {
+        if let Some(traces) = self.storage_read().block_traces.get(&number).cloned() {
+            return Ok(traces)
+        }
+
+        let traces = self.provider().trace_block(number.into()).await?;
+        let mut storage = self.storage_write();
+        storage.block_traces.insert(number, traces.clone());
+
+        Ok(traces)
+    }
 
     async fn transaction_receipt(
         &self,
         hash: H256,
-    ) -> Result<Option<TransactionReceipt>, ProviderError>;
+    ) -> Result<Option<TransactionReceipt>, ProviderError> {
+        if let Some(receipt) = self.storage_read().transaction_receipts.get(&hash).cloned() {
+            return Ok(Some(receipt))
+        }
+
+        if let Some(receipt) = self.provider().get_transaction_receipt(hash).await? {
+            let mut storage = self.storage_write();
+            storage.transaction_receipts.insert(hash, receipt.clone());
+            return Ok(Some(receipt))
+        }
+
+        Ok(None)
+    }
 
     async fn block_by_hash(&self, hash: H256) -> Result<Option<Block<TxHash>>, ProviderError> {
         if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
@@ -400,7 +471,20 @@ impl ClientForkTrait for ClientForkMiddleware {
     async fn fetch_full_block(
         &self,
         block_id: impl Into<BlockId>,
-    ) -> Result<Option<Block<Transaction>>, ProviderError>;
+    ) -> Result<Option<Block<Transaction>>, ProviderError> {
+        if let Some(block) = self.provider().get_block_with_txs(block_id.into()).await? {
+            let hash = block.hash.unwrap();
+            let block_number = block.number.unwrap().as_u64();
+            let mut storage = self.storage_write();
+            // also insert all transactions
+            storage.transactions.extend(block.transactions.iter().map(|tx| (tx.hash, tx.clone())));
+            storage.hashes.insert(block_number, hash);
+            storage.blocks.insert(hash, block.clone().into());
+            return Ok(Some(block))
+        }
+
+        Ok(None)
+    }
 
     async fn uncle_by_block_hash_and_index(
         &self,
@@ -428,13 +512,39 @@ impl ClientForkTrait for ClientForkMiddleware {
         &self,
         block: Block<H256>,
         index: usize,
-    ) -> Result<Option<Block<TxHash>>, ProviderError>;
+    ) -> Result<Option<Block<TxHash>>, ProviderError> {
+        let block_hash = block
+            .hash
+            .ok_or_else(|| ProviderError::CustomError("missing block-hash".to_string()))?;
+        if let Some(uncles) = self.storage_read().uncles.get(&block_hash) {
+            return Ok(uncles.get(index).cloned())
+        }
+
+        let mut uncles = Vec::with_capacity(block.uncles.len());
+        for (uncle_idx, _) in block.uncles.iter().enumerate() {
+            let uncle = match self.provider().get_uncle(block_hash, uncle_idx.into()).await? {
+                Some(u) => u,
+                None => return Ok(None),
+            };
+            uncles.push(uncle);
+        }
+        self.storage_write().uncles.insert(block_hash, uncles.clone());
+        Ok(uncles.get(index).cloned())
+    }
 
     /// Converts a block of hashes into a full block
-    fn convert_to_full_block(&self, block: Block<TxHash>) -> Block<Transaction>;
-
-
+    fn convert_to_full_block(&self, block: Block<TxHash>) -> Block<Transaction> {
+        let storage = self.storage.read();
+        let mut transactions = Vec::with_capacity(block.transactions.len());
+        for tx in block.transactions.iter() {
+            if let Some(tx) = storage.transactions.get(tx).cloned() {
+                transactions.push(tx);
+            }
+        }
+        block.into_full_block(transactions)
+    }
 }
+
 
 impl ClientForkMiddleware {
     fn provider(&self) -> Arc<RethMiddleware<Ipc>> {
@@ -445,16 +555,13 @@ impl ClientForkMiddleware {
 
 
 
-
-
-
 impl ClientForkConfigMiddleware {
     async fn update_path(&mut self, path: String) -> Result<(), BlockchainError> {
         let provider: Provider<Ipc> = Provider::connect_ipc(path.clone())
             .await
             .map_err(|_| BlockchainError::InvalidUrl(path.clone()))?;
 
-        let middleware = RethMiddleware::new(
+        let middleware: RethMiddleware<Provider<Ipc>> = RethMiddleware::new(
             provider,
             Path::new(
                 &self
