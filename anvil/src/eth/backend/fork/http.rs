@@ -4,18 +4,23 @@ use crate::eth::{
     backend::{fork::ClientForkTrait, mem::fork_db::ForkedDatabase},
     error::BlockchainError,
 };
-use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
+use anvil_core::eth::{proof::AccountProof, transaction::{EthTransactionRequest, TypedTransactionRequest}};
 use anvil_rpc::error::RpcError;
 use async_trait::async_trait;
 use ethers::{
     prelude::BlockNumber,
     providers::{Ipc, Middleware, Provider, ProviderError},
     types::{
-        transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
+        transaction::{eip2930::AccessListWithGasUsed, eip2718::TypedTransaction}, Address, Block, BlockId, Bytes, FeeHistory,
         Filter, GethDebugTracingOptions, GethTrace, Log, Trace, Transaction, TransactionReceipt,
         TxHash, H256, U256,
-    },
+    }, utils::rlp::Decodable,
 };
+
+use ethers::core::types::{
+    transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest};
+
+
 use ethers_providers::{JsonRpcClient, MiddlewareError};
 use ethers_reth::RethMiddleware;
 use foundry_common::{ProviderBuilder, RetryProvider};
@@ -43,7 +48,7 @@ pub struct ClientForkHttp {
     pub database: Arc<AsyncRwLock<ForkedDatabase>>,
 }
 
-impl ClientForkHttp {
+impl ClientForkHttp where {
     fn provider(&self) -> Arc<RetryProvider> {
         self.config.read().provider.clone()
     }
@@ -54,13 +59,14 @@ impl ClientForkHttp {
 impl ClientForkTrait for ClientForkHttp {
     /// Creates a new instance of the fork via http
     async fn new_http(
+        &self,
         config: ClientForkConfigHttp,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
     ) -> Self {
         Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
     }
 
-    fn new_ipc(config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
+    fn new_ipc(&self, config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
         panic!("Cannot create a ClientForkMiddleware from an HTTP configuration");
     }
 
@@ -74,27 +80,35 @@ impl ClientForkTrait for ClientForkHttp {
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,
-        url_or_path: Option<String>,
-        block_number: impl Into<BlockId>,
+        path: Option<String>,
+        block_number: impl Into<BlockId> + Send,
     ) -> Result<(), BlockchainError> {
         let block_number = block_number.into();
         {
-            self.database
-                .write()
-                .await
-                .reset(block_number)
-                .map_err(BlockchainError::Internal)?;
+            let mut db_write = self.database.write().await;
+            db_write.reset(block_number).map_err(BlockchainError::Internal)?;
         }
 
-        if let Some(path) = url_or_path{
-            self.config.write().update_url_or_path(path).await?;
-            let override_chain_id = self.config.read().override_chain_id;
+        if let Some(path) = path {
+            {
+                let mut config_write = self.config.write();
+                config_write.update_url(path);
+            }
+
+            let override_chain_id;
+            {
+                let config_read = self.config.read();
+                override_chain_id = config_read.override_chain_id;
+            }
             let chain_id = if let Some(chain_id) = override_chain_id {
                 chain_id.into()
             } else {
                 self.provider().get_chainid().await?
             };
-            self.config.write().chain_id = chain_id.as_u64();
+            {
+                let mut config_write = self.config.write();
+                config_write.chain_id = chain_id.as_u64();
+            }
         }
 
         let provider = self.provider();
@@ -105,13 +119,16 @@ impl ClientForkTrait for ClientForkHttp {
         let base_fee = block.base_fee_per_gas;
         let total_difficulty = block.total_difficulty.unwrap_or_default();
 
-        self.config.write().update_block(
-            block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
-            block_hash,
-            timestamp,
-            base_fee,
-            total_difficulty,
-        );
+        {
+            let mut config_write = self.config.write();
+            config_write.update_block(
+                block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
+                block_hash,
+                timestamp,
+                base_fee,
+                total_difficulty,
+            );
+        }
 
         self.clear_cached_storage();
         Ok(())
@@ -191,7 +208,7 @@ impl ClientForkTrait for ClientForkHttp {
         block: Option<BlockNumber>,
     ) -> Result<Bytes, ProviderError> {
         let block = block.unwrap_or(BlockNumber::Latest);
-        let request = Arc::new(request.clone().into());
+        let request = Arc::new(request.clone());
 
         if let BlockNumber::Number(num) = block {
             // check if this request was already been sent
@@ -201,7 +218,9 @@ impl ClientForkTrait for ClientForkHttp {
             }
         }
 
-        let res: Bytes = self.config.read().provider.clone().call(request, block).await?;
+        let typed_tx = EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
+        let res: Bytes = self.provider().call(&ethers_tx.clone(), Some(block.into())).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -228,7 +247,8 @@ impl ClientForkTrait for ClientForkHttp {
             }
         }
 
-        let res = self.config.read().provider.clone().estimate_gas(request.into(), block).await?;
+        let ethers_tx = EthersTypedTransactionRequest::from(request.as_ref().into());
+        let res: Bytes = self.provider().estimate_gas(ethers_tx, Some(block.into())).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -246,7 +266,8 @@ impl ClientForkTrait for ClientForkHttp {
         block: Option<BlockNumber>,
     ) -> Result<AccessListWithGasUsed, ProviderError> {
         let block = block.unwrap_or(BlockNumber::Latest);
-        self.config.read().provider.clone().create_access_list(request.into(), block).await
+        let ethers_tx = EthersTypedTransactionRequest::from(request.as_ref().into());
+        self.config.read().provider.clone().create_access_list(ethers_tx, Some(block.into())).await
     }
 
     async fn storage_at(
@@ -553,7 +574,7 @@ pub struct ClientForkConfigHttp {
 
 impl ClientForkConfigHttp {
     // Can unwrap because it should always have default values
-    async fn update_url_or_path(&mut self, url_or_path: String) -> Result<(), BlockchainError> {
+    fn update_url(&mut self, url_or_path: String) -> Result<(), BlockchainError> {
         let interval = self.provider.get_interval();
         self.provider = Arc::new(
             ProviderBuilder::new(&url_or_path)
