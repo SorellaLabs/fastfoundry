@@ -178,8 +178,8 @@ impl ClientForkTrait for ClientForkHttp {
         request: &EthTransactionRequest,
         block: Option<BlockNumber>,
     ) -> Result<Bytes, ProviderError> {
-        let block = block.unwrap_or(BlockNumber::Latest);
         let request = Arc::new(request.clone());
+        let block = block.unwrap_or(BlockNumber::Latest);
 
         if let BlockNumber::Number(num) = block {
             // check if this request was already been sent
@@ -189,10 +189,9 @@ impl ClientForkTrait for ClientForkHttp {
             }
         }
 
-        let typed_tx =
-            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
-        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        let res: Bytes = self.provider().call(&ethers_tx.clone(), Some(block.into())).await?;
+        let tx = ethers::utils::serialize(request.as_ref());
+        let block_value = ethers::utils::serialize(&block);
+        let res: Bytes = self.provider().request("eth_call", [tx, block_value]).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -218,11 +217,9 @@ impl ClientForkTrait for ClientForkHttp {
                 return Ok(res)
             }
         }
-
-        let typed_tx =
-            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
-        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        let res = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await?;
+        let tx = ethers::utils::serialize(request.as_ref());
+        let block_value = ethers::utils::serialize(&block);
+        let res = self.provider().request("eth_estimateGas", [tx, block_value]).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -233,16 +230,16 @@ impl ClientForkTrait for ClientForkHttp {
         Ok(res)
     }
 
+
     /// Sends `eth_createAccessList`
     async fn create_access_list(
         &self,
         request: &EthTransactionRequest,
         block: Option<BlockNumber>,
     ) -> Result<AccessListWithGasUsed, ProviderError> {
-        let block = block.unwrap_or(BlockNumber::Latest);
-        let typed_tx = EthTransactionRequest::into_typed_request(request.clone().into()).unwrap();
-        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        self.provider().create_access_list(&ethers_tx, Some(block.into())).await
+        let tx = ethers::utils::serialize(request);
+        let block = ethers::utils::serialize(&block.unwrap_or(BlockNumber::Latest));
+        self.provider().request("eth_createAccessList", [tx, block]).await
     }
 
     async fn storage_at(

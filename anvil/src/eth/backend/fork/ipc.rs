@@ -172,37 +172,7 @@ impl ClientForkTrait for ClientForkIpc {
         self.provider().clone().get_proof(address, keys, block_number).await
     }
 
-    /// Sends `eth_call`
-    async fn call(
-        &self,
-        request: &EthTransactionRequest,
-        block: Option<BlockNumber>,
-    ) -> Result<Bytes, ProviderError> {
-        let block = block.unwrap_or(BlockNumber::Latest);
-        let request = Arc::new(request.clone());
-
-        if let BlockNumber::Number(num) = block {
-            // check if this request was already been sent
-            let key = (request.clone(), num.as_u64());
-            if let Some(res) = self.storage_read().eth_call.get(&key).cloned() {
-                return Ok(res)
-            }
-        }
-
-        let typed_tx =
-            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
-        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        let res: Bytes = self.provider().call(&ethers_tx.clone(), Some(block.into())).await?;
-
-        if let BlockNumber::Number(num) = block {
-            // cache result
-            let mut storage = self.storage_write();
-            storage.eth_call.insert((request, num.as_u64()), res.clone());
-        }
-        Ok(res)
-    }
-
-    /// Sends `eth_call`
+     /// Sends `eth_call`
     async fn estimate_gas(
         &self,
         request: &EthTransactionRequest,
@@ -218,11 +188,9 @@ impl ClientForkTrait for ClientForkIpc {
                 return Ok(res)
             }
         }
-
-        let typed_tx =
-            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
-        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        let res = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await?;
+        let tx = ethers::utils::serialize(request.as_ref());
+        let block_value = ethers::utils::serialize(&block);
+        let res = self.provider().request("eth_estimateGas", [tx, block_value]).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -239,10 +207,9 @@ impl ClientForkTrait for ClientForkIpc {
         request: &EthTransactionRequest,
         block: Option<BlockNumber>,
     ) -> Result<AccessListWithGasUsed, ProviderError> {
-        let block = block.unwrap_or(BlockNumber::Latest);
-        let typed_tx = EthTransactionRequest::into_typed_request(request.clone().into()).unwrap();
-        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        self.provider().create_access_list(&ethers_tx, Some(block.into())).await
+        let tx = ethers::utils::serialize(request);
+        let block = ethers::utils::serialize(&block.unwrap_or(BlockNumber::Latest));
+        self.provider().request("eth_createAccessList", [tx, block]).await
     }
 
     async fn storage_at(
