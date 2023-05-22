@@ -6,7 +6,6 @@ use crate::{
             cheats::CheatsManager,
             db::{AsHashDB, Db, MaybeHashDatabase, SerializableState},
             executor::{ExecutedTransactions, TransactionExecutor},
-            fork::ClientFork,
             genesis::GenesisConfig,
             mem::storage::MinedTransactionReceipt,
             notifications::{NewBlockNotification, NewBlockNotifications},

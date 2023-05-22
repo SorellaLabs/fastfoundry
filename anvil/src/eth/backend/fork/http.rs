@@ -52,7 +52,7 @@ pub struct ClientForkConfigHttp {
 
 impl ClientForkConfigHttp {
     // Can unwrap because it should always have default values
-    async fn update_url_or_path(&mut self, url_or_path: String) -> Result<(), BlockchainError> {
+    fn update_url_or_path(&mut self, url_or_path: String) -> Result<(), BlockchainError> {
         let interval = self.provider.get_interval();
         self.provider = Arc::new(
             ProviderBuilder::new(&url_or_path)
