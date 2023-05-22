@@ -57,7 +57,7 @@ pub trait ClientForkTrait {
     /*fn new_middleware(
         config: ClientForkConfigMiddleware,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self;*/
+    ) -> RethMiddleware<Ipc>;*/
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
