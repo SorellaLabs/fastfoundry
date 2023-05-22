@@ -799,7 +799,7 @@ if self.eth_reth_db.is_some() {
         };
         let fees = FeeManager::new(env.cfg.spec_id, self.get_base_fee(), self.get_gas_price());
 
-        let (mut db, mut fork): (Arc<tokio::sync::RwLock<dyn Db>>, Option<Arc<dyn ClientForkTrait>>) = (Arc::new(tokio::sync::RwLock::new(MemDb::default())), None);
+        let (mut backend_db, mut client_fork): (Arc<tokio::sync::RwLock<dyn Db>>, Option<Arc<dyn ClientForkTrait>>) = (Arc::new(tokio::sync::RwLock::new(MemDb::default())), None);
 
         if let Some(eth_rpc_url) = self.eth_rpc_url {
             // TODO make provider agnostic
@@ -946,7 +946,7 @@ if self.eth_reth_db.is_some() {
 
             let db =
                 Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
-            let fork = ClientForkHttp::new(
+            let fork = ClientForkHttp::new_http(
                 ClientForkConfigHttp {
                     eth_rpc_url: Some(eth_rpc_url),
                     block_number: fork_block_number,
@@ -965,7 +965,8 @@ if self.eth_reth_db.is_some() {
                 Arc::clone(&db),
             );
 
-            (db, fork) = (db, Arc::new(Some(fork)))
+            backend_db = db;
+            client_fork = Some(Arc::new(fork));
         } 
         
 
@@ -1108,7 +1109,7 @@ if self.eth_reth_db.is_some() {
 
                 let db =
                     Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
-                let fork = ClientForkMiddleware::new(
+                let fork = ClientForkMiddleware::new_middleware(
                     ClientForkConfigMiddleware {
                         ipc_path: Some(eth_ipc_path),
                         block_number: fork_block_number,
@@ -1126,7 +1127,9 @@ if self.eth_reth_db.is_some() {
                     },
                     Arc::clone(&db),
                 );
-            (db, fork) = (db, Arc::new(Some(fork)))
+            
+                backend_db = db;
+                client_fork = Some(Arc::new(fork));
 
             } else {
 
@@ -1140,7 +1143,7 @@ if self.eth_reth_db.is_some() {
 
                 let db =
                     Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
-                let fork = ClientForkIpc::new(
+                let fork = ClientForkIpc::new_ipc(
                     ClientForkConfigIpc {
                         ipc_path: Some(eth_ipc_path),
                         block_number: fork_block_number,
@@ -1159,7 +1162,8 @@ if self.eth_reth_db.is_some() {
                     },
                     Arc::clone(&db),
                 );
-                (db, fork) = (db, Arc::new(Some(fork)))
+                backend_db = db;
+                client_fork = Some(Arc::new(fork));
             }
         
         }
@@ -1179,11 +1183,11 @@ if self.eth_reth_db.is_some() {
 
         // only memory based backend for now
         let backend = mem::Backend::with_genesis(
-            db,
+            backend_db,
             Arc::new(RwLock::new(env)),
             genesis,
             fees,
-            fork,
+            client_fork,
             self.enable_steps_tracing,
             self.prune_history,
             self.transaction_block_keeper,
