@@ -5,6 +5,7 @@ use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
 use anvil_rpc::error::RpcError;
 use async_trait::async_trait;
 use ethers::{
+    core::types::transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest,
     prelude::BlockNumber,
     providers::{Ipc, Middleware, Provider, ProviderError},
     types::{
@@ -24,12 +25,10 @@ use parking_lot::{
 use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
-use ethers::core::types::{
-    transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest};
 
 use crate::eth::backend::fork::{
     ClientForkConfigHttp, /* ,ClientForkConfigMiddleware */
-    ClientForkTrait, ForkedStorage, ClientForkHttp
+    ClientForkHttp, ClientForkTrait, ForkedStorage,
 };
 
 pub struct ClientForkIpc {
@@ -45,7 +44,6 @@ pub struct ClientForkIpc {
 
 #[async_trait]
 impl ClientForkTrait for ClientForkIpc {
-
     /*fn new_middleware(
         config: ClientForkConfigMiddleware,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
@@ -191,7 +189,8 @@ impl ClientForkTrait for ClientForkIpc {
             }
         }
 
-        let typed_tx = EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let typed_tx =
+            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
         let res: Bytes = self.provider().call(&ethers_tx.clone(), Some(block.into())).await?;
 
@@ -220,9 +219,10 @@ impl ClientForkTrait for ClientForkIpc {
             }
         }
 
-        let typed_tx = EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let typed_tx =
+            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        let res  = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await?;
+        let res = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -518,14 +518,16 @@ impl ClientForkTrait for ClientForkIpc {
 }
 
 impl ClientForkIpc {
-    fn new_ipc(config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self {
+    pub fn new_ipc(
+        config: ClientForkConfigIpc,
+        database: Arc<AsyncRwLock<ForkedDatabase>>,
+    ) -> Self {
         Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
     }
 
     fn provider(&self) -> Arc<Provider<Ipc>> {
         self.config.read().provider.clone()
     }
-
 }
 
 #[derive(Debug, Clone)]

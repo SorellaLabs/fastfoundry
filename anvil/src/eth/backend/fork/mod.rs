@@ -41,8 +41,6 @@ use ipc::ClientForkConfigIpc;
 
 #[async_trait]
 pub trait ClientForkTrait {
-    
-
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,

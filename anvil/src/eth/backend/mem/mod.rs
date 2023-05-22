@@ -6,6 +6,7 @@ use crate::{
             cheats::CheatsManager,
             db::{AsHashDB, Db, MaybeHashDatabase, SerializableState},
             executor::{ExecutedTransactions, TransactionExecutor},
+            fork::ClientForkTrait,
             genesis::GenesisConfig,
             mem::storage::MinedTransactionReceipt,
             notifications::{NewBlockNotification, NewBlockNotifications},
@@ -83,7 +84,6 @@ use storage::{Blockchain, MinedTransaction};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::{trace, warn};
 use trie_db::{Recorder, Trie};
-use crate::eth::backend::fork::ClientForkTrait;
 pub mod cache;
 pub mod fork_db;
 pub mod in_memory_db;

@@ -4,22 +4,24 @@ use crate::eth::{
     backend::{fork::ClientForkTrait, mem::fork_db::ForkedDatabase},
     error::BlockchainError,
 };
-use anvil_core::eth::{proof::AccountProof, transaction::{EthTransactionRequest, TypedTransactionRequest}};
+use anvil_core::eth::{
+    proof::AccountProof,
+    transaction::{EthTransactionRequest, TypedTransactionRequest},
+};
 use anvil_rpc::error::RpcError;
 use async_trait::async_trait;
 use ethers::{
     prelude::BlockNumber,
     providers::{Ipc, Middleware, Provider, ProviderError},
     types::{
-        transaction::{eip2930::AccessListWithGasUsed, eip2718::TypedTransaction}, Address, Block, BlockId, Bytes, FeeHistory,
-        Filter, GethDebugTracingOptions, GethTrace, Log, Trace, Transaction, TransactionReceipt,
-        TxHash, H256, U256,
-    }, utils::rlp::Decodable,
+        transaction::{eip2718::TypedTransaction, eip2930::AccessListWithGasUsed},
+        Address, Block, BlockId, Bytes, FeeHistory, Filter, GethDebugTracingOptions, GethTrace,
+        Log, Trace, Transaction, TransactionReceipt, TxHash, H256, U256,
+    },
+    utils::rlp::Decodable,
 };
 
-use ethers::core::types::{
-    transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest};
-
+use ethers::core::types::transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest;
 
 use ethers_providers::{JsonRpcClient, MiddlewareError};
 use ethers_reth::RethMiddleware;
@@ -33,9 +35,7 @@ use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duratio
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
 
-use super::{ForkedStorage, ipc::ClientForkConfigIpc};
-
-
+use super::{ipc::ClientForkConfigIpc, ForkedStorage};
 
 pub struct ClientForkHttp {
     /// Contains the cached data
@@ -48,23 +48,8 @@ pub struct ClientForkHttp {
     pub database: Arc<AsyncRwLock<ForkedDatabase>>,
 }
 
-impl ClientForkHttp {
-    fn new_http(
-        config: ClientForkConfigHttp,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> ClientForkHttp {
-        panic!("Cannot create a ClientForkMiddleware from an HTTP configuration");
-    }
-
-    fn provider(&self) -> Arc<RetryProvider> {
-        self.config.read().provider.clone()
-    }
-}
-
-
 #[async_trait]
 impl ClientForkTrait for ClientForkHttp {
-
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,
@@ -160,7 +145,6 @@ impl ClientForkTrait for ClientForkHttp {
         self.config.read().chain_id
     }
 
-
     fn storage_read(&self) -> RwLockReadGuard<'_, RawRwLock, ForkedStorage> {
         self.storage.read()
     }
@@ -205,7 +189,8 @@ impl ClientForkTrait for ClientForkHttp {
             }
         }
 
-        let typed_tx = EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let typed_tx =
+            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
         let res: Bytes = self.provider().call(&ethers_tx.clone(), Some(block.into())).await?;
 
@@ -234,9 +219,10 @@ impl ClientForkTrait for ClientForkHttp {
             }
         }
 
-        let typed_tx = EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let typed_tx =
+            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        let res  = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await?;
+        let res = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -531,10 +517,18 @@ impl ClientForkTrait for ClientForkHttp {
     }
 }
 
+impl ClientForkHttp {
+    pub fn new_http(
+        config: ClientForkConfigHttp,
+        database: Arc<AsyncRwLock<ForkedDatabase>>,
+    ) -> ClientForkHttp {
+        panic!("Cannot create a ClientForkMiddleware from an HTTP configuration");
+    }
 
-
-
-
+    fn provider(&self) -> Arc<RetryProvider> {
+        self.config.read().provider.clone()
+    }
+}
 
 /// Contains all fork metadata
 #[derive(Debug, Clone)]
@@ -597,7 +591,3 @@ impl ClientForkConfigHttp {
         trace!(target: "fork", "Updated block number={} hash={:?}", block_number, block_hash);
     }
 }
-
-
-
-
