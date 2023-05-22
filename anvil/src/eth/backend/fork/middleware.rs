@@ -28,7 +28,7 @@ use parking_lot::{
     RawRwLock, RwLock,
 };
 
-/*
+
 use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
@@ -544,10 +544,12 @@ impl ClientForkTrait for ClientForkMiddleware {
 
 impl ClientForkMiddleware {
     /// Creates a new instance of the fork via middleware
-    /*fn new_middleware(
+    fn new_middleware(
         config: ClientForkConfigMiddleware,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> RethMiddleware<Ipc>;*/
+    ) -> RethMiddleware<Ipc> {
+        Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
+    }
 
 
     fn provider(&self) -> Arc<RethMiddleware<Ipc>> {
@@ -592,4 +594,3 @@ impl ClientForkConfigMiddleware {
     }
 }
 
-*/

@@ -83,7 +83,7 @@ use storage::{Blockchain, MinedTransaction};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::{trace, warn};
 use trie_db::{Recorder, Trie};
-
+use crate::eth::backend::fork::ClientForkTrait;
 pub mod cache;
 pub mod fork_db;
 pub mod in_memory_db;
@@ -143,7 +143,7 @@ pub struct Backend {
     /// env data of the chain
     env: Arc<RwLock<Env>>,
     /// this is set if this is currently forked off another client
-    fork: Option<ClientFork>,
+    fork: Option<dyn ClientForkTrait>,
     /// provides time related info, like timestamp
     time: TimeManager,
     /// Contains state of custom overrides
