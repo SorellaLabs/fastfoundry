@@ -40,7 +40,7 @@ use ipc::ClientForkConfigIpc;
 /// fetch the requested data from the remote client, if it wasn't already fetched.
 
 #[async_trait]
-pub trait ClientForkTrait {
+pub trait ClientForkTrait: Sync + Send {
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,

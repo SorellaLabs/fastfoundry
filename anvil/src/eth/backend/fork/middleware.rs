@@ -19,6 +19,9 @@ use ethers::{
         TxHash, H256, U256,
     },
 };
+
+use ethers::core::types::transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest;
+
 use ethers_providers::{Ipc, JsonRpcClient, Middleware};
 use ethers_reth::RethMiddleware;
 use foundry_common::{ProviderBuilder, RetryProvider};
@@ -70,26 +73,37 @@ impl ClientForkTrait for ClientForkMiddleware {
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,
-        url_or_path: Option<String>,
-        block_number: impl Into<BlockId>,
+        path: Option<String>,
+        block_number: BlockId,
     ) -> Result<(), BlockchainError> {
-        let block_number = block_number.into();
         {
-            self.database.write().await.reset(block_number).map_err(BlockchainError::Internal)?;
+            let mut db_write = self.database.write().await;
+            db_write.reset(block_number).map_err(BlockchainError::Internal)?;
         }
 
-        if let Some(path) = url_or_path {
-            self.config.write().update_path(path).await?;
-            let override_chain_id = self.config.read().override_chain_id;
+        if let Some(path) = path {
+            {
+                let mut config_write = self.config.write();
+                config_write.update_url(path);
+            }
+
+            let override_chain_id;
+            {
+                let config_read = self.config.read();
+                override_chain_id = config_read.override_chain_id;
+            }
             let chain_id = if let Some(chain_id) = override_chain_id {
                 chain_id.into()
             } else {
-                self.config.read().provider.clone().get_chainid().await?
+                self.provider().get_chainid().await?
             };
-            self.config.write().chain_id = chain_id.as_u64();
+            {
+                let mut config_write = self.config.write();
+                config_write.chain_id = chain_id.as_u64();
+            }
         }
 
-        let provider = self.config.read().provider.clone();
+        let provider = self.provider();
         let block =
             provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
         let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
@@ -97,13 +111,16 @@ impl ClientForkTrait for ClientForkMiddleware {
         let base_fee = block.base_fee_per_gas;
         let total_difficulty = block.total_difficulty.unwrap_or_default();
 
-        self.config.write().update_block(
-            block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
-            block_hash,
-            timestamp,
-            base_fee,
-            total_difficulty,
-        );
+        {
+            let mut config_write = self.config.write();
+            config_write.update_block(
+                block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
+                block_hash,
+                timestamp,
+                base_fee,
+                total_difficulty,
+            );
+        }
 
         self.clear_cached_storage();
         Ok(())
@@ -162,12 +179,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         newest_block: BlockNumber,
         reward_percentiles: &[f64],
     ) -> Result<FeeHistory, ProviderError> {
-        self.config
-            .read()
-            .provider
-            .clone()
-            .fee_history(block_count, newest_block, reward_percentiles)
-            .await
+        self.provider().clone().fee_history(block_count, newest_block, reward_percentiles).await
     }
 
     /// Sends `eth_getProof`
@@ -177,7 +189,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         keys: Vec<H256>,
         block_number: Option<BlockId>,
     ) -> Result<AccountProof, ProviderError> {
-        self.config.read().provider.clone().get_proof(address, keys, block_number).await
+        self.provider().clone().get_proof(address, keys, block_number).await
     }
 
     /// Sends `eth_call`
@@ -197,7 +209,10 @@ impl ClientForkTrait for ClientForkMiddleware {
             }
         }
 
-        let res: Bytes = self.config.read().provider.clone().call(request.into(), block).await?;
+        let typed_tx =
+            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
+        let res: Bytes = self.provider().call(&ethers_tx.clone(), Some(block.into())).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -224,7 +239,10 @@ impl ClientForkTrait for ClientForkMiddleware {
             }
         }
 
-        let res = self.config.read().provider.clone().estimate_gas(request.into(), block).await?;
+        let typed_tx =
+            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
+        let res = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await?;
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -242,7 +260,9 @@ impl ClientForkTrait for ClientForkMiddleware {
         block: Option<BlockNumber>,
     ) -> Result<AccessListWithGasUsed, ProviderError> {
         let block = block.unwrap_or(BlockNumber::Latest);
-        self.config.read().provider.clone().create_access_list(request.into(), block).await
+        let typed_tx = EthTransactionRequest::into_typed_request(request.clone().into()).unwrap();
+        let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
+        self.provider().create_access_list(&ethers_tx, Some(block.into())).await
     }
 
     async fn storage_at(
@@ -252,12 +272,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         number: Option<BlockNumber>,
     ) -> Result<H256, ProviderError> {
         let index = u256_to_h256_be(index);
-        self.config
-            .read()
-            .provider
-            .clone()
-            .get_storage_at(address, index, number.map(Into::into))
-            .await
+        self.provider().clone().get_storage_at(address, index, number.map(Into::into)).await
     }
 
     async fn logs(&self, filter: &Filter) -> Result<Vec<Log>, ProviderError> {
@@ -265,7 +280,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             return Ok(logs)
         }
 
-        let logs = self.config.read().provider.clone().get_logs(filter).await?;
+        let logs = self.provider().get_logs(filter).await?;
 
         let mut storage = self.storage_write();
         storage.logs.insert(filter.clone(), logs.clone());
@@ -396,7 +411,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
             return Ok(Some(block))
         }
-        let block = self.fetch_full_block(hash).await?.map(Into::into);
+        let block = self.fetch_full_block(BlockId::Hash(hash)).await?.map(Into::into);
         Ok(block)
     }
 
@@ -407,7 +422,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
             return Ok(Some(self.convert_to_full_block(block)))
         }
-        self.fetch_full_block(hash).await
+        self.fetch_full_block(BlockId::Hash(hash)).await
     }
 
     async fn block_by_number(
@@ -424,7 +439,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             return Ok(Some(block))
         }
 
-        let block = self.fetch_full_block(block_number).await?.map(Into::into);
+        let block = self.fetch_full_block(block_number.into()).await?.map(Into::into);
         Ok(block)
     }
 
@@ -442,14 +457,14 @@ impl ClientForkTrait for ClientForkMiddleware {
             return Ok(Some(self.convert_to_full_block(block)))
         }
 
-        self.fetch_full_block(block_number).await
+        self.fetch_full_block(block_number.into()).await
     }
 
     async fn fetch_full_block(
         &self,
-        block_id: impl Into<BlockId>,
+        block_id: BlockId,
     ) -> Result<Option<Block<Transaction>>, ProviderError> {
-        if let Some(block) = self.provider().get_block_with_txs(block_id.into()).await? {
+        if let Some(block) = self.provider().get_block_with_txs(block_id).await? {
             let hash = block.hash.unwrap();
             let block_number = block.number.unwrap().as_u64();
             let mut storage = self.storage_write();
@@ -527,11 +542,11 @@ impl ClientForkMiddleware {
     pub fn new_middleware(
         config: ClientForkConfigMiddleware,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> RethMiddleware<Ipc> {
+    ) -> ClientForkMiddleware {
         Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
     }
 
-    fn provider(&self) -> Arc<RethMiddleware<Ipc>> {
+    fn provider(&self) -> Arc<RethMiddleware<Provider<Ipc>>> {
         self.config.read().provider.clone()
     }
 }
