@@ -27,12 +27,11 @@ foundry-config = { path = "../config" }
 
 # evm support
 bytes = "1.4.0"
-ethers-providers = {version = "2.0.4", features = ["ipc"]}
 ethers = { workspace = true, features = ["ws", "ipc"] }
 trie-db = { version = "0.23" }
 hash-db = { version = "0.15" }
 memory-db = { version = "0.29" }
-ethers-reth = {git = "https://github.com/SorellaLabs/ethers-reth", branch = "main"}
+ethers-reth = {git = "https://github.com/SorellaLabs/ethers-reth", rev = "bc005a5"}
 reth = "0.1.0"
 # axum related
 axum = { version = "0.5", features = ["ws"] }
@@ -73,10 +72,6 @@ ethereum-forkid = "0.12"
 ethers = { workspace = true, features = ["rustls", "ws", "ipc"] }
 [target.'cfg(windows)'.dependencies]
 ethers = { workspace = true, features = ["rustls", "ws"] }
-
-
-# reth 
-
 
 
 [dev-dependencies]

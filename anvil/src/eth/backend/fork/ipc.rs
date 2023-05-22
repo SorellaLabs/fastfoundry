@@ -152,6 +152,7 @@ impl ClientForkTrait for ClientForkIpc {
     fn storage_write(&self) -> RwLockWriteGuard<'_, RawRwLock, ForkedStorage> {
         self.storage.write()
     }
+
     /// Returns the fee history  `eth_feeHistory`
     async fn fee_history(
         &self,
@@ -170,6 +171,35 @@ impl ClientForkTrait for ClientForkIpc {
         block_number: Option<BlockId>,
     ) -> Result<AccountProof, ProviderError> {
         self.provider().clone().get_proof(address, keys, block_number).await
+    }
+
+    /// Sends `eth_call`
+    async fn call(
+        &self,
+        request: &EthTransactionRequest,
+        block: Option<BlockNumber>,
+    ) -> Result<Bytes, ProviderError> {
+        let request = Arc::new(request.clone());
+        let block = block.unwrap_or(BlockNumber::Latest);
+
+        if let BlockNumber::Number(num) = block {
+            // check if this request was already been sent
+            let key = (request.clone(), num.as_u64());
+            if let Some(res) = self.storage_read().eth_call.get(&key).cloned() {
+                return Ok(res)
+            }
+        }
+
+        let tx = ethers::utils::serialize(request.as_ref());
+        let block_value = ethers::utils::serialize(&block);
+        let res: Bytes = self.provider().request("eth_call", [tx, block_value]).await?;
+
+        if let BlockNumber::Number(num) = block {
+            // cache result
+            let mut storage = self.storage_write();
+            storage.eth_call.insert((request, num.as_u64()), res.clone());
+        }
+        Ok(res)
     }
 
      /// Sends `eth_call`

@@ -169,7 +169,7 @@ pub trait ClientForkTrait: Sync + Send {
         if let Some(block) = self.storage_read().blocks.get(&hash).cloned() {
             return Ok(Some(self.convert_to_full_block(block)))
         }
-        self.fetch_full_block(hash).await
+        self.fetch_full_block(hash.into()).await
     }
 
     async fn block_by_number(
