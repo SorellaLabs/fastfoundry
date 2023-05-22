@@ -175,8 +175,8 @@ dependencies = [
  "ctrlc",
  "ethereum-forkid",
  "ethers 2.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethers-providers 2.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethers-reth",
- "ethers-solc",
  "fdlimit",
  "forge",
  "foundry-common",
@@ -189,6 +189,7 @@ dependencies = [
  "memory-db",
  "parking_lot",
  "pretty_assertions",
+ "reth",
  "serde",
  "serde_json",
  "tempfile",
@@ -5812,6 +5813,12 @@ dependencies = [
  "webpki-roots",
  "winreg",
 ]
+
+[[package]]
+name = "reth"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4cc4e22275376eda920bf6800519531166cbd9fd6b019e694e7cf72895c612f"
 
 [[package]]
 name = "reth-beacon-consensus"

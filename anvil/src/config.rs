@@ -2,7 +2,7 @@ use crate::{
     eth::{
         backend::{
             db::{Db, SerializableState},
-            fork::{ClientFork, ClientForkConfig},
+            fork::{ClientFork, ClientForkConfigTrait, http::{ClientForkConfigHttp, ClientForkHttp}, ClientForkTrait},
             genesis::GenesisConfig,
             mem::fork_db::ForkedDatabase,
             time::duration_since_unix_epoch,
@@ -27,6 +27,8 @@ use ethers::{
     types::BlockNumber,
     utils::{format_ether, hex, to_checksum, WEI_IN_ETHER},
 };
+use ethers_providers::{Provider, JsonRpcClient, RetryClient, Http, ProviderError, RpcError};
+use ethers_reth::RethMiddleware;
 use forge::utils::{h256_to_b256, u256_to_ru256};
 use foundry_common::{ProviderBuilder, ALCHEMY_FREE_TIER_CUPS, REQUEST_TIMEOUT};
 use foundry_config::Config;
@@ -39,7 +41,7 @@ use foundry_evm::{
 use parking_lot::RwLock;
 use serde_json::{json, to_writer, Value};
 use std::{
-    collections::HashMap, fmt::Write as FmtWrite, fs::File, net::IpAddr, path::PathBuf, sync::Arc,
+    collections::HashMap, fmt::Write as FmtWrite, fs::File, net::IpAddr, path::{PathBuf, Path}, sync::Arc,
     time::Duration,
 };
 use yansi::Paint;
@@ -762,6 +764,45 @@ impl NodeConfig {
 
         Config::foundry_block_cache_file(chain_id, block)
     }
+    
+    
+    pub async fn into_provider_p<P: JsonRpcClient + 'static>(&self) -> Option<(String, Provider<P>)> 
+    where
+        P::Error: Into<ProviderError> + RpcError
+    {
+
+        if let Some(eth_rpc_url) = &self.eth_rpc_url {
+            let provider = Arc::new(
+                ProviderBuilder::new(eth_rpc_url)
+                    .timeout(self.fork_request_timeout)
+                    .timeout_retry(self.fork_request_retries)
+                    .initial_backoff(self.fork_retry_backoff.as_millis() as u64)
+                    .compute_units_per_second(self.compute_units_per_second)
+                    .max_retry(10)
+                    .initial_backoff(1000)
+                    .build()
+                    .expect("Failed to establish provider to fork RPC url"));
+    
+            return Some((eth_rpc_url.clone(), provider));
+        }
+    
+        if let Some(eth_ipc_path) = &self.eth_ipc_path {
+            let provider: Provider<ethers_providers::Ipc> = Provider::connect_ipc(eth_ipc_path)
+                .await
+                .expect("Failed to establish provider to fork IPC path");
+    
+            return Some((eth_ipc_path.clone(), provider));
+        }
+    
+        None
+    }
+    
+
+/*
+if self.eth_reth_db.is_some() {
+                return (eth_ipc_path, RethMiddleware::new(provider, Path::new(self.eth_reth_db.unwrap())))
+            };
+             */
 
     /// Configures everything related to env, backend and database and returns the
     /// [Backend](mem::Backend)
@@ -790,14 +831,12 @@ impl NodeConfig {
         };
         let fees = FeeManager::new(env.cfg.spec_id, self.get_base_fee(), self.get_gas_price());
 
-        let (db, fork): (Arc<tokio::sync::RwLock<dyn Db>>, Option<ClientFork>) = if let Some(
-            eth_rpc_url,
-        ) =
-            self.eth_rpc_url.clone()
+        let (db, fork): (Arc<tokio::sync::RwLock<dyn Db>>, Option<Arc<dyn ClientForkTrait>>) = if let Some(eth_rpc_url) = 
+            self.eth_rpc_url 
         {
             // TODO make provider agnostic
-            let provider = Arc::new(
-                ProviderBuilder::new(&eth_rpc_url)
+            let provider: Arc<Provider<RetryClient<Http>>> = Arc::new(
+                ProviderBuilder::new(eth_rpc_url)
                     .timeout(self.fork_request_timeout)
                     .timeout_retry(self.fork_request_retries)
                     .initial_backoff(self.fork_retry_backoff.as_millis() as u64)
@@ -805,9 +844,9 @@ impl NodeConfig {
                     .max_retry(10)
                     .initial_backoff(1000)
                     .build()
-                    .expect("Failed to establish provider to fork url"),
-            );
-
+                    .expect("Failed to establish provider to fork RPC url"));
+            
+            
             let (fork_block_number, fork_chain_id) =
                 if let Some(fork_block_number) = self.fork_block_number {
                     let chain_id = if let Some(chain_id) = self.fork_chain_id {
@@ -939,9 +978,9 @@ impl NodeConfig {
 
             let db =
                 Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
-            let fork = ClientFork::new(
-                ClientForkConfig {
-                    eth_rpc_url,
+            let fork = ClientForkHttp::new(
+                ClientForkConfigHttp {
+                    eth_rpc_url: Some(eth_rpc_url),
                     block_number: fork_block_number,
                     block_hash,
                     provider,
@@ -949,10 +988,10 @@ impl NodeConfig {
                     override_chain_id,
                     timestamp: block.timestamp.as_u64(),
                     base_fee: block.base_fee_per_gas,
-                    timeout: self.fork_request_timeout,
-                    retries: self.fork_request_retries,
-                    backoff: self.fork_retry_backoff,
-                    compute_units_per_second: self.compute_units_per_second,
+                    timeout: Some(self.fork_request_timeout),
+                    retries: Some(self.fork_request_retries),
+                    backoff: Some(self.fork_retry_backoff),
+                    compute_units_per_second: Some(self.compute_units_per_second),
                     total_difficulty: block.total_difficulty.unwrap_or_default(),
                 },
                 Arc::clone(&db),
