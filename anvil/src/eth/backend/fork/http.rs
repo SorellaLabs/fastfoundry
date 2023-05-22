@@ -49,6 +49,13 @@ pub struct ClientForkHttp {
 }
 
 impl ClientForkHttp where {
+    fn new_http(
+        config: ClientForkConfigHttp,
+        database: Arc<AsyncRwLock<ForkedDatabase>>,
+    ) -> ClientForkHttp {
+        panic!("Cannot create a ClientForkMiddleware from an HTTP configuration");
+    }
+
     fn provider(&self) -> Arc<RetryProvider> {
         self.config.read().provider.clone()
     }

@@ -41,23 +41,7 @@ use ipc::ClientForkConfigIpc;
 
 #[async_trait]
 pub trait ClientForkTrait {
-    /// Creates a new instance of the fork via http
-    async fn new_http(
-        config: ClientForkConfigHttp,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> ClientForkHttp;
-
-    /// Creates a new instance of the fork via ipc
-    fn new_ipc(
-        config: ClientForkConfigIpc,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> ClientForkIpc;
-
-    /// Creates a new instance of the fork via middleware
-    /*fn new_middleware(
-        config: ClientForkConfigMiddleware,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> RethMiddleware<Ipc>;*/
+    
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
