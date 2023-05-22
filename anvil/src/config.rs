@@ -6,7 +6,7 @@ use crate::{
                 http::{ClientForkConfigHttp, ClientForkHttp},
                 ipc::{ClientForkConfigIpc, ClientForkIpc},
                 middleware::{ClientForkConfigMiddleware, ClientForkMiddleware},
-                ClientFork, ClientForkConfigTrait, ClientForkTrait,
+                ClientForkTrait,
             },
             genesis::GenesisConfig,
             mem::fork_db::ForkedDatabase,
@@ -174,7 +174,7 @@ pub struct NodeConfig {
 }
 
 impl NodeConfig {
-    fn as_string(&self, fork: Option<&ClientFork>) -> String {
+    fn as_string(&self, fork: Option<& dyn ClientForkTrait>) -> String {
         let mut config_string: String = "".to_owned();
         let _ = write!(config_string, "\n{}", Paint::green(BANNER));
         let _ = write!(config_string, "\n    {VERSION_MESSAGE}");
