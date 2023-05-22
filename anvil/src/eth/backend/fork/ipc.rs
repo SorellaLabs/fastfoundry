@@ -26,7 +26,8 @@ use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
 
 use crate::eth::backend::fork::{
-    ClientForkConfigHttp /* ,ClientForkConfigMiddleware*/, ClientForkTrait, ForkedStorage,
+    ClientForkConfigHttp, /* ,ClientForkConfigMiddleware */
+    ClientForkTrait, ForkedStorage,
 };
 
 pub struct ClientForkIpc {
@@ -64,27 +65,35 @@ impl ClientForkTrait for ClientForkIpc {
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,
-        url_or_path: Option<String>,
-        block_number: impl Into<BlockId>,
+        path: Option<String>,
+        block_number: impl Into<BlockId> + Send,
     ) -> Result<(), BlockchainError> {
         let block_number = block_number.into();
         {
-            self.database
-                .write()
-                .await
-                .reset(block_number)
-                .map_err(BlockchainError::Internal)?;
+            let mut db_write = self.database.write().await;
+            db_write.reset(block_number).map_err(BlockchainError::Internal)?;
         }
 
-        if let Some(path) = url_or_path{
-            self.config.write().update_path(path).await?;
-            let override_chain_id = self.config.read().override_chain_id;
+        if let Some(path) = path {
+            {
+                let mut config_write = self.config.write();
+                config_write.update_path(path);
+            }
+
+            let override_chain_id;
+            {
+                let config_read = self.config.read();
+                override_chain_id = config_read.override_chain_id;
+            }
             let chain_id = if let Some(chain_id) = override_chain_id {
                 chain_id.into()
             } else {
                 self.provider().get_chainid().await?
             };
-            self.config.write().chain_id = chain_id.as_u64();
+            {
+                let mut config_write = self.config.write();
+                config_write.chain_id = chain_id.as_u64();
+            }
         }
 
         let provider = self.provider();
@@ -95,13 +104,16 @@ impl ClientForkTrait for ClientForkIpc {
         let base_fee = block.base_fee_per_gas;
         let total_difficulty = block.total_difficulty.unwrap_or_default();
 
-        self.config.write().update_block(
-            block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
-            block_hash,
-            timestamp,
-            base_fee,
-            total_difficulty,
-        );
+        {
+            let mut config_write = self.config.write();
+            config_write.update_block(
+                block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
+                block_hash,
+                timestamp,
+                base_fee,
+                total_difficulty,
+            );
+        }
 
         self.clear_cached_storage();
         Ok(())

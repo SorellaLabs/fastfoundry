@@ -42,12 +42,17 @@ use ipc::ClientForkConfigIpc;
 pub trait ClientForkTrait {
     /// Creates a new instance of the fork via http
     async fn new_http(
+        &self,
         config: ClientForkConfigHttp,
         database: Arc<AsyncRwLock<ForkedDatabase>>,
     ) -> Self;
 
     /// Creates a new instance of the fork via ipc
-    fn new_ipc(config: ClientForkConfigIpc, database: Arc<AsyncRwLock<ForkedDatabase>>) -> Self;
+    fn new_ipc(
+        &self,
+        config: ClientForkConfigIpc,
+        database: Arc<AsyncRwLock<ForkedDatabase>>,
+    ) -> Self;
 
     /// Creates a new instance of the fork via middleware
     /*fn new_middleware(

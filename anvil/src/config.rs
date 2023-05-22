@@ -2,7 +2,12 @@ use crate::{
     eth::{
         backend::{
             db::{Db, SerializableState},
-            fork::{ClientFork, ClientForkConfigTrait, http::{ClientForkConfigHttp, ClientForkHttp}, ClientForkTrait, ipc::{ClientForkIpc, ClientForkConfigIpc}, middleware::{ClientForkMiddleware, ClientForkConfigMiddleware}},
+            fork::{
+                http::{ClientForkConfigHttp, ClientForkHttp},
+                ipc::{ClientForkConfigIpc, ClientForkIpc},
+                middleware::{ClientForkConfigMiddleware, ClientForkMiddleware},
+                ClientFork, ClientForkConfigTrait, ClientForkTrait,
+            },
             genesis::GenesisConfig,
             mem::fork_db::ForkedDatabase,
             time::duration_since_unix_epoch,
@@ -27,7 +32,7 @@ use ethers::{
     types::BlockNumber,
     utils::{format_ether, hex, to_checksum, WEI_IN_ETHER},
 };
-use ethers_providers::{Provider, JsonRpcClient, RetryClient, Http, ProviderError, RpcError, Ipc};
+use ethers_providers::{Http, Ipc, JsonRpcClient, Provider, ProviderError, RetryClient, RpcError};
 use ethers_reth::RethMiddleware;
 use forge::utils::{h256_to_b256, u256_to_ru256};
 use foundry_common::{ProviderBuilder, ALCHEMY_FREE_TIER_CUPS, REQUEST_TIMEOUT};
@@ -41,7 +46,12 @@ use foundry_evm::{
 use parking_lot::RwLock;
 use serde_json::{json, to_writer, Value};
 use std::{
-    collections::HashMap, fmt::Write as FmtWrite, fs::File, net::IpAddr, path::{PathBuf, Path}, sync::Arc,
+    collections::HashMap,
+    fmt::Write as FmtWrite,
+    fs::File,
+    net::IpAddr,
+    path::{Path, PathBuf},
+    sync::Arc,
     time::Duration,
 };
 use yansi::Paint;
@@ -764,13 +774,12 @@ impl NodeConfig {
 
         Config::foundry_block_cache_file(chain_id, block)
     }
-    
 
-/*
-if self.eth_reth_db.is_some() {
-                return (eth_ipc_path, RethMiddleware::new(provider, Path::new(self.eth_reth_db.unwrap())))
-            };
-             */
+    /*
+    if self.eth_reth_db.is_some() {
+                    return (eth_ipc_path, RethMiddleware::new(provider, Path::new(self.eth_reth_db.unwrap())))
+                };
+                 */
 
     /// Configures everything related to env, backend and database and returns the
     /// [Backend](mem::Backend)
@@ -799,7 +808,10 @@ if self.eth_reth_db.is_some() {
         };
         let fees = FeeManager::new(env.cfg.spec_id, self.get_base_fee(), self.get_gas_price());
 
-        let (mut db, mut fork): (Arc<tokio::sync::RwLock<dyn Db>>, Option<Arc<dyn ClientForkTrait>>) = (Arc::new(tokio::sync::RwLock::new(MemDb::default())), None);
+        let (mut db, mut fork): (
+            Arc<tokio::sync::RwLock<dyn Db>>,
+            Option<Arc<dyn ClientForkTrait>>,
+        ) = (Arc::new(tokio::sync::RwLock::new(MemDb::default())), None);
 
         if let Some(eth_rpc_url) = self.eth_rpc_url {
             // TODO make provider agnostic
@@ -812,9 +824,9 @@ if self.eth_reth_db.is_some() {
                     .max_retry(10)
                     .initial_backoff(1000)
                     .build()
-                    .expect("Failed to establish provider to fork RPC url"));
-            
-            
+                    .expect("Failed to establish provider to fork RPC url"),
+            );
+
             let (fork_block_number, fork_chain_id) =
                 if let Some(fork_block_number) = self.fork_block_number {
                     let chain_id = if let Some(chain_id) = self.fork_chain_id {
@@ -966,13 +978,12 @@ if self.eth_reth_db.is_some() {
             );
 
             (db, fork) = (db, Arc::new(Some(fork)))
-        } 
-        
+        }
 
         if let Some(eth_ipc_path) = self.eth_ipc_path {
             // TODO make provider agnostic
             let mut provider = Arc::new(Provider::connect_ipc(eth_ipc_path).await.unwrap());
-            
+
             let (fork_block_number, fork_chain_id) =
                 if let Some(fork_block_number) = self.fork_block_number {
                     let chain_id = if let Some(chain_id) = self.fork_chain_id {
@@ -1095,8 +1106,8 @@ if self.eth_reth_db.is_some() {
             };
 
             if let Some(db_path) = self.eth_reth_db {
-                let mw_provider = Arc::new(RethMiddleware::new(provider.clone(), Path::new(&db_path)));
-            
+                let mw_provider =
+                    Arc::new(RethMiddleware::new(provider.clone(), Path::new(&db_path)));
 
                 // This will spawn the background thread that will use the provider to fetch
                 // blockchain data from the other client
@@ -1106,8 +1117,10 @@ if self.eth_reth_db.is_some() {
                     Some(fork_block_number.into()),
                 );
 
-                let db =
-                    Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
+                let db = Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(
+                    backend,
+                    block_chain_db,
+                )));
                 let fork = ClientForkMiddleware::new(
                     ClientForkConfigMiddleware {
                         ipc_path: Some(eth_ipc_path),
@@ -1126,10 +1139,8 @@ if self.eth_reth_db.is_some() {
                     },
                     Arc::clone(&db),
                 );
-            (db, fork) = (db, Arc::new(Some(fork)))
-
+                (db, fork) = (db, Arc::new(Some(fork)))
             } else {
-
                 // This will spawn the background thread that will use the provider to fetch
                 // blockchain data from the other client
                 let backend = SharedBackend::spawn_backend_thread(
@@ -1138,8 +1149,10 @@ if self.eth_reth_db.is_some() {
                     Some(fork_block_number.into()),
                 );
 
-                let db =
-                    Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
+                let db = Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(
+                    backend,
+                    block_chain_db,
+                )));
                 let fork = ClientForkIpc::new(
                     ClientForkConfigIpc {
                         ipc_path: Some(eth_ipc_path),
@@ -1161,7 +1174,6 @@ if self.eth_reth_db.is_some() {
                 );
                 (db, fork) = (db, Arc::new(Some(fork)))
             }
-        
         }
 
         // if provided use all settings of `genesis.json`
@@ -1203,9 +1215,6 @@ if self.eth_reth_db.is_some() {
         backend
     }
 }
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct PruneStateHistoryConfig {
