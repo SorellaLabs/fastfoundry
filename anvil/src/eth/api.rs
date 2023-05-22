@@ -26,7 +26,7 @@ use crate::{
     filter::{EthFilter, Filters, LogsFilter},
     mem::transaction_build,
     revm::primitives::Output,
-    ClientFork, LoggingManager, Miner, MiningMode, StorageInfo,
+    LoggingManager, Miner, MiningMode, StorageInfo,
 };
 use anvil_core::{
     eth::{
