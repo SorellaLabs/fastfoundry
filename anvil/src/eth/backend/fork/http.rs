@@ -1,6 +1,9 @@
 //! Support for forking off another client generic over HTTP, IPC or ethers-reth middleware
 
-use crate::eth::{backend::mem::fork_db::ForkedDatabase, error::BlockchainError};
+use crate::eth::{
+    backend::{fork::ClientForkTrait, mem::fork_db::ForkedDatabase},
+    error::BlockchainError,
+};
 use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
 use anvil_rpc::error::RpcError;
 use async_trait::async_trait;
@@ -24,7 +27,6 @@ use parking_lot::{
 use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
-use crate::eth::backend::fork::ClientForkTrait;
 
 use super::{ForkedStorage, ipc::ClientForkConfigIpc};
 
@@ -153,6 +155,7 @@ impl ClientForkTrait for ClientForkHttp {
     fn chain_id(&self) -> u64 {
         self.config.read().chain_id
     }
+
 
     fn storage_read(&self) -> RwLockReadGuard<'_, RawRwLock, ForkedStorage> {
         self.storage.read()
@@ -547,8 +550,6 @@ pub struct ClientForkConfigHttp {
     /// total difficulty of the chain until this block
     pub total_difficulty: U256,
 }
-
-
 
 impl ClientForkConfigHttp {
     // Can unwrap because it should always have default values

@@ -5,7 +5,7 @@ use crate::{
     AccountGenerator, Hardfork, NodeConfig, CHAIN_ID,
 };
 use anvil_server::ServerConfig;
-use clap::{Parser, ValueEnum, Subcommand, builder::ArgPredicate, error::ErrorKind};
+use clap::{builder::ArgPredicate, error::ErrorKind, Parser, Subcommand, ValueEnum};
 use core::fmt;
 use ethers::utils::WEI_IN_ETHER;
 use foundry_config::{Chain, Config};
@@ -173,7 +173,9 @@ impl NodeArgs {
             .with_genesis_balance(genesis_balance)
             .with_genesis_timestamp(self.timestamp)
             .with_port(self.port)
-            .with_fork_block_number(self.evm_opts.fork_block_number.or_else(|| self.fork_block_num()))
+            .with_fork_block_number(
+                self.evm_opts.fork_block_number.or_else(|| self.fork_block_num()),
+            )
             .with_fork_chain_id(self.evm_opts.fork_chain_id)
             .fork_request_timeout(self.evm_opts.fork_request_timeout.map(Duration::from_millis))
             .fork_request_retries(self.evm_opts.fork_request_retries)
@@ -201,10 +203,10 @@ impl NodeArgs {
 
     fn fork_block_num(&self) -> Option<u64> {
         if let Some(rpc_fork) = &self.evm_opts.fork_rpc_url {
-            return rpc_fork.block;
+            return rpc_fork.block
         } else if let Some(ipc_fork) = &self.evm_opts.fork_ipc_path {
-            return ipc_fork.block;
-        } 
+            return ipc_fork.block
+        }
         None
     }
 
@@ -322,10 +324,10 @@ pub struct AnvilEvmArgs {
     )]
     pub fork_rpc_url: Option<ForkUrl>,
     // Joe (change): ToEnum
-
     /// Fetch state over a an IPC socket/pipe instead of starting from an empty state.
     ///
-    /// If you want to fetch state from a specific block number, add a block number like `/file/node.ipc@1400000` or use the `--fork-block-number` argument.
+    /// If you want to fetch state from a specific block number, add a block number like
+    /// `/file/node.ipc@1400000` or use the `--fork-block-number` argument.
     #[clap(
         long,
         visible_alias = "fork_ipc_path",
@@ -379,7 +381,13 @@ pub struct AnvilEvmArgs {
     /// Initial retry backoff on encountering errors.
     ///
     /// See --fork-url.
-    #[clap(long, requires = "fork_rpc_url", value_name = "BACKOFF", help_heading = "Fork config", conflicts_with = "fork_ipc_path")]
+    #[clap(
+        long,
+        requires = "fork_rpc_url",
+        value_name = "BACKOFF",
+        help_heading = "Fork config",
+        conflicts_with = "fork_ipc_path"
+    )]
     pub fork_retry_backoff: Option<u64>,
 
     /// Specify chain id to skip fetching it from remote endpoint. This enables offline-start mode.
@@ -478,8 +486,8 @@ pub struct AnvilEvmArgs {
 }
 
 /// Resolves an alias passed as fork-url to the matching url defined in the rpc_endpoints section
-/// Resolves an alias passed as fork-path to the matching path defined in the (IPC) rpc_endpoints section
-/// of the project configuration file.
+/// Resolves an alias passed as fork-path to the matching path defined in the (IPC) rpc_endpoints
+/// section of the project configuration file.
 /// Does nothing if the fork-url is not a configured alias.
 impl AnvilEvmArgs {
     pub fn resolve_rpc_alias(&mut self) {
@@ -491,8 +499,10 @@ impl AnvilEvmArgs {
         }
         if let Some(fork_path) = &self.fork_ipc_path {
             let config = Config::load();
-            if let Some(Ok(path)) = config.get_rpc_url_with_alias(&fork_path.url) { //change to get_ipc_url
-                self.fork_ipc_path = Some(ForkUrl { url: path.to_string(), block: fork_path.block });
+            if let Some(Ok(path)) = config.get_rpc_url_with_alias(&fork_path.url) {
+                //change to get_ipc_url
+                self.fork_ipc_path =
+                    Some(ForkUrl { url: path.to_string(), block: fork_path.block });
             }
         }
     }
@@ -616,7 +626,6 @@ pub struct ForkUrl {
     pub block: Option<u64>,
 }
 
-
 impl fmt::Display for ForkUrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.url.fmt(f)?;
@@ -626,7 +635,6 @@ impl fmt::Display for ForkUrl {
         Ok(())
     }
 }
-
 
 impl FromStr for ForkUrl {
     type Err = String;
@@ -648,7 +656,6 @@ impl FromStr for ForkUrl {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -666,7 +673,7 @@ mod tests {
         assert!(matches.is_err());
         assert_eq!(matches.unwrap_err().kind(), ErrorKind::ArgumentConflict);
     }
-    
+
     #[test]
     fn test_required_args_missing() {
         let args = vec![
@@ -674,17 +681,14 @@ mod tests {
             "--fork_rpc_url",
             "http://localhost:8545@1000000",
             "--reth_db",
-            "/file/reth"
+            "/file/reth",
         ];
         let matches = AnvilEvmArgs::try_parse_from(args);
         assert!(matches.is_err());
         assert_eq!(matches.unwrap_err().kind(), ErrorKind::ArgumentConflict);
     }
-    
 
-
-
-/* 
+    /*
     #[test]
     fn test_parse_fork_url() {
         let fork: ForkUrl = "http://localhost:8545@1000000".parse().unwrap();
