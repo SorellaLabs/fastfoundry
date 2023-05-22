@@ -223,7 +223,7 @@ pub trait ClientForkTrait {
 
     async fn fetch_full_block(
         &self,
-        block_id: impl Into<BlockId>,
+        block_id: impl Into<BlockId> + Send,
     ) -> Result<Option<Block<Transaction>>, ProviderError>;
 
     async fn uncle_by_block_hash_and_index(

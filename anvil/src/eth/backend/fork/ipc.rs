@@ -65,38 +65,36 @@ impl ClientForkTrait for ClientForkIpc {
     async fn reset(
         &self,
         url_or_path: Option<String>,
-        block_number: impl Into<BlockId> + Send, // ensure block_number is Send
+        block_number: impl Into<BlockId>,
     ) -> Result<(), BlockchainError> {
-        let block_number = block_number.into(); // convert block_number to BlockId before async operations
+        let block_number = block_number.into();
         {
-            self.database.write().await.reset(block_number).map_err(BlockchainError::Internal)?;
+            self.database
+                .write()
+                .await
+                .reset(block_number)
+                .map_err(BlockchainError::Internal)?;
         }
-    
-        if let Some(path) = url_or_path {
-            // Clone the config so we can modify it without holding a lock
-            let mut cloned_config = self.config.read().clone();
-            cloned_config.update_path(path).await?;
-    
-            let override_chain_id = cloned_config.override_chain_id;
+
+        if let Some(path) = url_or_path{
+            self.config.write().update_path(path).await?;
+            let override_chain_id = self.config.read().override_chain_id;
             let chain_id = if let Some(chain_id) = override_chain_id {
                 chain_id.into()
             } else {
-                cloned_config.provider.clone().get_chainid().await?
+                self.provider().get_chainid().await?
             };
-    
-            cloned_config.chain_id = chain_id.as_u64();
-            
-            // Now re-acquire the lock to write the updated data back
-            *self.config.write() = cloned_config;
+            self.config.write().chain_id = chain_id.as_u64();
         }
-    
+
+        let provider = self.provider();
         let block =
-            self.provider().get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
+            provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
         let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
         let timestamp = block.timestamp.as_u64();
         let base_fee = block.base_fee_per_gas;
         let total_difficulty = block.total_difficulty.unwrap_or_default();
-    
+
         self.config.write().update_block(
             block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
             block_hash,
@@ -104,7 +102,7 @@ impl ClientForkTrait for ClientForkIpc {
             base_fee,
             total_difficulty,
         );
-    
+
         self.clear_cached_storage();
         Ok(())
     }
@@ -436,7 +434,7 @@ impl ClientForkTrait for ClientForkIpc {
 
     async fn fetch_full_block(
         &self,
-        block_id: impl Into<BlockId>,
+        block_id: impl Into<BlockId> + std::marker::Send,
     ) -> Result<Option<Block<Transaction>>, ProviderError> {
         if let Some(block) = self.provider().get_block_with_txs(block_id.into()).await? {
             let hash = block.hash.unwrap();
