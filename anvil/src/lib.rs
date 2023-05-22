@@ -13,7 +13,6 @@ use crate::{
     shutdown::Signal,
     tasks::TaskManager,
 };
-use eth::backend::fork::ClientFork;
 use ethers::{
     core::k256::ecdsa::SigningKey,
     prelude::Wallet,

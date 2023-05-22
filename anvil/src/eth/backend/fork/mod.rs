@@ -59,7 +59,7 @@ pub trait ClientForkTrait {
     async fn reset(
         &self,
         url_or_path: Option<String>,
-        block_number: impl Into<BlockId>,
+        block_number: impl Into<BlockId> + Send,
     ) -> Result<(), BlockchainError>;
 
     /// Removes all data cached from previous responses
