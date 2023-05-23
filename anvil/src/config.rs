@@ -24,7 +24,9 @@ use anvil_server::ServerConfig;
 use ethers::{
     core::k256::ecdsa::SigningKey,
     prelude::{rand::thread_rng, Wallet, U256},
-    providers::Middleware,
+    providers::{
+        Http, Ipc, JsonRpcClient, Middleware, Provider, ProviderError, RetryClient, RpcError,
+    },
     signers::{
         coins_bip39::{English, Mnemonic},
         MnemonicBuilder, Signer,
@@ -32,7 +34,6 @@ use ethers::{
     types::BlockNumber,
     utils::{format_ether, hex, to_checksum, WEI_IN_ETHER},
 };
-use ethers::providers::{Http, Ipc, JsonRpcClient, Provider, ProviderError, RetryClient, RpcError};
 use ethers_reth::RethMiddleware;
 use forge::utils::{h256_to_b256, u256_to_ru256};
 use foundry_common::{ProviderBuilder, ALCHEMY_FREE_TIER_CUPS, REQUEST_TIMEOUT};
@@ -174,7 +175,7 @@ pub struct NodeConfig {
 }
 
 impl NodeConfig {
-    fn as_string(&self, fork: Option<& dyn ClientForkTrait>) -> String {
+    fn as_string(&self, fork: Option<&dyn ClientForkTrait>) -> String {
         let mut config_string: String = "".to_owned();
         let _ = write!(config_string, "\n{}", Paint::green(BANNER));
         let _ = write!(config_string, "\n    {VERSION_MESSAGE}");
@@ -1114,10 +1115,8 @@ impl NodeConfig {
                 Some(fork_block_number.into()),
             );
 
-            let db = Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(
-                backend,
-                block_chain_db,
-            )));
+            let db =
+                Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
             let fork = ClientForkIpc::new_ipc(
                 ClientForkConfigIpc {
                     ipc_path: Some(eth_ipc_path),
@@ -1139,7 +1138,6 @@ impl NodeConfig {
             );
             backend_db = db;
             client_fork = Some(Arc::new(fork));
-        
         }
 
         if let (Some(eth_ipc_path), Some(db_path)) = (self.eth_ipc_path, self.eth_reth_db) {
@@ -1277,10 +1275,8 @@ impl NodeConfig {
                 Some(fork_block_number.into()),
             );
 
-            let db = Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(
-                backend,
-                block_chain_db,
-            )));
+            let db =
+                Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
             let fork = ClientForkMiddleware::new_middleware(
                 ClientForkConfigMiddleware {
                     ipc_path: Some(eth_ipc_path),
@@ -1302,7 +1298,7 @@ impl NodeConfig {
 
             backend_db = db;
             client_fork = Some(Arc::new(fork));
-        } 
+        }
 
         // if provided use all settings of `genesis.json`
         if let Some(ref genesis) = self.genesis {

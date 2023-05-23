@@ -230,7 +230,6 @@ impl ClientForkTrait for ClientForkHttp {
         Ok(res)
     }
 
-
     /// Sends `eth_createAccessList`
     async fn create_access_list(
         &self,

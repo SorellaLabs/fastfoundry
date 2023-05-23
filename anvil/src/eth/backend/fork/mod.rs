@@ -6,14 +6,13 @@ use anvil_rpc::error::RpcError;
 use async_trait::async_trait;
 use ethers::{
     prelude::BlockNumber,
-    providers::{Ipc, Middleware, Provider, ProviderError},
+    providers::{Ipc, JsonRpcClient, Middleware, MiddlewareError, Provider, ProviderError},
     types::{
         transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
         Filter, GethDebugTracingOptions, GethTrace, Log, Trace, Transaction, TransactionReceipt,
         TxHash, H256, U256,
     },
 };
-use ethers::providers::{JsonRpcClient, MiddlewareError};
 use ethers_reth::RethMiddleware;
 use foundry_common::{ProviderBuilder, RetryProvider};
 use foundry_evm::utils::u256_to_h256_be;
