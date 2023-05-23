@@ -22,9 +22,8 @@ use ethers::{
 
 use ethers::core::types::transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest;
 
-use ethers_providers::{Ipc, JsonRpcClient, Middleware};
+use ethers::providers::{Ipc, Middleware};
 use ethers_reth::RethMiddleware;
-use foundry_common::{ProviderBuilder, RetryProvider};
 use foundry_evm::utils::u256_to_h256_be;
 use parking_lot::{
     lock_api::{RwLockReadGuard, RwLockWriteGuard},
@@ -84,7 +83,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         if let Some(path) = path {
             {
                 let mut config_write = self.config.write();
-                config_write.update_url(path);
+                config_write.update_path(path);
             }
 
             let override_chain_id;
@@ -272,7 +271,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         number: Option<BlockNumber>,
     ) -> Result<H256, ProviderError> {
         let index = u256_to_h256_be(index);
-        self.provider().clone().get_storage_at(address, index, number.map(Into::into)).await
+        self.provider().get_storage_at(address, index, number.map(Into::into)).await
     }
 
     async fn logs(&self, filter: &Filter) -> Result<Vec<Log>, ProviderError> {

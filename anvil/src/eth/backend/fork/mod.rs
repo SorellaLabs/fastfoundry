@@ -13,7 +13,7 @@ use ethers::{
         TxHash, H256, U256,
     },
 };
-use ethers_providers::{JsonRpcClient, MiddlewareError};
+use ethers::providers::{JsonRpcClient, MiddlewareError};
 use ethers_reth::RethMiddleware;
 use foundry_common::{ProviderBuilder, RetryProvider};
 use foundry_evm::utils::u256_to_h256_be;

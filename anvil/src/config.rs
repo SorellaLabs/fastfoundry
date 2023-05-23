@@ -32,7 +32,7 @@ use ethers::{
     types::BlockNumber,
     utils::{format_ether, hex, to_checksum, WEI_IN_ETHER},
 };
-use ethers_providers::{Http, Ipc, JsonRpcClient, Provider, ProviderError, RetryClient, RpcError};
+use ethers::providers::{Http, Ipc, JsonRpcClient, Provider, ProviderError, RetryClient, RpcError};
 use ethers_reth::RethMiddleware;
 use forge::utils::{h256_to_b256, u256_to_ru256};
 use foundry_common::{ProviderBuilder, ALCHEMY_FREE_TIER_CUPS, REQUEST_TIMEOUT};
