@@ -20,7 +20,6 @@ use ethers::{
     signers::Signer,
     types::{Address, U256},
 };
-use ethers_reth::RethMiddleware;
 use foundry_evm::revm;
 use futures::{FutureExt, TryFutureExt};
 use parking_lot::Mutex;

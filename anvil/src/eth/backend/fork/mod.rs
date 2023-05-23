@@ -2,33 +2,27 @@
 
 use crate::eth::{backend::mem::fork_db::ForkedDatabase, error::BlockchainError};
 use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
-use anvil_rpc::error::RpcError;
 use async_trait::async_trait;
 use ethers::{
     prelude::BlockNumber,
-    providers::{Ipc, JsonRpcClient, Middleware, MiddlewareError, Provider, ProviderError},
+    providers::ProviderError,
     types::{
         transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
         Filter, GethDebugTracingOptions, GethTrace, Log, Trace, Transaction, TransactionReceipt,
         TxHash, H256, U256,
     },
 };
-use ethers_reth::RethMiddleware;
-use foundry_common::{ProviderBuilder, RetryProvider};
-use foundry_evm::utils::u256_to_h256_be;
 use parking_lot::{
     lock_api::{RwLockReadGuard, RwLockWriteGuard},
-    RawRwLock, RwLock,
+    RawRwLock,
 };
-use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duration};
+use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
-use tracing::trace;
 
 pub mod http;
 pub mod ipc;
 pub mod middleware;
 
-use crate::eth::backend::fork::{http::ClientForkHttp, ipc::ClientForkIpc};
 use http::ClientForkConfigHttp;
 use ipc::ClientForkConfigIpc;
 // use middleware::ClientForkConfigMiddleware;
@@ -40,6 +34,7 @@ use ipc::ClientForkConfigIpc;
 
 #[async_trait]
 pub trait ClientForkTrait: Sync + Send {
+    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>>;
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(

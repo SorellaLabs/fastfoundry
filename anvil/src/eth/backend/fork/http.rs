@@ -4,38 +4,30 @@ use crate::eth::{
     backend::{fork::ClientForkTrait, mem::fork_db::ForkedDatabase},
     error::BlockchainError,
 };
-use anvil_core::eth::{
-    proof::AccountProof,
-    transaction::{EthTransactionRequest, TypedTransactionRequest},
-};
-use anvil_rpc::error::RpcError;
+use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
+
 use async_trait::async_trait;
 use ethers::{
     prelude::BlockNumber,
-    providers::{Ipc, Middleware, Provider, ProviderError},
+    providers::{Middleware, ProviderError},
     types::{
-        transaction::{eip2718::TypedTransaction, eip2930::AccessListWithGasUsed},
-        Address, Block, BlockId, Bytes, FeeHistory, Filter, GethDebugTracingOptions, GethTrace,
-        Log, Trace, Transaction, TransactionReceipt, TxHash, H256, U256,
+        transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
+        Filter, GethDebugTracingOptions, GethTrace, Log, Trace, Transaction, TransactionReceipt,
+        TxHash, H256, U256,
     },
-    utils::rlp::Decodable,
 };
 
-use ethers::core::types::transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest;
-
-use ethers::providers::{JsonRpcClient, MiddlewareError};
-use ethers_reth::RethMiddleware;
 use foundry_common::{ProviderBuilder, RetryProvider};
 use foundry_evm::utils::u256_to_h256_be;
 use parking_lot::{
     lock_api::{RwLockReadGuard, RwLockWriteGuard},
     RawRwLock, RwLock,
 };
-use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duration};
+use std::{fmt::Debug, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
 
-use super::{ipc::ClientForkConfigIpc, ForkedStorage};
+use super::ForkedStorage;
 
 pub struct ClientForkHttp {
     /// Contains the cached data
@@ -50,7 +42,11 @@ pub struct ClientForkHttp {
 
 #[async_trait]
 impl ClientForkTrait for ClientForkHttp {
-    /// Reset the fork to a fresh forked state, and optionally update the fork config
+    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>> {
+        self.database.clone()
+    }
+
+    /// Reset the fork to a fresh forked state, and optionally update the fork config1
     async fn reset(
         &self,
         path: Option<String>,

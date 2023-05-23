@@ -349,7 +349,7 @@ impl<T: Serialize> ToRpcResponseResult for Result<T> {
                 err @ BlockchainError::EIP2930TransactionUnsupportedAtHardfork => {
                     RpcError::invalid_params(err.to_string())
                 }
-                BlockchainError::IpcError(_) => BlockchainError::RpcError(RpcError { code: 0, message: "IPC Error", data: None }), //fix this
+                BlockchainError::IpcError(rpc_err) => rpc_err.into(),
             }
             .into(),
         }

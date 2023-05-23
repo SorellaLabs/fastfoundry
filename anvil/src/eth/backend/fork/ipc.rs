@@ -2,10 +2,8 @@
 
 use crate::eth::{backend::mem::fork_db::ForkedDatabase, error::BlockchainError};
 use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
-use anvil_rpc::error::RpcError;
 use async_trait::async_trait;
 use ethers::{
-    core::types::transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest,
     prelude::BlockNumber,
     providers::{Ipc, Middleware, Provider, ProviderError},
     types::{
@@ -14,22 +12,16 @@ use ethers::{
         TxHash, H256, U256,
     },
 };
-use ethers::providers::{JsonRpcClient, MiddlewareError};
-use ethers_reth::RethMiddleware;
-use foundry_common::{ProviderBuilder, RetryProvider};
 use foundry_evm::utils::u256_to_h256_be;
 use parking_lot::{
     lock_api::{RwLockReadGuard, RwLockWriteGuard},
     RawRwLock, RwLock,
 };
-use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duration};
+use std::{fmt::Debug, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
 
-use crate::eth::backend::fork::{
-    ClientForkConfigHttp, /* ,ClientForkConfigMiddleware */
-    ClientForkHttp, ClientForkTrait, ForkedStorage,
-};
+use crate::eth::backend::fork::{ClientForkTrait, ForkedStorage};
 
 pub struct ClientForkIpc {
     /// Contains the cached data
@@ -44,12 +36,9 @@ pub struct ClientForkIpc {
 
 #[async_trait]
 impl ClientForkTrait for ClientForkIpc {
-    /*fn new_middleware(
-        config: ClientForkConfigMiddleware,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self {
-        panic!("Cannot create a ClientForkMiddleware from an IPC configuration");
-    }*/
+    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>> {
+        self.database.clone()
+    }
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(

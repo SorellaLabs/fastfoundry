@@ -68,7 +68,7 @@ use parking_lot::RwLock;
 use std::{sync::Arc, time::Duration};
 use tracing::{trace, warn};
 
-use super::backend::{mem::BlockRequest, fork::ClientForkTrait};
+use super::backend::{fork::ClientForkTrait, mem::BlockRequest};
 
 /// The client version: `anvil/v{major}.{minor}.{patch}`
 pub const CLIENT_VERSION: &str = concat!("anvil/v", env!("CARGO_PKG_VERSION"));
@@ -1748,19 +1748,19 @@ impl EthApi {
     /// Sets the reported block number
     ///
     /// Handler for ETH RPC call: `anvil_setBlock`
+
     pub fn anvil_set_block(&self, block_number: U256) -> Result<()> {
         node_info!("anvil_setBlock");
         self.backend.set_block_number(block_number);
         Ok(())
     }
-
     /// Sets the backend rpc url
     ///
     /// Handler for ETH RPC call: `anvil_setRpcUrl`
     pub async fn anvil_set_rpc_url(&self, url: String) -> Result<()> {
         node_info!("anvil_setRpcUrl");
         if let Some(fork) = self.backend.get_fork() {
-            fork.update_path(&url).await?; // fix this
+            fork.update_url(&url).await?; // fix this
         }
         Ok(())
     }

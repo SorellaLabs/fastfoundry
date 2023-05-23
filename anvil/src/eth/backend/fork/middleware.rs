@@ -11,7 +11,7 @@ use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
 use anvil_rpc::error::RpcError;
 use async_trait::async_trait;
 use ethers::{
-    prelude::{BlockNumber, gas_oracle::MiddlewareError},
+    prelude::{gas_oracle::MiddlewareError, BlockNumber},
     providers::{Provider, ProviderError},
     types::{
         transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
@@ -71,6 +71,9 @@ pub struct ClientForkConfigMiddleware {
 
 #[async_trait]
 impl ClientForkTrait for ClientForkMiddleware {
+    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>> {
+        self.database.clone()
+    }
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
@@ -106,8 +109,11 @@ impl ClientForkTrait for ClientForkMiddleware {
         }
 
         let provider = self.provider();
-        let block =
-            provider.get_block(block_number).await.unwrap().ok_or(BlockchainError::BlockNotFound)?;
+        let block = provider
+            .get_block(block_number)
+            .await
+            .unwrap()
+            .ok_or(BlockchainError::BlockNotFound)?;
         let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
         let timestamp = block.timestamp.as_u64();
         let base_fee = block.base_fee_per_gas;
@@ -189,7 +195,12 @@ impl ClientForkTrait for ClientForkMiddleware {
         newest_block: BlockNumber,
         reward_percentiles: &[f64],
     ) -> Result<FeeHistory, ProviderError> {
-        Ok(self.provider().clone().fee_history(block_count, newest_block, reward_percentiles).await.unwrap())
+        Ok(self
+            .provider()
+            .clone()
+            .fee_history(block_count, newest_block, reward_percentiles)
+            .await
+            .unwrap())
     }
 
     /// Sends `eth_getProof`
@@ -222,7 +233,8 @@ impl ClientForkTrait for ClientForkMiddleware {
         let typed_tx =
             EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        let res: Bytes = self.provider().call(&ethers_tx.clone(), Some(block.into())).await.unwrap();
+        let res: Bytes =
+            self.provider().call(&ethers_tx.clone(), Some(block.into())).await.unwrap();
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -524,7 +536,8 @@ impl ClientForkTrait for ClientForkMiddleware {
 
         let mut uncles = Vec::with_capacity(block.uncles.len());
         for (uncle_idx, _) in block.uncles.iter().enumerate() {
-            let uncle = match self.provider().get_uncle(block_hash, uncle_idx.into()).await.unwrap() {
+            let uncle = match self.provider().get_uncle(block_hash, uncle_idx.into()).await.unwrap()
+            {
                 Some(u) => u,
                 None => return Ok(None),
             };

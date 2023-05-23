@@ -24,9 +24,7 @@ use anvil_server::ServerConfig;
 use ethers::{
     core::k256::ecdsa::SigningKey,
     prelude::{rand::thread_rng, Wallet, U256},
-    providers::{
-        Http, Ipc, JsonRpcClient, Middleware, Provider, ProviderError, RetryClient, RpcError,
-    },
+    providers::{Http, Middleware, Provider, RetryClient},
     signers::{
         coins_bip39::{English, Mnemonic},
         MnemonicBuilder, Signer,
@@ -748,7 +746,7 @@ impl NodeConfig {
     }
 
     /// Prints the config info
-    pub fn print(&self, fork: Option<Arc<dyn ClientForkTrait>>) {
+    pub fn print(&self, fork: Option<Box<dyn ClientForkTrait>>) {
         if self.config_out.is_some() {
             let config_out = self.config_out.as_deref().unwrap();
             to_writer(
@@ -982,9 +980,10 @@ impl NodeConfig {
             client_fork = Some(Arc::new(fork));
         }
 
-        if let (Some(eth_ipc_path), None) = (&self.eth_ipc_path.clone(), &self.eth_reth_db.clone()) {
+        if let (Some(eth_ipc_path), None) = (&self.eth_ipc_path.clone(), &self.eth_reth_db.clone())
+        {
             // TODO make provider agnostic
-            let mut provider = Arc::new(Provider::connect_ipc(eth_ipc_path).await.unwrap());
+            let provider = Arc::new(Provider::connect_ipc(eth_ipc_path).await.unwrap());
 
             let (fork_block_number, fork_chain_id) =
                 if let Some(fork_block_number) = self.fork_block_number {
@@ -1140,7 +1139,9 @@ impl NodeConfig {
             client_fork = Some(Arc::new(fork));
         }
 
-        if let (Some(eth_ipc_path), Some(db_path)) = (&self.eth_ipc_path.clone(), &self.eth_reth_db.clone()) {
+        if let (Some(eth_ipc_path), Some(db_path)) =
+            (&self.eth_ipc_path.clone(), &self.eth_reth_db.clone())
+        {
             // TODO make provider agnostic
             let ipc_provider = Provider::connect_ipc(eth_ipc_path).await.unwrap();
 
