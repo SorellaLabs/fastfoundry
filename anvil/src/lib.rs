@@ -1,6 +1,6 @@
 use crate::{
     eth::{
-        backend::{info::StorageInfo, mem},
+        backend::{fork::ClientForkTrait, info::StorageInfo, mem},
         fees::{FeeHistoryService, FeeManager},
         miner::{Miner, MiningMode},
         pool::Pool,
@@ -37,7 +37,6 @@ use tokio::{
     runtime::Handle,
     task::{JoinError, JoinHandle},
 };
-use crate::eth::backend::fork::ClientForkTrait;
 /// contains the background service that drives the node
 mod service;
 

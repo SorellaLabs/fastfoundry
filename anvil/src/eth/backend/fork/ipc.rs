@@ -210,7 +210,7 @@ impl ClientForkTrait for ClientForkIpc {
         Ok(res)
     }
 
-     /// Sends `eth_call`
+    /// Sends `eth_call`
     async fn estimate_gas(
         &self,
         request: &EthTransactionRequest,
