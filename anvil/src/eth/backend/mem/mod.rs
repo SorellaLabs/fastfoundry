@@ -143,7 +143,7 @@ pub struct Backend {
     /// env data of the chain
     env: Arc<RwLock<Env>>,
     /// this is set if this is currently forked off another client
-    fork: Option<Box<dyn ClientForkTrait>>,
+    fork: Option<Arc<dyn ClientForkTrait>>,
     /// provides time related info, like timestamp
     time: TimeManager,
     /// Contains state of custom overrides
@@ -171,7 +171,7 @@ impl Backend {
         env: Arc<RwLock<Env>>,
         genesis: GenesisConfig,
         fees: FeeManager,
-        fork: Option<Box<dyn ClientForkTrait>>,
+        fork: Option<Arc<dyn ClientForkTrait>>,
         enable_steps_tracing: bool,
         prune_state_history_config: PruneStateHistoryConfig,
         transaction_block_keeper: Option<usize>,
@@ -314,8 +314,8 @@ impl Backend {
     }
 
     /// Returns the configured fork, if any
-    pub fn get_fork(&self) -> Option<&ClientFork> {
-        self.fork.as_ref()
+    pub fn get_fork(&self) -> Option<Arc<dyn ClientForkTrait>> {
+        self.fork.clone()
     }
 
     /// Returns the database
@@ -343,7 +343,7 @@ impl Backend {
             let block_number =
                 forking.block_number.map(BlockNumber::from).unwrap_or(BlockNumber::Latest);
             // reset the fork entirely and reapply the genesis config
-            fork.reset(forking.json_rpc_url.clone(), block_number).await?;
+            fork.reset(forking.json_rpc_url.clone(), BlockId::Number(block_number)).await?;
             let fork_block_number = fork.block_number();
             let fork_block = fork
                 .block_by_number(fork_block_number)

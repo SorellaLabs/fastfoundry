@@ -121,6 +121,10 @@ impl ClientForkTrait for ClientForkHttp {
         block <= self.block_number()
     }
 
+    fn backoff(&self) -> Option<Duration> {
+        self.config.read().backoff
+    }
+
     fn timestamp(&self) -> u64 {
         self.config.read().timestamp
     }
@@ -131,6 +135,10 @@ impl ClientForkTrait for ClientForkHttp {
 
     fn total_difficulty(&self) -> U256 {
         self.config.read().total_difficulty
+    }
+
+    fn provider_path(&self) -> Option<String> {
+        self.config.read().eth_rpc_url
     }
 
     fn base_fee(&self) -> Option<U256> {

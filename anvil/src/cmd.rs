@@ -239,7 +239,7 @@ impl NodeArgs {
         let (api, mut handle) = crate::spawn(self.into_node_config()).await;
 
         // sets the signal handler to gracefully shutdown.
-        let mut fork = api.get_fork().cloned();
+        let mut fork = api.get_fork().clone();
         let running = Arc::new(AtomicUsize::new(0));
 
         // handle for the currently running rt, this must be obtained before setting the crtlc
@@ -286,7 +286,7 @@ impl NodeArgs {
             // this will make sure that the fork RPC cache is flushed if caching is configured
             if let Some(fork) = fork.take() {
                 trace!("flushing cache on shutdown");
-                fork.database.read().await.flush_cache();
+                fork.database().read().await.flush_cache();
                 // cleaning up and shutting down
                 // this will make sure that the fork RPC cache is flushed if caching is configured
             }

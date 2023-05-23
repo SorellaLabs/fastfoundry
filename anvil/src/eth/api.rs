@@ -68,7 +68,7 @@ use parking_lot::RwLock;
 use std::{sync::Arc, time::Duration};
 use tracing::{trace, warn};
 
-use super::backend::mem::BlockRequest;
+use super::backend::{mem::BlockRequest, fork::ClientForkTrait};
 
 /// The client version: `anvil/v{major}.{minor}.{patch}`
 pub const CLIENT_VERSION: &str = concat!("anvil/v", env!("CARGO_PKG_VERSION"));
@@ -337,7 +337,7 @@ impl EthApi {
             EthRequest::EvmMineDetailed(mine) => {
                 self.evm_mine_detailed(mine.and_then(|p| p.params)).await.to_rpc_result()
             }
-            EthRequest::SetRpcUrl(url) => self.anvil_set_rpc_url(url).to_rpc_result(),
+            EthRequest::SetRpcUrl(url) => self.anvil_set_rpc_url(url).await.to_rpc_result(),
             EthRequest::EthSendUnsignedTransaction(tx) => {
                 self.eth_send_unsigned_transaction(*tx).await.to_rpc_result()
             }
@@ -1595,12 +1595,12 @@ impl EthApi {
             },
             fork_config: fork_config
                 .map(|fork| {
-                    let config = fork.config.read();
+                    let config = fork.clone();
 
                     NodeForkConfig {
-                        fork_url: Some(config.eth_rpc_url.clone()),
-                        fork_block_number: Some(config.block_number),
-                        fork_retry_backoff: Some(config.backoff.as_millis()),
+                        fork_url: config.provider_path(),
+                        fork_block_number: Some(config.block_number()),
+                        fork_retry_backoff: config.backoff().map(|t| t.as_secs() as u128), // check this
                     }
                 })
                 .unwrap_or_default(),
@@ -1757,24 +1757,10 @@ impl EthApi {
     /// Sets the backend rpc url
     ///
     /// Handler for ETH RPC call: `anvil_setRpcUrl`
-    pub fn anvil_set_rpc_url(&self, url: String) -> Result<()> {
+    pub async fn anvil_set_rpc_url(&self, url: String) -> Result<()> {
         node_info!("anvil_setRpcUrl");
         if let Some(fork) = self.backend.get_fork() {
-            let mut config = fork.config.write();
-            let interval = config.provider.get_interval();
-            let new_provider = Arc::new(
-                ProviderBuilder::new(&url)
-                    .max_retry(10)
-                    .initial_backoff(1000)
-                    .build()
-                    .map_err(|_| {
-                        ProviderError::CustomError(format!("Failed to parse invalid url {url}"))
-                    })?
-                    .interval(interval),
-            );
-            config.provider = new_provider;
-            trace!(target: "backend", "Updated fork rpc from \"{}\" to \"{}\"", config.eth_rpc_url, url);
-            config.eth_rpc_url = url;
+            fork.update_path(&url).await?; // fix this
         }
         Ok(())
     }
@@ -2166,7 +2152,7 @@ impl EthApi {
         self.backend.chain_id().as_u64()
     }
 
-    pub fn get_fork(&self) -> Option<&ClientFork> {
+    pub fn get_fork(&self) -> Option<Arc<dyn ClientForkTrait>> {
         self.backend.get_fork()
     }
 

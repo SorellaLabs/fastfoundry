@@ -11,7 +11,7 @@ use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
 use anvil_rpc::error::RpcError;
 use async_trait::async_trait;
 use ethers::{
-    prelude::BlockNumber,
+    prelude::{BlockNumber, gas_oracle::MiddlewareError},
     providers::{Provider, ProviderError},
     types::{
         transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
@@ -23,7 +23,7 @@ use ethers::{
 use ethers::core::types::transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest;
 
 use ethers::providers::{Ipc, Middleware};
-use ethers_reth::RethMiddleware;
+use ethers_reth::{RethMiddleware, RethMiddlewareError};
 use foundry_evm::utils::u256_to_h256_be;
 use parking_lot::{
     lock_api::{RwLockReadGuard, RwLockWriteGuard},
@@ -33,6 +33,8 @@ use parking_lot::{
 use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
+
+type ClientForkMiddlewareError = RethMiddlewareError<Provider<Ipc>>;
 pub struct ClientForkMiddleware {
     /// Contains the cached data
     pub storage: Arc<RwLock<ForkedStorage>>,
@@ -69,6 +71,7 @@ pub struct ClientForkConfigMiddleware {
 
 #[async_trait]
 impl ClientForkTrait for ClientForkMiddleware {
+
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,
@@ -94,7 +97,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             let chain_id = if let Some(chain_id) = override_chain_id {
                 chain_id.into()
             } else {
-                self.provider().get_chainid().await?
+                self.provider().get_chainid().await.unwrap()
             };
             {
                 let mut config_write = self.config.write();
@@ -104,7 +107,7 @@ impl ClientForkTrait for ClientForkMiddleware {
 
         let provider = self.provider();
         let block =
-            provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
+            provider.get_block(block_number).await.unwrap().ok_or(BlockchainError::BlockNotFound)?;
         let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
         let timestamp = block.timestamp.as_u64();
         let base_fee = block.base_fee_per_gas;
@@ -140,6 +143,10 @@ impl ClientForkTrait for ClientForkMiddleware {
         block <= self.block_number()
     }
 
+    fn backoff(&self) -> Option<Duration> {
+        self.config.read().backoff
+    }
+
     fn timestamp(&self) -> u64 {
         self.config.read().timestamp
     }
@@ -150,6 +157,10 @@ impl ClientForkTrait for ClientForkMiddleware {
 
     fn total_difficulty(&self) -> U256 {
         self.config.read().total_difficulty
+    }
+
+    fn provider_path(&self) -> Option<String> {
+        self.config.read().ipc_path
     }
 
     fn base_fee(&self) -> Option<U256> {
@@ -178,7 +189,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         newest_block: BlockNumber,
         reward_percentiles: &[f64],
     ) -> Result<FeeHistory, ProviderError> {
-        self.provider().clone().fee_history(block_count, newest_block, reward_percentiles).await
+        Ok(self.provider().clone().fee_history(block_count, newest_block, reward_percentiles).await.unwrap())
     }
 
     /// Sends `eth_getProof`
@@ -188,7 +199,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         keys: Vec<H256>,
         block_number: Option<BlockId>,
     ) -> Result<AccountProof, ProviderError> {
-        self.provider().clone().get_proof(address, keys, block_number).await
+        Ok(self.provider().clone().get_proof(address, keys, block_number).await.unwrap())
     }
 
     /// Sends `eth_call`
@@ -211,7 +222,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         let typed_tx =
             EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        let res: Bytes = self.provider().call(&ethers_tx.clone(), Some(block.into())).await?;
+        let res: Bytes = self.provider().call(&ethers_tx.clone(), Some(block.into())).await.unwrap();
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -241,7 +252,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         let typed_tx =
             EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        let res = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await?;
+        let res = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await.unwrap();
 
         if let BlockNumber::Number(num) = block {
             // cache result
@@ -261,7 +272,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         let block = block.unwrap_or(BlockNumber::Latest);
         let typed_tx = EthTransactionRequest::into_typed_request(request.clone().into()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
-        self.provider().create_access_list(&ethers_tx, Some(block.into())).await
+        Ok(self.provider().create_access_list(&ethers_tx, Some(block.into())).await.unwrap())
     }
 
     async fn storage_at(
@@ -271,7 +282,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         number: Option<BlockNumber>,
     ) -> Result<H256, ProviderError> {
         let index = u256_to_h256_be(index);
-        self.provider().get_storage_at(address, index, number.map(Into::into)).await
+        Ok(self.provider().get_storage_at(address, index, number.map(Into::into)).await.unwrap())
     }
 
     async fn logs(&self, filter: &Filter) -> Result<Vec<Log>, ProviderError> {
@@ -279,7 +290,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             return Ok(logs)
         }
 
-        let logs = self.provider().get_logs(filter).await?;
+        let logs = self.provider().get_logs(filter).await.unwrap();
 
         let mut storage = self.storage_write();
         storage.logs.insert(filter.clone(), logs.clone());
@@ -292,7 +303,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             return Ok(code)
         }
 
-        let code = self.provider().get_code(address, Some(blocknumber.into())).await?;
+        let code = self.provider().get_code(address, Some(blocknumber.into())).await.unwrap();
         let mut storage = self.storage_write();
         storage.code_at.insert((address, blocknumber), code.clone());
 
@@ -301,12 +312,12 @@ impl ClientForkTrait for ClientForkMiddleware {
 
     async fn get_balance(&self, address: Address, blocknumber: u64) -> Result<U256, ProviderError> {
         trace!(target: "backend::fork", "get_balance={:?}", address);
-        self.provider().get_balance(address, Some(blocknumber.into())).await
+        Ok(self.provider().get_balance(address, Some(blocknumber.into())).await.unwrap())
     }
 
     async fn get_nonce(&self, address: Address, blocknumber: u64) -> Result<U256, ProviderError> {
         trace!(target: "backend::fork", "get_nonce={:?}", address);
-        self.provider().get_transaction_count(address, Some(blocknumber.into())).await
+        Ok(self.provider().get_transaction_count(address, Some(blocknumber.into())).await.unwrap())
     }
 
     async fn transaction_by_block_number_and_index(
@@ -341,7 +352,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             return Ok(tx)
         }
 
-        if let Some(tx) = self.provider().get_transaction(hash).await? {
+        if let Some(tx) = self.provider().get_transaction(hash).await.unwrap() {
             let mut storage = self.storage_write();
             storage.transactions.insert(hash, tx.clone());
             return Ok(Some(tx))
@@ -354,7 +365,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             return Ok(traces)
         }
 
-        let traces = self.provider().trace_transaction(hash).await?;
+        let traces = self.provider().trace_transaction(hash).await.unwrap();
         let mut storage = self.storage_write();
         storage.transaction_traces.insert(hash, traces.clone());
 
@@ -370,7 +381,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             return Ok(traces)
         }
 
-        let trace = self.provider().debug_trace_transaction(hash, opts).await?;
+        let trace = self.provider().debug_trace_transaction(hash, opts).await.unwrap();
         let mut storage = self.storage_write();
         storage.geth_transaction_traces.insert(hash, trace.clone());
 
@@ -382,7 +393,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             return Ok(traces)
         }
 
-        let traces = self.provider().trace_block(number.into()).await?;
+        let traces = self.provider().trace_block(number.into()).await.unwrap();
         let mut storage = self.storage_write();
         storage.block_traces.insert(number, traces.clone());
 
@@ -397,7 +408,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             return Ok(Some(receipt))
         }
 
-        if let Some(receipt) = self.provider().get_transaction_receipt(hash).await? {
+        if let Some(receipt) = self.provider().get_transaction_receipt(hash).await.unwrap() {
             let mut storage = self.storage_write();
             storage.transaction_receipts.insert(hash, receipt.clone());
             return Ok(Some(receipt))
@@ -463,7 +474,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         &self,
         block_id: BlockId,
     ) -> Result<Option<Block<Transaction>>, ProviderError> {
-        if let Some(block) = self.provider().get_block_with_txs(block_id).await? {
+        if let Some(block) = self.provider().get_block_with_txs(block_id).await.unwrap() {
             let hash = block.hash.unwrap();
             let block_number = block.number.unwrap().as_u64();
             let mut storage = self.storage_write();
@@ -513,7 +524,7 @@ impl ClientForkTrait for ClientForkMiddleware {
 
         let mut uncles = Vec::with_capacity(block.uncles.len());
         for (uncle_idx, _) in block.uncles.iter().enumerate() {
-            let uncle = match self.provider().get_uncle(block_hash, uncle_idx.into()).await? {
+            let uncle = match self.provider().get_uncle(block_hash, uncle_idx.into()).await.unwrap() {
                 Some(u) => u,
                 None => return Ok(None),
             };

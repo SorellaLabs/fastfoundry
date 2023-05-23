@@ -14,7 +14,7 @@ use ethers::{
         TxHash, H256, U256,
     },
 };
-use ethers_providers::{JsonRpcClient, MiddlewareError};
+use ethers::providers::{JsonRpcClient, MiddlewareError};
 use ethers_reth::RethMiddleware;
 use foundry_common::{ProviderBuilder, RetryProvider};
 use foundry_evm::utils::u256_to_h256_be;
@@ -121,6 +121,10 @@ impl ClientForkTrait for ClientForkIpc {
         block <= self.block_number()
     }
 
+    fn backoff(&self) -> Option<Duration> {
+        self.config.read().backoff
+    }
+
     fn timestamp(&self) -> u64 {
         self.config.read().timestamp
     }
@@ -131,6 +135,10 @@ impl ClientForkTrait for ClientForkIpc {
 
     fn total_difficulty(&self) -> U256 {
         self.config.read().total_difficulty
+    }
+
+    fn provider_path(&self) -> Option<String> {
+        self.config.read().ipc_path
     }
 
     fn base_fee(&self) -> Option<U256> {

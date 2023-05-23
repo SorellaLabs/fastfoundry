@@ -41,6 +41,7 @@ use ipc::ClientForkConfigIpc;
 
 #[async_trait]
 pub trait ClientForkTrait: Sync + Send {
+
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,
@@ -57,11 +58,15 @@ pub trait ClientForkTrait: Sync + Send {
     /// Returns true whether the block predates the fork _or_ is the same block as the fork
     fn predates_fork_inclusive(&self, block: u64) -> bool;
 
+    fn backoff(&self) -> Option<Duration>;
+
     fn timestamp(&self) -> u64;
 
     fn block_number(&self) -> u64;
 
     fn total_difficulty(&self) -> U256;
+
+    fn provider_path(&self) -> Option<String>;
 
     fn base_fee(&self) -> Option<U256>;
 

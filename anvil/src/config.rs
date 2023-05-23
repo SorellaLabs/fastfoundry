@@ -174,7 +174,7 @@ pub struct NodeConfig {
 }
 
 impl NodeConfig {
-    fn as_string(&self, fork: Option<& dyn ClientForkTrait>) -> String {
+    fn as_string(&self, fork: Option<Arc<dyn ClientForkTrait>>) -> String {
         let mut config_string: String = "".to_owned();
         let _ = write!(config_string, "\n{}", Paint::green(BANNER));
         let _ = write!(config_string, "\n    {VERSION_MESSAGE}");
@@ -279,13 +279,13 @@ Genesis Timestamp
                 r#"
 Fork
 ==================
-Endpoint:       {}
+Endpoint:       {:?}
 Block number:   {}
 Block hash:     {:?}
 Chain ID:       {}
 
 "#,
-                fork.eth_rpc_url(),
+                fork.provider_path(),
                 fork.block_number(),
                 fork.block_hash(),
                 fork.chain_id()
@@ -295,7 +295,7 @@ Chain ID:       {}
         config_string
     }
 
-    fn as_json(&self, fork: Option<&ClientFork>) -> Value {
+    fn as_json(&self, fork: Option<Arc<dyn ClientForkTrait>>) -> Value {
         let mut wallet_description = HashMap::new();
         let mut available_accounts = Vec::with_capacity(self.genesis_accounts.len());
         let mut private_keys = Vec::with_capacity(self.genesis_accounts.len());
@@ -317,7 +317,7 @@ Chain ID:       {}
             json!({
               "available_accounts": available_accounts,
               "private_keys": private_keys,
-              "endpoint": fork.eth_rpc_url(),
+              "endpoint": fork.provider_path(),
               "block_number": fork.block_number(),
               "block_hash": fork.block_hash(),
               "chain_id": fork.chain_id(),
@@ -747,7 +747,7 @@ impl NodeConfig {
     }
 
     /// Prints the config info
-    pub fn print(&self, fork: Option<&ClientFork>) {
+    pub fn print(&self, fork: Option<Arc<dyn ClientForkTrait>>) {
         if self.config_out.is_some() {
             let config_out = self.config_out.as_deref().unwrap();
             to_writer(
@@ -813,7 +813,7 @@ impl NodeConfig {
             Option<Arc<dyn ClientForkTrait>>,
         ) = (Arc::new(tokio::sync::RwLock::new(MemDb::default())), None);
 
-        if let Some(eth_rpc_url) = self.eth_rpc_url {
+        if let Some(eth_rpc_url) = &self.eth_rpc_url.clone() {
             // TODO make provider agnostic
             let provider: Arc<Provider<RetryClient<Http>>> = Arc::new(
                 ProviderBuilder::new(eth_rpc_url)
@@ -960,7 +960,7 @@ impl NodeConfig {
                 Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
             let fork = ClientForkHttp::new_http(
                 ClientForkConfigHttp {
-                    eth_rpc_url: Some(eth_rpc_url),
+                    eth_rpc_url: Some(eth_rpc_url.to_string()),
                     block_number: fork_block_number,
                     block_hash,
                     provider,
@@ -981,7 +981,7 @@ impl NodeConfig {
             client_fork = Some(Arc::new(fork));
         }
 
-        if let (Some(eth_ipc_path), None) = (self.eth_ipc_path, self.eth_reth_db) {
+        if let (Some(eth_ipc_path), None) = (&self.eth_ipc_path.clone(), &self.eth_reth_db.clone()) {
             // TODO make provider agnostic
             let mut provider = Arc::new(Provider::connect_ipc(eth_ipc_path).await.unwrap());
 
@@ -1120,7 +1120,7 @@ impl NodeConfig {
             )));
             let fork = ClientForkIpc::new_ipc(
                 ClientForkConfigIpc {
-                    ipc_path: Some(eth_ipc_path),
+                    ipc_path: Some(eth_ipc_path.to_string()),
                     block_number: fork_block_number,
                     block_hash,
                     provider,
@@ -1142,9 +1142,9 @@ impl NodeConfig {
         
         }
 
-        if let (Some(eth_ipc_path), Some(db_path)) = (self.eth_ipc_path, self.eth_reth_db) {
+        if let (Some(eth_ipc_path), Some(db_path)) = (&self.eth_ipc_path.clone(), &self.eth_reth_db.clone()) {
             // TODO make provider agnostic
-            let mut ipc_provider = Provider::connect_ipc(eth_ipc_path).await.unwrap();
+            let ipc_provider = Provider::connect_ipc(eth_ipc_path).await.unwrap();
 
             let provider = Arc::new(RethMiddleware::new(ipc_provider, Path::new(&db_path)));
 
@@ -1156,7 +1156,7 @@ impl NodeConfig {
                         // auto adjust hardfork if not specified
                         // but only if we're forking mainnet
                         let chain_id =
-                            provider.chain_id().await.expect("Failed to fetch network chain id");
+                            provider.get_chainid().await.expect("Failed to fetch network chain id");
                         if chain_id == ethers::types::Chain::Mainnet.into() {
                             let hardfork: Hardfork = fork_block_number.into();
                             env.cfg.spec_id = hardfork.into();
@@ -1283,7 +1283,7 @@ impl NodeConfig {
             )));
             let fork = ClientForkMiddleware::new_middleware(
                 ClientForkConfigMiddleware {
-                    ipc_path: Some(eth_ipc_path),
+                    ipc_path: Some(eth_ipc_path.to_string()),
                     block_number: fork_block_number,
                     block_hash,
                     provider,
@@ -1295,7 +1295,7 @@ impl NodeConfig {
                     retries: Some(self.fork_request_retries),
                     backoff: Some(self.fork_retry_backoff),
                     total_difficulty: block.total_difficulty.unwrap_or_default(),
-                    db_path: Some(db_path),
+                    db_path: Some(db_path.to_string()),
                 },
                 Arc::clone(&db),
             );
