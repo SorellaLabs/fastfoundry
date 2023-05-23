@@ -178,6 +178,7 @@ dependencies = [
  "anvil-core",
  "anvil-rpc",
  "anvil-server",
+ "anyhow",
  "async-trait",
  "auto_impl",
  "axum",

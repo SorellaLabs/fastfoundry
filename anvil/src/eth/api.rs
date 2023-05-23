@@ -1760,7 +1760,7 @@ impl EthApi {
     pub async fn anvil_set_rpc_url(&self, url: String) -> Result<()> {
         node_info!("anvil_setRpcUrl");
         if let Some(fork) = self.backend.get_fork() {
-            fork.update_url(&url).await?; // fix this
+            fork.update_url(&url).await; // fix this
         }
         Ok(())
     }

@@ -22,6 +22,8 @@ use tokio::sync::RwLock as AsyncRwLock;
 pub mod http;
 pub mod ipc;
 pub mod middleware;
+use anyhow::anyhow;
+use std::result;
 
 use http::ClientForkConfigHttp;
 use ipc::ClientForkConfigIpc;
@@ -35,6 +37,11 @@ use ipc::ClientForkConfigIpc;
 #[async_trait]
 pub trait ClientForkTrait: Sync + Send {
     fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>>;
+
+    async fn update_url(&self, url: &str) -> Result<(), anyhow::Error> {
+        Err(anyhow!("Not implemented for this type"))
+    }
+
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(

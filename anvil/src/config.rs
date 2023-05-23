@@ -173,7 +173,7 @@ pub struct NodeConfig {
 }
 
 impl NodeConfig {
-    fn as_string(&self, fork: Option<Arc<dyn ClientForkTrait>>) -> String {
+    fn as_string(&self, fork: Option<&Arc<dyn ClientForkTrait>>) -> String {
         let mut config_string: String = "".to_owned();
         let _ = write!(config_string, "\n{}", Paint::green(BANNER));
         let _ = write!(config_string, "\n    {VERSION_MESSAGE}");
@@ -294,7 +294,7 @@ Chain ID:       {}
         config_string
     }
 
-    fn as_json(&self, fork: Option<Arc<dyn ClientForkTrait>>) -> Value {
+    fn as_json(&self, fork: Option<&Arc<dyn ClientForkTrait>>) -> Value {
         let mut wallet_description = HashMap::new();
         let mut available_accounts = Vec::with_capacity(self.genesis_accounts.len());
         let mut private_keys = Vec::with_capacity(self.genesis_accounts.len());
@@ -746,12 +746,12 @@ impl NodeConfig {
     }
 
     /// Prints the config info
-    pub fn print(&self, fork: Option<Box<dyn ClientForkTrait>>) {
+    pub fn print(&self, fork: Option<Arc<dyn ClientForkTrait>>) {
         if self.config_out.is_some() {
             let config_out = self.config_out.as_deref().unwrap();
             to_writer(
                 &File::create(config_out).expect("Unable to create anvil config description file"),
-                &self.as_json(fork),
+                &self.as_json(fork.as_ref()),
             )
             .expect("Failed writing json");
         }
@@ -759,7 +759,7 @@ impl NodeConfig {
             return
         }
 
-        println!("{}", self.as_string(fork))
+        println!("{}", self.as_string(fork.as_ref()))
     }
 
     /// Returns the path where the cache file should be stored

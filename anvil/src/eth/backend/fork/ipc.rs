@@ -127,7 +127,7 @@ impl ClientForkTrait for ClientForkIpc {
     }
 
     fn provider_path(&self) -> Option<String> {
-        self.config.read().ipc_path
+        self.config.read().ipc_path.clone()
     }
 
     fn base_fee(&self) -> Option<U256> {

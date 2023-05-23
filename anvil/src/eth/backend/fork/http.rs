@@ -134,7 +134,7 @@ impl ClientForkTrait for ClientForkHttp {
     }
 
     fn provider_path(&self) -> Option<String> {
-        self.config.read().eth_rpc_url
+        self.config.read().eth_rpc_url.clone()
     }
 
     fn base_fee(&self) -> Option<U256> {

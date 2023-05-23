@@ -94,7 +94,7 @@ pub async fn spawn(mut config: NodeConfig) -> (EthApi, NodeHandle) {
 
     let backend = Arc::new(config.setup().await);
 
-    let fork = backend.get_fork().cloned();
+    let fork = backend.get_fork();
 
     let NodeConfig {
         signer_accounts,
@@ -186,7 +186,7 @@ pub async fn spawn(mut config: NodeConfig) -> (EthApi, NodeHandle) {
         task_manager,
     };
 
-    handle.print(fork.as_ref());
+    handle.print(fork);
 
     (api, handle)
 }
@@ -219,7 +219,7 @@ impl NodeHandle {
     }
 
     /// Prints the launch info
-    pub(crate) fn print(&self, fork: Option<Box<dyn ClientForkTrait>>) {
+    pub(crate) fn print(&self, fork: Option<Arc<dyn ClientForkTrait>>) {
         self.config.print(fork);
         if !self.config.silent {
             println!("Listening on {}", self.socket_address())
