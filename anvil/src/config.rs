@@ -775,7 +775,6 @@ impl NodeConfig {
         Config::foundry_block_cache_file(chain_id, block)
     }
 
-
     /// Portion of setup using the provider
     pub(crate) async fn provider_setup<P>(
         &mut self,
@@ -919,7 +918,6 @@ impl NodeConfig {
         (db, chain_id, block)
     }
 
-
     /// Configures everything related to env, backend and database and returns the
     /// [Backend](mem::Backend)
     ///
@@ -993,64 +991,61 @@ impl NodeConfig {
         }
 
         // Ipc Provider
-        if let (Some(eth_ipc_path), None) = (self.eth_ipc_path.clone(), self.eth_reth_db.clone()) {
-            let provider = Arc::new(Provider::connect_ipc(&eth_ipc_path).await.unwrap());
+        if let Some(eth_ipc_path) = self.eth_ipc_path.clone() {
+            if let Some(db_path) = self.eth_reth_db.clone() {
+                let ipc_provider = Provider::connect_ipc(eth_ipc_path.clone()).await.unwrap();
+                let provider = Arc::new(RethMiddleware::new(ipc_provider, Path::new(&db_path)));
 
-            let (db, chain_id, block) =
-                self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &mut fees).await;
+                let (db, chain_id, block) =
+                    self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &mut fees).await;
 
-            let fork = ClientForkIpc::new_ipc(
-                ClientForkConfigIpc {
-                    ipc_path: Some(eth_ipc_path.to_string()),
-                    block_number: block.number.unwrap().as_u64(),
-                    block_hash: block.hash.unwrap_or_default(),
-                    provider,
-                    chain_id,
-                    override_chain_id: self.chain_id,
-                    timestamp: block.timestamp.as_u64(),
-                    base_fee: block.base_fee_per_gas,
-                    timeout: Some(self.fork_request_timeout),
-                    retries: Some(self.fork_request_retries),
-                    backoff: Some(self.fork_retry_backoff),
-                    compute_units_per_second: Some(self.compute_units_per_second),
-                    total_difficulty: block.total_difficulty.unwrap_or_default(),
-                    db_path: None,
-                },
-                Arc::clone(&db),
-            );
-            backend_db = db;
-            client_fork = Some(Arc::new(fork));
-        }
+                let fork = ClientForkMiddleware::new_middleware(
+                    ClientForkConfigMiddleware {
+                        ipc_path: Some(eth_ipc_path.to_string()),
+                        db_path: self.eth_reth_db.clone(),
+                        block_number: block.number.unwrap().as_u64(),
+                        block_hash: block.hash.unwrap_or_default(),
+                        provider,
+                        chain_id,
+                        override_chain_id: self.chain_id,
+                        timestamp: block.timestamp.as_u64(),
+                        base_fee: block.base_fee_per_gas,
+                        timeout: Some(self.fork_request_timeout),
+                        total_difficulty: block.total_difficulty.unwrap_or_default(),
+                    },
+                    Arc::clone(&db),
+                );
 
-        // RethMiddleware Provider
-        if let (Some(eth_ipc_path), Some(db_path)) =
-            (self.eth_ipc_path.clone(), self.eth_reth_db.clone())
-        {
-            let ipc_provider = Provider::connect_ipc(eth_ipc_path.clone()).await.unwrap();
-            let provider = Arc::new(RethMiddleware::new(ipc_provider, Path::new(&db_path)));
+                backend_db = db;
+                client_fork = Some(Arc::new(fork));
+            } else {
+                let provider = Arc::new(Provider::connect_ipc(&eth_ipc_path).await.unwrap());
 
-            let (db, chain_id, block) =
-                self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &mut fees).await;
+                let (db, chain_id, block) =
+                    self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &mut fees).await;
 
-            let fork = ClientForkMiddleware::new_middleware(
-                ClientForkConfigMiddleware {
-                    ipc_path: Some(eth_ipc_path.to_string()),
-                    db_path: self.eth_reth_db.clone(),
-                    block_number: block.number.unwrap().as_u64(),
-                    block_hash: block.hash.unwrap_or_default(),
-                    provider,
-                    chain_id,
-                    override_chain_id: self.chain_id,
-                    timestamp: block.timestamp.as_u64(),
-                    base_fee: block.base_fee_per_gas,
-                    timeout: Some(self.fork_request_timeout),
-                    total_difficulty: block.total_difficulty.unwrap_or_default(),
-                },
-                Arc::clone(&db),
-            );
-
-            backend_db = db;
-            client_fork = Some(Arc::new(fork));
+                let fork = ClientForkIpc::new_ipc(
+                    ClientForkConfigIpc {
+                        ipc_path: Some(eth_ipc_path.to_string()),
+                        block_number: block.number.unwrap().as_u64(),
+                        block_hash: block.hash.unwrap_or_default(),
+                        provider,
+                        chain_id,
+                        override_chain_id: self.chain_id,
+                        timestamp: block.timestamp.as_u64(),
+                        base_fee: block.base_fee_per_gas,
+                        timeout: Some(self.fork_request_timeout),
+                        retries: Some(self.fork_request_retries),
+                        backoff: Some(self.fork_retry_backoff),
+                        compute_units_per_second: Some(self.compute_units_per_second),
+                        total_difficulty: block.total_difficulty.unwrap_or_default(),
+                        db_path: None,
+                    },
+                    Arc::clone(&db),
+                );
+                backend_db = db;
+                client_fork = Some(Arc::new(fork));
+            }
         }
 
         // if provided use all settings of `genesis.json`
