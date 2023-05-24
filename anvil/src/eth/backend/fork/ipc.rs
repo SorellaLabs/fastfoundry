@@ -29,7 +29,7 @@ pub struct ClientForkIpc {
     /// contains the info how the fork is configured
     // Wrapping this in a lock, ensures we can update this on the fly via additional custom RPC
     // endpoints
-    pub config: Arc<AsyncRwLock<ClientForkConfigIpc>>,
+    pub config: Arc<RwLock<ClientForkConfigIpc>>,
     /// This also holds a handle to the underlying database
     pub database: Arc<AsyncRwLock<ForkedDatabase>>,
 }
@@ -41,60 +41,61 @@ impl ClientForkTrait for ClientForkIpc {
     }
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
+    /// Reset the fork to a fresh forked state, and optionally update the fork config
+    // For now we have decided against using an asyncRwLock for simplicity but this might change
     async fn reset(
-    &self,
-    path: Option<String>,
-    block_number: BlockId,
-) -> Result<(), BlockchainError> {
-    {
-        let mut db_write = self.database.write().await;
-        db_write.reset(block_number).map_err(BlockchainError::Internal)?;
-    }
-
-    if let Some(path) = path {
+        &self,
+        path: Option<String>,
+        block_number: BlockId,
+    ) -> Result<(), BlockchainError> {
         {
-            let mut config_write = self.config.write().await;
-            config_write.update_path(path).await?;
+            let mut db_write = self.database.write().await;
+            db_write.reset(block_number).map_err(BlockchainError::Internal)?;
         }
-
-        let override_chain_id;
+    
+        if let Some(path) = path {
+            // Clone config before modifying
+            let mut cloned_config = self.config.read().clone();
+            cloned_config.update_path(path).await?;
+    
+            let override_chain_id = cloned_config.override_chain_id;
+            let chain_id = if let Some(chain_id) = override_chain_id {
+                chain_id.into()
+            } else {
+                self.provider().get_chainid().await?
+            };
+            cloned_config.chain_id = chain_id.as_u64();
+    
+            // Write updated config back
+            {
+                let mut config_write = self.config.write();
+                *config_write = cloned_config;
+            }
+        }
+    
+        let provider = self.provider();
+        let block =
+            provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
+        let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
+        let timestamp = block.timestamp.as_u64();
+        let base_fee = block.base_fee_per_gas;
+        let total_difficulty = block.total_difficulty.unwrap_or_default();
+    
+        // Directly write for non-async operations
         {
-            let config_read = self.config.read().await;
-            override_chain_id = config_read.override_chain_id;
+            let mut config_write = self.config.write();
+            config_write.update_block(
+                block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
+                block_hash,
+                timestamp,
+                base_fee,
+                total_difficulty,
+            );
         }
-        let chain_id = if let Some(chain_id) = override_chain_id {
-            chain_id.into()
-        } else {
-            self.provider().get_chainid().await?
-        };
-        {
-            let mut config_write = self.config.write().await;
-            config_write.chain_id = chain_id.as_u64();
-        }
+    
+        self.clear_cached_storage();
+        Ok(())
     }
-
-    let provider = self.provider();
-    let block =
-        provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
-    let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
-    let timestamp = block.timestamp.as_u64();
-    let base_fee = block.base_fee_per_gas;
-    let total_difficulty = block.total_difficulty.unwrap_or_default();
-
-    {
-        let mut config_write = self.config.write().await;
-        config_write.update_block(
-            block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
-            block_hash,
-            timestamp,
-            base_fee,
-            total_difficulty,
-        );
-    }
-
-    self.clear_cached_storage();
-    Ok(())
-}
 
     /// Removes all data cached from previous responses
     fn clear_cached_storage(&self) {
