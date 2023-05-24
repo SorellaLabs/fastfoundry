@@ -42,7 +42,6 @@ pub trait ClientForkTrait: Sync + Send {
         Err(anyhow!("Not implemented for this type"))
     }
 
-
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,
