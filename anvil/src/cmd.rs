@@ -182,8 +182,8 @@ impl NodeArgs {
             .fork_retry_backoff(self.evm_opts.fork_retry_backoff.map(Duration::from_millis))
             .fork_compute_units_per_second(compute_units_per_second)
             .with_eth_rpc_url(self.evm_opts.fork_rpc_url.map(|fork| fork.url))
-            .with_eth_ipc_path(self.evm_opts.fork_ipc_path.map(|fork| fork.url))
-            .with_eth_reth_db(self.evm_opts.reth_db_path)
+            .with_eth_ipc_path(self.evm_opts.fork_ipc.map(|fork| fork.url))
+            .with_eth_reth_db(self.evm_opts.fork_db)
             .with_base_fee(self.evm_opts.block_base_fee_per_gas)
             .with_storage_caching(self.evm_opts.no_storage_caching)
             .with_server_config(self.server_config)
@@ -204,7 +204,7 @@ impl NodeArgs {
     fn fork_block_num(&self) -> Option<u64> {
         if let Some(rpc_fork) = &self.evm_opts.fork_rpc_url {
             return rpc_fork.block
-        } else if let Some(ipc_fork) = &self.evm_opts.fork_ipc_path {
+        } else if let Some(ipc_fork) = &self.evm_opts.fork_ipc {
             return ipc_fork.block
         }
         None
@@ -317,37 +317,36 @@ pub struct AnvilEvmArgs {
         long,
         short,
         visible_alias = "fork_rpc_url",
-        value_name = "rpc_url",
+        value_name = "fork_rpc_url",
         help_heading = "Fork config",
         group = "conn_path",
-        conflicts_with = "fork_ipc_path"
+        conflicts_with = "fork_ipc"
     )]
     pub fork_rpc_url: Option<ForkUrl>,
-    // Joe (change): ToEnum
+
     /// Fetch state over a an IPC socket/pipe instead of starting from an empty state.
     ///
     /// If you want to fetch state from a specific block number, add a block number like
     /// `/file/node.ipc@1400000` or use the `--fork-block-number` argument.
     #[clap(
         long,
-        visible_alias = "fork_ipc_path",
-        value_name = "ipc_path",
+        visible_alias = "fork_ipc",
+        value_name = "fork_ipc",
         help_heading = "Fork config",
         group = "conn_path",
         conflicts_with = "fork_rpc_url"
     )]
-    pub fork_ipc_path: Option<ForkUrl>,
+    pub fork_ipc: Option<ForkUrl>,
 
     /// Path of your local reth database
     #[clap(
         long,
-        short,
-        visible_alias = "reth_db",
-        value_name = "reth_db_path",
+        visible_alias = "fork_db",
+        value_name = "fork_db",
         conflicts_with = "fork_rpc_url",
-        requires = "fork_ipc_path"
+        requires = "fork_ipc"
     )]
-    pub reth_db_path: Option<String>,
+    pub fork_db: Option<String>,
 
     /// Timeout in ms for requests sent to remote JSON-RPC server in forking mode.
     ///
@@ -357,7 +356,7 @@ pub struct AnvilEvmArgs {
         name = "timeout",
         help_heading = "Fork config",
         requires = "fork_rpc_url",
-        conflicts_with = "fork_ipc_path" // Joe (added)
+        conflicts_with = "fork_ipc"
     )]
     pub fork_request_timeout: Option<u64>,
 
@@ -368,7 +367,7 @@ pub struct AnvilEvmArgs {
         name = "retries",
         help_heading = "Fork config",
         requires = "fork_rpc_url",
-        conflicts_with = "fork_ipc_path" // Joe (added)
+        conflicts_with = "fork_ipc"
     )]
     pub fork_request_retries: Option<u32>,
 
@@ -386,7 +385,7 @@ pub struct AnvilEvmArgs {
         requires = "fork_rpc_url",
         value_name = "BACKOFF",
         help_heading = "Fork config",
-        conflicts_with = "fork_ipc_path"
+        conflicts_with = "fork_ipc"
     )]
     pub fork_retry_backoff: Option<u64>,
 
@@ -497,11 +496,11 @@ impl AnvilEvmArgs {
                 self.fork_rpc_url = Some(ForkUrl { url: url.to_string(), block: fork_url.block });
             }
         }
-        if let Some(fork_path) = &self.fork_ipc_path {
+        if let Some(fork_path) = &self.fork_ipc {
             let config = Config::load();
             if let Some(Ok(path)) = config.get_rpc_url_with_alias(&fork_path.url) {
                 //change to get_ipc_url
-                self.fork_ipc_path =
+                self.fork_ipc =
                     Some(ForkUrl { url: path.to_string(), block: fork_path.block });
             }
         }
@@ -666,7 +665,7 @@ mod tests {
             "program",
             "--fork_rpc_url",
             "http://localhost:8545@1000000",
-            "--fork_ipc_path",
+            "--fork_ipc",
             "/file/node.ipc@1400000",
         ];
         let matches = AnvilEvmArgs::try_parse_from(args);
@@ -680,7 +679,7 @@ mod tests {
             "program",
             "--fork_rpc_url",
             "http://localhost:8545@1000000",
-            "--reth_db",
+            "--fork_db",
             "/file/reth",
         ];
         let matches = AnvilEvmArgs::try_parse_from(args);
