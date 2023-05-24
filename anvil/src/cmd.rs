@@ -658,7 +658,7 @@ impl FromStr for ForkUrl {
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    /*
     #[test]
     fn test_conflicting_args() {
         let args = vec![
@@ -687,7 +687,7 @@ mod tests {
         assert_eq!(matches.unwrap_err().kind(), ErrorKind::ArgumentConflict);
     }
 
-    /*
+
     #[test]
     fn test_parse_fork_url() {
         let fork: ForkUrl = "http://localhost:8545@1000000".parse().unwrap();

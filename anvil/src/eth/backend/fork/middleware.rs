@@ -59,10 +59,6 @@ pub struct ClientForkConfigMiddleware {
     pub base_fee: Option<U256>,
     /// request timeout
     pub timeout: Option<Duration>,
-    /// request retries for spurious networks
-    pub retries: Option<u32>,
-    /// request retries for spurious networks
-    pub backoff: Option<Duration>,
     /// total difficulty of the chain until this block
     pub total_difficulty: U256,
 }
@@ -160,7 +156,7 @@ impl ClientForkTrait for ClientForkMiddleware {
     }
 
     fn backoff(&self) -> Option<Duration> {
-        self.config.read().backoff
+        None
     }
 
     fn timestamp(&self) -> u64 {

@@ -24,12 +24,12 @@ use anvil_server::ServerConfig;
 use ethers::{
     core::k256::ecdsa::SigningKey,
     prelude::{rand::thread_rng, Wallet, U256},
-    providers::{Http, Middleware, Provider, RetryClient},
+    providers::{Middleware, Provider},
     signers::{
         coins_bip39::{English, Mnemonic},
         MnemonicBuilder, Signer,
     },
-    types::BlockNumber,
+    types::{Block, BlockNumber, H256},
     utils::{format_ether, hex, to_checksum, WEI_IN_ETHER},
 };
 use ethers_reth::RethMiddleware;
@@ -43,6 +43,7 @@ use foundry_evm::{
     utils::apply_chain_and_block_specific_env_changes,
 };
 use parking_lot::RwLock;
+use revm::primitives::Env;
 use serde_json::{json, to_writer, Value};
 use std::{
     collections::HashMap,
@@ -774,11 +775,150 @@ impl NodeConfig {
         Config::foundry_block_cache_file(chain_id, block)
     }
 
-    /*
-    if self.eth_reth_db.is_some() {
-                    return (eth_ipc_path, RethMiddleware::new(provider, Path::new(self.eth_reth_db.unwrap())))
-                };
-                 */
+
+    /// Portion of setup using the provider
+    pub(crate) async fn provider_setup<P>(
+        &mut self,
+        provider: Arc<P>,
+        prov_path: &str,
+        env: &mut Env,
+        fees: &mut FeeManager,
+    ) -> (Arc<tokio::sync::RwLock<ForkedDatabase>>, u64, Block<H256>)
+    // (forked_db, chain_id, block)
+    where
+        P: Middleware + Unpin + 'static,
+    {
+        let (fork_block_number, fork_chain_id) = if let Some(fork_block_number) =
+            self.fork_block_number
+        {
+            let chain_id = if let Some(chain_id) = self.fork_chain_id {
+                Some(chain_id)
+            } else if self.hardfork.is_none() {
+                // auto adjust hardfork if not specified
+                // but only if we're forking mainnet
+                let chain_id =
+                    provider.get_chainid().await.expect("Failed to fetch network chain id");
+                if chain_id == ethers::types::Chain::Mainnet.into() {
+                    let hardfork: Hardfork = fork_block_number.into();
+                    env.cfg.spec_id = hardfork.into();
+                    self.hardfork = Some(hardfork);
+                }
+                Some(chain_id)
+            } else {
+                None
+            };
+
+            (fork_block_number, chain_id)
+        } else {
+            // pick the last block number but also ensure it's not pending anymore
+            (
+                find_latest_fork_block(&provider).await.expect("Failed to get fork block number"),
+                None,
+            )
+        };
+
+        let block = provider
+            .get_block(BlockNumber::Number(fork_block_number.into()))
+            .await
+            .expect("Failed to get fork block");
+
+        let block = if let Some(block) = block {
+            block
+        } else {
+            if let Ok(latest_block) = provider.get_block_number().await {
+                panic!(
+                            "Failed to get block for block number: {fork_block_number}\nlatest block number: {latest_block}"
+                        );
+            }
+            panic!("Failed to get block for block number: {fork_block_number}")
+        };
+
+        // we only use the gas limit value of the block if it is non-zero, since there are networks
+        // where this is not used and is always `0x0` which would inevitably result in
+        // `OutOfGas` errors as soon as the evm is about to record gas, See also <https://github.com/foundry-rs/foundry/issues/3247>
+        let gas_limit = if block.gas_limit.is_zero() {
+            env.block.gas_limit
+        } else {
+            u256_to_ru256(block.gas_limit)
+        };
+
+        env.block = BlockEnv {
+            number: rU256::from(fork_block_number),
+            timestamp: block.timestamp.into(),
+            difficulty: block.difficulty.into(),
+            // ensures prevrandao is set
+            prevrandao: Some(block.mix_hash.unwrap_or_default()).map(h256_to_b256),
+            gas_limit,
+            // Keep previous `coinbase` and `basefee` value
+            coinbase: env.block.coinbase,
+            basefee: env.block.basefee,
+        };
+
+        // apply changes such as difficulty -> prevrandao
+        apply_chain_and_block_specific_env_changes(env, &block);
+
+        // if not set explicitly we use the base fee of the latest block
+        if self.base_fee.is_none() {
+            if let Some(base_fee) = block.base_fee_per_gas {
+                self.base_fee = Some(base_fee);
+                env.block.basefee = u256_to_ru256(base_fee);
+                // this is the base fee of the current block, but we need the base fee of
+                // the next block
+                let next_block_base_fee = fees.get_next_block_base_fee_per_gas(
+                    block.gas_used,
+                    block.gas_limit,
+                    block.base_fee_per_gas.unwrap_or_default(),
+                );
+                // update next base fee
+                fees.set_base_fee(next_block_base_fee.into());
+            }
+        }
+
+        // use remote gas price
+        if self.gas_price.is_none() {
+            if let Ok(gas_price) = provider.get_gas_price().await {
+                self.gas_price = Some(gas_price);
+                fees.set_gas_price(gas_price);
+            }
+        }
+
+        let chain_id = if let Some(chain_id) = self.chain_id {
+            chain_id
+        } else {
+            let chain_id = if let Some(fork_chain_id) = fork_chain_id {
+                fork_chain_id
+            } else {
+                provider.get_chainid().await.unwrap()
+            }
+            .as_u64();
+
+            // need to update the dev signers and env with the chain id
+            self.set_chain_id(Some(chain_id));
+            env.cfg.chain_id = rU256::from(chain_id);
+            env.tx.chain_id = chain_id.into();
+            chain_id
+        };
+
+        let meta = BlockchainDbMeta::new(env.clone(), prov_path.to_string());
+        let block_chain_db = if self.fork_chain_id.is_some() {
+            BlockchainDb::new_skip_check(meta, self.block_cache_path(fork_block_number))
+        } else {
+            BlockchainDb::new(meta, self.block_cache_path(fork_block_number))
+        };
+
+        // This will spawn the background thread that will use the provider to fetch
+        // blockchain data from the other client
+        let backend = SharedBackend::spawn_backend_thread(
+            Arc::clone(&provider),
+            block_chain_db.clone(),
+            Some(fork_block_number.into()),
+        );
+
+        let db = Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
+
+        (db, chain_id, block)
+    }
+
 
     /// Configures everything related to env, backend and database and returns the
     /// [Backend](mem::Backend)
@@ -805,17 +945,17 @@ impl NodeConfig {
             },
             tx: TxEnv { chain_id: self.get_chain_id().into(), ..Default::default() },
         };
-        let fees = FeeManager::new(env.cfg.spec_id, self.get_base_fee(), self.get_gas_price());
+        let mut fees = FeeManager::new(env.cfg.spec_id, self.get_base_fee(), self.get_gas_price());
 
         let (mut backend_db, mut client_fork): (
             Arc<tokio::sync::RwLock<dyn Db>>,
             Option<Arc<dyn ClientForkTrait>>,
         ) = (Arc::new(tokio::sync::RwLock::new(MemDb::default())), None);
 
-        if let Some(eth_rpc_url) = &self.eth_rpc_url.clone() {
-            // TODO make provider agnostic
-            let provider: Arc<Provider<RetryClient<Http>>> = Arc::new(
-                ProviderBuilder::new(eth_rpc_url)
+        // Http RPC Provider
+        if let Some(eth_rpc_url) = self.eth_rpc_url.clone() {
+            let provider = Arc::new(
+                ProviderBuilder::new(&eth_rpc_url)
                     .timeout(self.fork_request_timeout)
                     .timeout_retry(self.fork_request_retries)
                     .initial_backoff(self.fork_retry_backoff.as_millis() as u64)
@@ -826,145 +966,17 @@ impl NodeConfig {
                     .expect("Failed to establish provider to fork RPC url"),
             );
 
-            let (fork_block_number, fork_chain_id) =
-                if let Some(fork_block_number) = self.fork_block_number {
-                    let chain_id = if let Some(chain_id) = self.fork_chain_id {
-                        Some(chain_id)
-                    } else if self.hardfork.is_none() {
-                        // auto adjust hardfork if not specified
-                        // but only if we're forking mainnet
-                        let chain_id =
-                            provider.get_chainid().await.expect("Failed to fetch network chain id");
-                        if chain_id == ethers::types::Chain::Mainnet.into() {
-                            let hardfork: Hardfork = fork_block_number.into();
-                            env.cfg.spec_id = hardfork.into();
-                            self.hardfork = Some(hardfork);
-                        }
-                        Some(chain_id)
-                    } else {
-                        None
-                    };
+            let (db, chain_id, block) =
+                self.provider_setup(provider.clone(), &eth_rpc_url, &mut env, &mut fees).await;
 
-                    (fork_block_number, chain_id)
-                } else {
-                    // pick the last block number but also ensure it's not pending anymore
-                    (
-                        find_latest_fork_block(&provider)
-                            .await
-                            .expect("Failed to get fork block number"),
-                        None,
-                    )
-                };
-
-            let block = provider
-                .get_block(BlockNumber::Number(fork_block_number.into()))
-                .await
-                .expect("Failed to get fork block");
-
-            let block = if let Some(block) = block {
-                block
-            } else {
-                if let Ok(latest_block) = provider.get_block_number().await {
-                    panic!(
-                            "Failed to get block for block number: {fork_block_number}\nlatest block number: {latest_block}"
-                        );
-                }
-                panic!("Failed to get block for block number: {fork_block_number}")
-            };
-
-            // we only use the gas limit value of the block if it is non-zero, since there are networks where this is not used and is always `0x0` which would inevitably result in `OutOfGas` errors as soon as the evm is about to record gas, See also <https://github.com/foundry-rs/foundry/issues/3247>
-
-            let gas_limit = if block.gas_limit.is_zero() {
-                env.block.gas_limit
-            } else {
-                u256_to_ru256(block.gas_limit)
-            };
-
-            env.block = BlockEnv {
-                number: rU256::from(fork_block_number),
-                timestamp: block.timestamp.into(),
-                difficulty: block.difficulty.into(),
-                // ensures prevrandao is set
-                prevrandao: Some(block.mix_hash.unwrap_or_default()).map(h256_to_b256),
-                gas_limit,
-                // Keep previous `coinbase` and `basefee` value
-                coinbase: env.block.coinbase,
-                basefee: env.block.basefee,
-            };
-
-            // apply changes such as difficulty -> prevrandao
-            apply_chain_and_block_specific_env_changes(&mut env, &block);
-
-            // if not set explicitly we use the base fee of the latest block
-            if self.base_fee.is_none() {
-                if let Some(base_fee) = block.base_fee_per_gas {
-                    self.base_fee = Some(base_fee);
-                    env.block.basefee = u256_to_ru256(base_fee);
-                    // this is the base fee of the current block, but we need the base fee of
-                    // the next block
-                    let next_block_base_fee = fees.get_next_block_base_fee_per_gas(
-                        block.gas_used,
-                        block.gas_limit,
-                        block.base_fee_per_gas.unwrap_or_default(),
-                    );
-                    // update next base fee
-                    fees.set_base_fee(next_block_base_fee.into());
-                }
-            }
-
-            // use remote gas price
-            if self.gas_price.is_none() {
-                if let Ok(gas_price) = provider.get_gas_price().await {
-                    self.gas_price = Some(gas_price);
-                    fees.set_gas_price(gas_price);
-                }
-            }
-
-            let block_hash = block.hash.unwrap_or_default();
-
-            let chain_id = if let Some(chain_id) = self.chain_id {
-                chain_id
-            } else {
-                let chain_id = if let Some(fork_chain_id) = fork_chain_id {
-                    fork_chain_id
-                } else {
-                    provider.get_chainid().await.unwrap()
-                }
-                .as_u64();
-
-                // need to update the dev signers and env with the chain id
-                self.set_chain_id(Some(chain_id));
-                env.cfg.chain_id = rU256::from(chain_id);
-                env.tx.chain_id = chain_id.into();
-                chain_id
-            };
-            let override_chain_id = self.chain_id;
-
-            let meta = BlockchainDbMeta::new(env.clone(), eth_rpc_url.clone());
-            let block_chain_db = if self.fork_chain_id.is_some() {
-                BlockchainDb::new_skip_check(meta, self.block_cache_path(fork_block_number))
-            } else {
-                BlockchainDb::new(meta, self.block_cache_path(fork_block_number))
-            };
-
-            // This will spawn the background thread that will use the provider to fetch
-            // blockchain data from the other client
-            let backend = SharedBackend::spawn_backend_thread(
-                Arc::clone(&provider),
-                block_chain_db.clone(),
-                Some(fork_block_number.into()),
-            );
-
-            let db =
-                Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
             let fork = ClientForkHttp::new_http(
                 ClientForkConfigHttp {
                     eth_rpc_url: Some(eth_rpc_url.to_string()),
-                    block_number: fork_block_number,
-                    block_hash,
+                    block_number: block.number.unwrap().as_u64(),
+                    block_hash: block.hash.unwrap_or_default(),
                     provider,
                     chain_id,
-                    override_chain_id,
+                    override_chain_id: self.chain_id,
                     timestamp: block.timestamp.as_u64(),
                     base_fee: block.base_fee_per_gas,
                     timeout: Some(self.fork_request_timeout),
@@ -980,150 +992,21 @@ impl NodeConfig {
             client_fork = Some(Arc::new(fork));
         }
 
-        if let (Some(eth_ipc_path), None) = (&self.eth_ipc_path.clone(), &self.eth_reth_db.clone())
-        {
-            // TODO make provider agnostic
-            let provider = Arc::new(Provider::connect_ipc(eth_ipc_path).await.unwrap());
+        // Ipc Provider
+        if let (Some(eth_ipc_path), None) = (self.eth_ipc_path.clone(), self.eth_ipc_path.clone()) {
+            let provider = Arc::new(Provider::connect_ipc(&eth_ipc_path).await.unwrap());
 
-            let (fork_block_number, fork_chain_id) =
-                if let Some(fork_block_number) = self.fork_block_number {
-                    let chain_id = if let Some(chain_id) = self.fork_chain_id {
-                        Some(chain_id)
-                    } else if self.hardfork.is_none() {
-                        // auto adjust hardfork if not specified
-                        // but only if we're forking mainnet
-                        let chain_id =
-                            provider.get_chainid().await.expect("Failed to fetch network chain id");
-                        if chain_id == ethers::types::Chain::Mainnet.into() {
-                            let hardfork: Hardfork = fork_block_number.into();
-                            env.cfg.spec_id = hardfork.into();
-                            self.hardfork = Some(hardfork);
-                        }
-                        Some(chain_id)
-                    } else {
-                        None
-                    };
+            let (db, chain_id, block) =
+                self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &mut fees).await;
 
-                    (fork_block_number, chain_id)
-                } else {
-                    // pick the last block number but also ensure it's not pending anymore
-                    (
-                        find_latest_fork_block(&provider)
-                            .await
-                            .expect("Failed to get fork block number"),
-                        None,
-                    )
-                };
-
-            let block = provider
-                .get_block(BlockNumber::Number(fork_block_number.into()))
-                .await
-                .expect("Failed to get fork block");
-
-            let block = if let Some(block) = block {
-                block
-            } else {
-                if let Ok(latest_block) = provider.get_block_number().await {
-                    panic!(
-                            "Failed to get block for block number: {fork_block_number}\nlatest block number: {latest_block}"
-                        );
-                }
-                panic!("Failed to get block for block number: {fork_block_number}")
-            };
-
-            // we only use the gas limit value of the block if it is non-zero, since there are networks where this is not used and is always `0x0` which would inevitably result in `OutOfGas` errors as soon as the evm is about to record gas, See also <https://github.com/foundry-rs/foundry/issues/3247>
-
-            let gas_limit = if block.gas_limit.is_zero() {
-                env.block.gas_limit
-            } else {
-                u256_to_ru256(block.gas_limit)
-            };
-
-            env.block = BlockEnv {
-                number: rU256::from(fork_block_number),
-                timestamp: block.timestamp.into(),
-                difficulty: block.difficulty.into(),
-                // ensures prevrandao is set
-                prevrandao: Some(block.mix_hash.unwrap_or_default()).map(h256_to_b256),
-                gas_limit,
-                // Keep previous `coinbase` and `basefee` value
-                coinbase: env.block.coinbase,
-                basefee: env.block.basefee,
-            };
-
-            // apply changes such as difficulty -> prevrandao
-            apply_chain_and_block_specific_env_changes(&mut env, &block);
-
-            // if not set explicitly we use the base fee of the latest block
-            if self.base_fee.is_none() {
-                if let Some(base_fee) = block.base_fee_per_gas {
-                    self.base_fee = Some(base_fee);
-                    env.block.basefee = u256_to_ru256(base_fee);
-                    // this is the base fee of the current block, but we need the base fee of
-                    // the next block
-                    let next_block_base_fee = fees.get_next_block_base_fee_per_gas(
-                        block.gas_used,
-                        block.gas_limit,
-                        block.base_fee_per_gas.unwrap_or_default(),
-                    );
-                    // update next base fee
-                    fees.set_base_fee(next_block_base_fee.into());
-                }
-            }
-
-            // use remote gas price
-            if self.gas_price.is_none() {
-                if let Ok(gas_price) = provider.get_gas_price().await {
-                    self.gas_price = Some(gas_price);
-                    fees.set_gas_price(gas_price);
-                }
-            }
-
-            let block_hash = block.hash.unwrap_or_default();
-
-            let chain_id = if let Some(chain_id) = self.chain_id {
-                chain_id
-            } else {
-                let chain_id = if let Some(fork_chain_id) = fork_chain_id {
-                    fork_chain_id
-                } else {
-                    provider.get_chainid().await.unwrap()
-                }
-                .as_u64();
-
-                // need to update the dev signers and env with the chain id
-                self.set_chain_id(Some(chain_id));
-                env.cfg.chain_id = rU256::from(chain_id);
-                env.tx.chain_id = chain_id.into();
-                chain_id
-            };
-            let override_chain_id = self.chain_id;
-
-            let meta = BlockchainDbMeta::new(env.clone(), eth_ipc_path.clone());
-            let block_chain_db = if self.fork_chain_id.is_some() {
-                BlockchainDb::new_skip_check(meta, self.block_cache_path(fork_block_number))
-            } else {
-                BlockchainDb::new(meta, self.block_cache_path(fork_block_number))
-            };
-
-            // This will spawn the background thread that will use the provider to fetch
-            // blockchain data from the other client
-            let backend = SharedBackend::spawn_backend_thread(
-                Arc::clone(&provider),
-                block_chain_db.clone(),
-                Some(fork_block_number.into()),
-            );
-
-            let db =
-                Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
             let fork = ClientForkIpc::new_ipc(
                 ClientForkConfigIpc {
                     ipc_path: Some(eth_ipc_path.to_string()),
-                    block_number: fork_block_number,
-                    block_hash,
+                    block_number: block.number.unwrap().as_u64(),
+                    block_hash: block.hash.unwrap_or_default(),
                     provider,
                     chain_id,
-                    override_chain_id,
+                    override_chain_id: self.chain_id,
                     timestamp: block.timestamp.as_u64(),
                     base_fee: block.base_fee_per_gas,
                     timeout: Some(self.fork_request_timeout),
@@ -1139,160 +1022,29 @@ impl NodeConfig {
             client_fork = Some(Arc::new(fork));
         }
 
+        // RethMiddleware Provider
         if let (Some(eth_ipc_path), Some(db_path)) =
-            (&self.eth_ipc_path.clone(), &self.eth_reth_db.clone())
+            (self.eth_ipc_path.clone(), self.eth_reth_db.clone())
         {
-            // TODO make provider agnostic
-            let ipc_provider = Provider::connect_ipc(eth_ipc_path).await.unwrap();
-
+            let ipc_provider = Provider::connect_ipc(eth_ipc_path.clone()).await.unwrap();
             let provider = Arc::new(RethMiddleware::new(ipc_provider, Path::new(&db_path)));
 
-            let (fork_block_number, fork_chain_id) =
-                if let Some(fork_block_number) = self.fork_block_number {
-                    let chain_id = if let Some(chain_id) = self.fork_chain_id {
-                        Some(chain_id)
-                    } else if self.hardfork.is_none() {
-                        // auto adjust hardfork if not specified
-                        // but only if we're forking mainnet
-                        let chain_id =
-                            provider.get_chainid().await.expect("Failed to fetch network chain id");
-                        if chain_id == ethers::types::Chain::Mainnet.into() {
-                            let hardfork: Hardfork = fork_block_number.into();
-                            env.cfg.spec_id = hardfork.into();
-                            self.hardfork = Some(hardfork);
-                        }
-                        Some(chain_id)
-                    } else {
-                        None
-                    };
+            let (db, chain_id, block) =
+                self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &mut fees).await;
 
-                    (fork_block_number, chain_id)
-                } else {
-                    // pick the last block number but also ensure it's not pending anymore
-                    (
-                        find_latest_fork_block(&provider)
-                            .await
-                            .expect("Failed to get fork block number"),
-                        None,
-                    )
-                };
-
-            let block = provider
-                .get_block(BlockNumber::Number(fork_block_number.into()))
-                .await
-                .expect("Failed to get fork block");
-
-            let block = if let Some(block) = block {
-                block
-            } else {
-                if let Ok(latest_block) = provider.get_block_number().await {
-                    panic!(
-                            "Failed to get block for block number: {fork_block_number}\nlatest block number: {latest_block}"
-                        );
-                }
-                panic!("Failed to get block for block number: {fork_block_number}")
-            };
-
-            // we only use the gas limit value of the block if it is non-zero, since there are networks where this is not used and is always `0x0` which would inevitably result in `OutOfGas` errors as soon as the evm is about to record gas, See also <https://github.com/foundry-rs/foundry/issues/3247>
-
-            let gas_limit = if block.gas_limit.is_zero() {
-                env.block.gas_limit
-            } else {
-                u256_to_ru256(block.gas_limit)
-            };
-
-            env.block = BlockEnv {
-                number: rU256::from(fork_block_number),
-                timestamp: block.timestamp.into(),
-                difficulty: block.difficulty.into(),
-                // ensures prevrandao is set
-                prevrandao: Some(block.mix_hash.unwrap_or_default()).map(h256_to_b256),
-                gas_limit,
-                // Keep previous `coinbase` and `basefee` value
-                coinbase: env.block.coinbase,
-                basefee: env.block.basefee,
-            };
-
-            // apply changes such as difficulty -> prevrandao
-            apply_chain_and_block_specific_env_changes(&mut env, &block);
-
-            // if not set explicitly we use the base fee of the latest block
-            if self.base_fee.is_none() {
-                if let Some(base_fee) = block.base_fee_per_gas {
-                    self.base_fee = Some(base_fee);
-                    env.block.basefee = u256_to_ru256(base_fee);
-                    // this is the base fee of the current block, but we need the base fee of
-                    // the next block
-                    let next_block_base_fee = fees.get_next_block_base_fee_per_gas(
-                        block.gas_used,
-                        block.gas_limit,
-                        block.base_fee_per_gas.unwrap_or_default(),
-                    );
-                    // update next base fee
-                    fees.set_base_fee(next_block_base_fee.into());
-                }
-            }
-
-            // use remote gas price
-            if self.gas_price.is_none() {
-                if let Ok(gas_price) = provider.get_gas_price().await {
-                    self.gas_price = Some(gas_price);
-                    fees.set_gas_price(gas_price);
-                }
-            }
-
-            let block_hash = block.hash.unwrap_or_default();
-
-            let chain_id = if let Some(chain_id) = self.chain_id {
-                chain_id
-            } else {
-                let chain_id = if let Some(fork_chain_id) = fork_chain_id {
-                    fork_chain_id
-                } else {
-                    provider.get_chainid().await.unwrap()
-                }
-                .as_u64();
-
-                // need to update the dev signers and env with the chain id
-                self.set_chain_id(Some(chain_id));
-                env.cfg.chain_id = rU256::from(chain_id);
-                env.tx.chain_id = chain_id.into();
-                chain_id
-            };
-            let override_chain_id = self.chain_id;
-
-            let meta = BlockchainDbMeta::new(env.clone(), eth_ipc_path.clone());
-            let block_chain_db = if self.fork_chain_id.is_some() {
-                BlockchainDb::new_skip_check(meta, self.block_cache_path(fork_block_number))
-            } else {
-                BlockchainDb::new(meta, self.block_cache_path(fork_block_number))
-            };
-
-            // This will spawn the background thread that will use the provider to fetch
-            // blockchain data from the other client
-            let backend = SharedBackend::spawn_backend_thread(
-                Arc::clone(&provider),
-                block_chain_db.clone(),
-                Some(fork_block_number.into()),
-            );
-
-            let db =
-                Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
             let fork = ClientForkMiddleware::new_middleware(
                 ClientForkConfigMiddleware {
                     ipc_path: Some(eth_ipc_path.to_string()),
-                    block_number: fork_block_number,
-                    block_hash,
+                    db_path: self.eth_reth_db.clone(),
+                    block_number: block.number.unwrap().as_u64(),
+                    block_hash: block.hash.unwrap_or_default(),
                     provider,
                     chain_id,
-                    override_chain_id,
+                    override_chain_id: self.chain_id,
                     timestamp: block.timestamp.as_u64(),
                     base_fee: block.base_fee_per_gas,
                     timeout: Some(self.fork_request_timeout),
-                    retries: Some(self.fork_request_retries),
-                    backoff: Some(self.fork_retry_backoff),
                     total_difficulty: block.total_difficulty.unwrap_or_default(),
-                    db_path: Some(db_path.to_string()),
                 },
                 Arc::clone(&db),
             );
