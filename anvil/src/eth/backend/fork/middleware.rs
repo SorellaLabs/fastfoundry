@@ -96,7 +96,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             let chain_id = if let Some(chain_id) = override_chain_id {
                 chain_id.into()
             } else {
-                self.provider().get_chainid().await?
+                self.provider().get_chainid().await.unwrap()
             };
             cloned_config.chain_id = chain_id.as_u64();
 
@@ -109,7 +109,7 @@ impl ClientForkTrait for ClientForkMiddleware {
 
         let provider = self.provider();
         let block =
-            provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
+            provider.get_block(block_number).await.unwrap().ok_or(BlockchainError::BlockNotFound)?;
         let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
         let timestamp = block.timestamp.as_u64();
         let base_fee = block.base_fee_per_gas;

@@ -343,6 +343,7 @@ pub struct AnvilEvmArgs {
         long,
         visible_alias = "fork_db",
         value_name = "fork_db",
+        help_heading = "Fork config",
         conflicts_with = "fork_rpc_url",
         requires = "fork_ipc"
     )]
