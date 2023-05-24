@@ -993,7 +993,7 @@ impl NodeConfig {
         }
 
         // Ipc Provider
-        if let (Some(eth_ipc_path), None) = (self.eth_ipc_path.clone(), self.eth_ipc_path.clone()) {
+        if let (Some(eth_ipc_path), None) = (self.eth_ipc_path.clone(), self.eth_reth_db.clone()) {
             let provider = Arc::new(Provider::connect_ipc(&eth_ipc_path).await.unwrap());
 
             let (db, chain_id, block) =
