@@ -29,7 +29,7 @@ pub struct ClientForkIpc {
     /// contains the info how the fork is configured
     // Wrapping this in a lock, ensures we can update this on the fly via additional custom RPC
     // endpoints
-    pub config: Arc<RwLock<ClientForkConfigIpc>>,
+    pub config: Arc<AsyncRwLock<ClientForkConfigIpc>>,
     /// This also holds a handle to the underlying database
     pub database: Arc<AsyncRwLock<ForkedDatabase>>,
 }
@@ -42,59 +42,60 @@ impl ClientForkTrait for ClientForkIpc {
 
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
-        &self,
-        path: Option<String>,
-        block_number: BlockId,
-    ) -> Result<(), BlockchainError> {
-        {
-            let mut db_write = self.database.write().await;
-            db_write.reset(block_number).map_err(BlockchainError::Internal)?;
-        }
-
-        if let Some(path) = path {
-            {
-                let mut config_write = self.config.write();
-                config_write.update_path(path);
-            }
-
-            let override_chain_id;
-            {
-                let config_read = self.config.read();
-                override_chain_id = config_read.override_chain_id;
-            }
-            let chain_id = if let Some(chain_id) = override_chain_id {
-                chain_id.into()
-            } else {
-                self.provider().get_chainid().await?
-            };
-            {
-                let mut config_write = self.config.write();
-                config_write.chain_id = chain_id.as_u64();
-            }
-        }
-
-        let provider = self.provider();
-        let block =
-            provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
-        let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
-        let timestamp = block.timestamp.as_u64();
-        let base_fee = block.base_fee_per_gas;
-        let total_difficulty = block.total_difficulty.unwrap_or_default();
-
-        {
-            let mut config_write = self.config.write();
-            config_write.update_block(
-                block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
-                block_hash,
-                timestamp,
-                base_fee,
-                total_difficulty,
-            );
-        }
-
-        self.clear_cached_storage();
-        Ok(())
+    &self,
+    path: Option<String>,
+    block_number: BlockId,
+) -> Result<(), BlockchainError> {
+    {
+        let mut db_write = self.database.write().await;
+        db_write.reset(block_number).map_err(BlockchainError::Internal)?;
     }
+
+    if let Some(path) = path {
+        {
+            let mut config_write = self.config.write().await;
+            config_write.update_path(path).await?;
+        }
+
+        let override_chain_id;
+        {
+            let config_read = self.config.read().await;
+            override_chain_id = config_read.override_chain_id;
+        }
+        let chain_id = if let Some(chain_id) = override_chain_id {
+            chain_id.into()
+        } else {
+            self.provider().get_chainid().await?
+        };
+        {
+            let mut config_write = self.config.write().await;
+            config_write.chain_id = chain_id.as_u64();
+        }
+    }
+
+    let provider = self.provider();
+    let block =
+        provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
+    let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
+    let timestamp = block.timestamp.as_u64();
+    let base_fee = block.base_fee_per_gas;
+    let total_difficulty = block.total_difficulty.unwrap_or_default();
+
+    {
+        let mut config_write = self.config.write().await;
+        config_write.update_block(
+            block.number.ok_or(BlockchainError::BlockNotFound)?.as_u64(),
+            block_hash,
+            timestamp,
+            base_fee,
+            total_difficulty,
+        );
+    }
+
+    self.clear_cached_storage();
+    Ok(())
+}
+
     /// Removes all data cached from previous responses
     fn clear_cached_storage(&self) {
         self.storage.write().clear()
