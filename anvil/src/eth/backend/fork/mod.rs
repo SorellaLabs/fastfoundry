@@ -23,10 +23,7 @@ pub mod http;
 pub mod ipc;
 pub mod middleware;
 use anyhow::anyhow;
-use std::result;
 
-use http::ClientForkConfigHttp;
-use ipc::ClientForkConfigIpc;
 // use middleware::ClientForkConfigMiddleware;
 
 /// Represents a fork of a remote client
@@ -36,18 +33,22 @@ use ipc::ClientForkConfigIpc;
 
 #[async_trait]
 pub trait ClientForkTrait: Sync + Send {
-    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>>;
-
-    async fn update_url(&self, url: &str) -> Result<(), anyhow::Error> {
-        Err(anyhow!("Not implemented for this type"))
-    }
-
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     async fn reset(
         &self,
         url_or_path: Option<String>,
         block_number: BlockId,
     ) -> Result<(), BlockchainError>;
+
+    async fn update_url(&self, _url: &str) -> Result<(), anyhow::Error> {
+        Err(anyhow!("Not implemented for this type"))
+    }
+
+    async fn update_ipc_path(&self, _path: &str) -> Result<(), anyhow::Error> {
+        Err(anyhow!("Not implemented for this type"))
+    }
+
+    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>>;
 
     /// Removes all data cached from previous responses
     fn clear_cached_storage(&self);

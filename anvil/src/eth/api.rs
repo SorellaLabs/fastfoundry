@@ -45,7 +45,6 @@ use anvil_rpc::{error::RpcError, response::ResponseResult};
 use ethers::{
     abi::ethereum_types::H64,
     prelude::{DefaultFrame, TxpoolInspect},
-    providers::ProviderError,
     types::{
         transaction::{
             eip2930::{AccessList, AccessListWithGasUsed},
@@ -58,7 +57,6 @@ use ethers::{
     utils::rlp,
 };
 use forge::{executor::DatabaseRef, revm::primitives::BlockEnv};
-use foundry_common::ProviderBuilder;
 use foundry_evm::{
     executor::backend::DatabaseError,
     revm::interpreter::{return_ok, return_revert, InstructionResult},
@@ -338,6 +336,7 @@ impl EthApi {
                 self.evm_mine_detailed(mine.and_then(|p| p.params)).await.to_rpc_result()
             }
             EthRequest::SetRpcUrl(url) => self.anvil_set_rpc_url(url).await.to_rpc_result(),
+            EthRequest::SetIpcPath(path) => self.anvil_set_ipc_path(path).await.to_rpc_result(),
             EthRequest::EthSendUnsignedTransaction(tx) => {
                 self.eth_send_unsigned_transaction(*tx).await.to_rpc_result()
             }
@@ -1760,7 +1759,18 @@ impl EthApi {
     pub async fn anvil_set_rpc_url(&self, url: String) -> Result<()> {
         node_info!("anvil_setRpcUrl");
         if let Some(fork) = self.backend.get_fork() {
-            fork.update_url(&url).await; // fix this
+            fork.update_url(&url).await.unwrap();
+        }
+        Ok(())
+    }
+
+    /// Sets the backend ipc path
+    ///
+    /// Handler for ETH RPC call: `anvil_setIpcPath`
+    pub async fn anvil_set_ipc_path(&self, path: String) -> Result<()> {
+        node_info!("anvil_setRpcUrl");
+        if let Some(fork) = self.backend.get_fork() {
+            fork.update_ipc_path(&path).await.unwrap();
         }
         Ok(())
     }

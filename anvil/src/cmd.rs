@@ -5,7 +5,7 @@ use crate::{
     AccountGenerator, Hardfork, NodeConfig, CHAIN_ID,
 };
 use anvil_server::ServerConfig;
-use clap::{builder::ArgPredicate, error::ErrorKind, Parser, Subcommand, ValueEnum};
+use clap::{builder::ArgPredicate, Parser};
 use core::fmt;
 use ethers::utils::WEI_IN_ETHER;
 use foundry_config::{Chain, Config};
@@ -501,8 +501,7 @@ impl AnvilEvmArgs {
             let config = Config::load();
             if let Some(Ok(path)) = config.get_rpc_url_with_alias(&fork_path.url) {
                 //change to get_ipc_url
-                self.fork_ipc =
-                    Some(ForkUrl { url: path.to_string(), block: fork_path.block });
+                self.fork_ipc = Some(ForkUrl { url: path.to_string(), block: fork_path.block });
             }
         }
     }

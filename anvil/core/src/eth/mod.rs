@@ -370,6 +370,10 @@ pub enum EthRequest {
     #[cfg_attr(feature = "serde", serde(rename = "anvil_setRpcUrl", with = "sequence"))]
     SetRpcUrl(String),
 
+    /// Sets the backend ipc path
+    #[cfg_attr(feature = "serde", serde(rename = "anvil_setRpcUrl", with = "sequence"))]
+    SetIpcPath(String),
+
     /// Modifies the balance of an account.
     #[cfg_attr(
         feature = "serde",

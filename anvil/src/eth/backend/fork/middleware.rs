@@ -2,16 +2,15 @@
 
 use crate::eth::{
     backend::{
-        fork::{ClientForkConfigHttp, ClientForkConfigIpc, ClientForkTrait, ForkedStorage},
+        fork::{ClientForkTrait, ForkedStorage},
         mem::fork_db::ForkedDatabase,
     },
     error::BlockchainError,
 };
 use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
-use anvil_rpc::error::RpcError;
 use async_trait::async_trait;
 use ethers::{
-    prelude::{gas_oracle::MiddlewareError, BlockNumber},
+    prelude::BlockNumber,
     providers::{Provider, ProviderError},
     types::{
         transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
@@ -23,18 +22,17 @@ use ethers::{
 use ethers::core::types::transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest;
 
 use ethers::providers::{Ipc, Middleware};
-use ethers_reth::{RethMiddleware, RethMiddlewareError};
+use ethers_reth::RethMiddleware;
 use foundry_evm::utils::u256_to_h256_be;
 use parking_lot::{
     lock_api::{RwLockReadGuard, RwLockWriteGuard},
     RawRwLock, RwLock,
 };
 
-use std::{collections::HashMap, fmt::Debug, path::Path, sync::Arc, time::Duration};
+use std::{fmt::Debug, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock as AsyncRwLock;
 use tracing::trace;
 
-type ClientForkMiddlewareError = RethMiddlewareError<Provider<Ipc>>;
 pub struct ClientForkMiddleware {
     /// Contains the cached data
     pub storage: Arc<RwLock<ForkedStorage>>,
@@ -71,10 +69,6 @@ pub struct ClientForkConfigMiddleware {
 
 #[async_trait]
 impl ClientForkTrait for ClientForkMiddleware {
-    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>> {
-        self.database.clone()
-    }
-
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     // For now we have decided against using an asyncRwLock for simplicity but this might change
     async fn reset(
@@ -108,8 +102,11 @@ impl ClientForkTrait for ClientForkMiddleware {
         }
 
         let provider = self.provider();
-        let block =
-            provider.get_block(block_number).await.unwrap().ok_or(BlockchainError::BlockNotFound)?;
+        let block = provider
+            .get_block(block_number)
+            .await
+            .unwrap()
+            .ok_or(BlockchainError::BlockNotFound)?;
         let block_hash = block.hash.ok_or(BlockchainError::BlockNotFound)?;
         let timestamp = block.timestamp.as_u64();
         let base_fee = block.base_fee_per_gas;
@@ -129,6 +126,22 @@ impl ClientForkTrait for ClientForkMiddleware {
 
         self.clear_cached_storage();
         Ok(())
+    }
+
+    async fn update_ipc_path(&self, path: &str) -> Result<(), anyhow::Error> {
+        let mut cloned_config = self.config.read().clone();
+        cloned_config.update_path(path.to_string()).await?;
+
+        // Write updated config back
+        {
+            let mut config_write = self.config.write();
+            *config_write = cloned_config;
+        }
+        Ok(())
+    }
+
+    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>> {
+        self.database.clone()
     }
 
     /// Removes all data cached from previous responses
@@ -227,8 +240,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             }
         }
 
-        let typed_tx =
-            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let typed_tx = EthTransactionRequest::into_typed_request(request.as_ref().clone()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
         let res: Bytes =
             self.provider().call(&ethers_tx.clone(), Some(block.into())).await.unwrap();
@@ -258,8 +270,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             }
         }
 
-        let typed_tx =
-            EthTransactionRequest::into_typed_request(request.as_ref().clone().into()).unwrap();
+        let typed_tx = EthTransactionRequest::into_typed_request(request.as_ref().clone()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
         let res = self.provider().estimate_gas(&ethers_tx, Some(block.into())).await.unwrap();
 
@@ -279,7 +290,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         block: Option<BlockNumber>,
     ) -> Result<AccessListWithGasUsed, ProviderError> {
         let block = block.unwrap_or(BlockNumber::Latest);
-        let typed_tx = EthTransactionRequest::into_typed_request(request.clone().into()).unwrap();
+        let typed_tx = EthTransactionRequest::into_typed_request(request.clone()).unwrap();
         let ethers_tx: EthersTypedTransactionRequest = typed_tx.into();
         Ok(self.provider().create_access_list(&ethers_tx, Some(block.into())).await.unwrap())
     }

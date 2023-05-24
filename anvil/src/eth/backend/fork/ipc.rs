@@ -34,13 +34,21 @@ pub struct ClientForkIpc {
     pub database: Arc<AsyncRwLock<ForkedDatabase>>,
 }
 
-#[async_trait]
-impl ClientForkTrait for ClientForkIpc {
-    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>> {
-        self.database.clone()
+impl ClientForkIpc {
+    pub fn new_ipc(
+        config: ClientForkConfigIpc,
+        database: Arc<AsyncRwLock<ForkedDatabase>>,
+    ) -> Self {
+        Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
     }
 
-    /// Reset the fork to a fresh forked state, and optionally update the fork config
+    fn provider(&self) -> Arc<Provider<Ipc>> {
+        self.config.read().provider.clone()
+    }
+}
+
+#[async_trait]
+impl ClientForkTrait for ClientForkIpc {
     /// Reset the fork to a fresh forked state, and optionally update the fork config
     // For now we have decided against using an asyncRwLock for simplicity but this might change
     async fn reset(
@@ -52,12 +60,12 @@ impl ClientForkTrait for ClientForkIpc {
             let mut db_write = self.database.write().await;
             db_write.reset(block_number).map_err(BlockchainError::Internal)?;
         }
-    
+
         if let Some(path) = path {
             // Clone config before modifying
             let mut cloned_config = self.config.read().clone();
             cloned_config.update_path(path).await?;
-    
+
             let override_chain_id = cloned_config.override_chain_id;
             let chain_id = if let Some(chain_id) = override_chain_id {
                 chain_id.into()
@@ -65,14 +73,14 @@ impl ClientForkTrait for ClientForkIpc {
                 self.provider().get_chainid().await?
             };
             cloned_config.chain_id = chain_id.as_u64();
-    
+
             // Write updated config back
             {
                 let mut config_write = self.config.write();
                 *config_write = cloned_config;
             }
         }
-    
+
         let provider = self.provider();
         let block =
             provider.get_block(block_number).await?.ok_or(BlockchainError::BlockNotFound)?;
@@ -80,7 +88,7 @@ impl ClientForkTrait for ClientForkIpc {
         let timestamp = block.timestamp.as_u64();
         let base_fee = block.base_fee_per_gas;
         let total_difficulty = block.total_difficulty.unwrap_or_default();
-    
+
         // Directly write for non-async operations
         {
             let mut config_write = self.config.write();
@@ -92,9 +100,25 @@ impl ClientForkTrait for ClientForkIpc {
                 total_difficulty,
             );
         }
-    
+
         self.clear_cached_storage();
         Ok(())
+    }
+
+    async fn update_ipc_path(&self, path: &str) -> Result<(), anyhow::Error> {
+        let mut cloned_config = self.config.read().clone();
+        cloned_config.update_path(path.to_string()).await?;
+
+        // Write updated config back
+        {
+            let mut config_write = self.config.write();
+            *config_write = cloned_config;
+        }
+        Ok(())
+    }
+
+    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>> {
+        self.database.clone()
     }
 
     /// Removes all data cached from previous responses
@@ -510,19 +534,6 @@ impl ClientForkTrait for ClientForkIpc {
             }
         }
         block.into_full_block(transactions)
-    }
-}
-
-impl ClientForkIpc {
-    pub fn new_ipc(
-        config: ClientForkConfigIpc,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> Self {
-        Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
-    }
-
-    fn provider(&self) -> Arc<Provider<Ipc>> {
-        self.config.read().provider.clone()
     }
 }
 

@@ -40,12 +40,21 @@ pub struct ClientForkHttp {
     pub database: Arc<AsyncRwLock<ForkedDatabase>>,
 }
 
-#[async_trait]
-impl ClientForkTrait for ClientForkHttp {
-    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>> {
-        self.database.clone()
+impl ClientForkHttp {
+    pub fn new_http(
+        config: ClientForkConfigHttp,
+        database: Arc<AsyncRwLock<ForkedDatabase>>,
+    ) -> ClientForkHttp {
+        Self { storage: Default::default(), config: Arc::new(RwLock::new(config)), database }
     }
 
+    fn provider(&self) -> Arc<RetryProvider> {
+        self.config.read().provider.clone()
+    }
+}
+
+#[async_trait]
+impl ClientForkTrait for ClientForkHttp {
     /// Reset the fork to a fresh forked state, and optionally update the fork config1
     async fn reset(
         &self,
@@ -60,7 +69,7 @@ impl ClientForkTrait for ClientForkHttp {
         if let Some(path) = path {
             {
                 let mut config_write = self.config.write();
-                config_write.update_url(path);
+                config_write.update_url(path)?;
             }
 
             let override_chain_id;
@@ -100,6 +109,15 @@ impl ClientForkTrait for ClientForkHttp {
 
         self.clear_cached_storage();
         Ok(())
+    }
+
+    async fn update_url(&self, url: &str) -> Result<(), anyhow::Error> {
+        self.config.write().update_url(url.to_string())?;
+        Ok(())
+    }
+
+    fn database(&self) -> Arc<AsyncRwLock<ForkedDatabase>> {
+        self.database.clone()
     }
 
     /// Removes all data cached from previous responses
@@ -517,19 +535,6 @@ impl ClientForkTrait for ClientForkHttp {
     }
 }
 
-impl ClientForkHttp {
-    pub fn new_http(
-        config: ClientForkConfigHttp,
-        database: Arc<AsyncRwLock<ForkedDatabase>>,
-    ) -> ClientForkHttp {
-        panic!("Cannot create a ClientForkMiddleware from an HTTP configuration");
-    }
-
-    fn provider(&self) -> Arc<RetryProvider> {
-        self.config.read().provider.clone()
-    }
-}
-
 /// Contains all fork metadata
 #[derive(Debug, Clone)]
 pub struct ClientForkConfigHttp {
@@ -570,6 +575,8 @@ impl ClientForkConfigHttp {
                 .map_err(|_| BlockchainError::InvalidUrl(url_or_path.clone()))?
                 .interval(interval),
         );
+
+        trace!(target: "backend", "Updated fork rpc from \"{}\" to \"{}\"", self.eth_rpc_url.clone().unwrap(), url_or_path);
         trace!(target: "fork", "Updated rpc url  {}", url_or_path);
         self.eth_rpc_url = Some(url_or_path);
         Ok(())

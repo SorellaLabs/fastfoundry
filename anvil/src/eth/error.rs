@@ -13,9 +13,7 @@ use ethers::{
 };
 use forge::revm::{self, primitives::EVMError};
 use foundry_common::SELECTOR_LEN;
-use foundry_evm::{
-    abi::hevm::Rpc, executor::backend::DatabaseError, revm::interpreter::InstructionResult,
-};
+use foundry_evm::{executor::backend::DatabaseError, revm::interpreter::InstructionResult};
 use serde::Serialize;
 use tracing::error;
 
@@ -349,7 +347,7 @@ impl<T: Serialize> ToRpcResponseResult for Result<T> {
                 err @ BlockchainError::EIP2930TransactionUnsupportedAtHardfork => {
                     RpcError::invalid_params(err.to_string())
                 }
-                BlockchainError::IpcError(rpc_err) => rpc_err.into(),
+                BlockchainError::IpcError(rpc_err) => rpc_err,
             }
             .into(),
         }
