@@ -1,4 +1,4 @@
-//! Notifications emitted from the backed
+//! Notifications emitted from the backend
 
 use anvil_core::eth::block::Header;
 use ethers::types::H256;
