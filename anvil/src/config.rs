@@ -946,6 +946,7 @@ impl NodeConfig {
         };
         let mut fees = FeeManager::new(env.cfg.spec_id, self.get_base_fee(), self.get_gas_price());
 
+        #[allow(clippy::type_complexity)]
         let (mut backend_db, mut client_fork): (
             Arc<tokio::sync::RwLock<dyn Db>>,
             Option<Arc<dyn ClientForkTrait>>,
