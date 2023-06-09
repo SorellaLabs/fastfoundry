@@ -171,7 +171,6 @@ pub async fn spawn(mut config: NodeConfig) -> (EthApi, NodeHandle) {
     // spawn the server on a new task
     let serve = tokio::task::spawn(server.map_err(NodeError::from));
 
-    
     let (signal, on_shutdown) = shutdown::signal();
     let task_manager = TaskManager::new(tokio_handle, on_shutdown);
 

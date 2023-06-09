@@ -277,7 +277,8 @@ async fn test_separate_states() {
     assert_eq!(balance, 1337u64.into());
 
     let fork = api.get_fork().unwrap();
-    let fork_db = fork.database.read().await;
+    let db = fork.database();
+    let fork_db = db.read().await;
     let acc = fork_db.inner().db().accounts.read().get(&h160_to_b160(addr)).cloned().unwrap();
 
     assert_eq!(acc.balance, remote_balance.into())

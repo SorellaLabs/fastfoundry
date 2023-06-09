@@ -9,7 +9,6 @@ use crate::eth::{
 };
 use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
 use async_trait::async_trait;
-use tokio::runtime::Handle;
 use ethers::{
     prelude::BlockNumber,
     providers::{Provider, ProviderError},
@@ -19,6 +18,7 @@ use ethers::{
         TxHash, H256, U256,
     },
 };
+use tokio::runtime::Handle;
 
 use ethers::core::types::transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest;
 
@@ -594,9 +594,9 @@ impl ClientForkConfigMiddleware {
                     .ok_or_else(|| BlockchainError::Internal("db_path not set".to_string()))?,
             ),
             Handle::current(),
+        )
+        .unwrap();
 
-        ).unwrap();
-        
         self.provider = Arc::new(middleware);
         Ok(())
     }

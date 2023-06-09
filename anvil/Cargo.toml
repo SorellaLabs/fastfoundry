@@ -76,8 +76,8 @@ ethers = { workspace = true, features = ["rustls", "ws"] }
 
 
 [dev-dependencies]
-# ethers = { workspace = true, features = ["abigen", "ipc"] }
-# ethers-solc = { workspace = true, features = ["project-util", "full"] }
+ethers = { workspace = true, features = ["abigen", "ipc"] }
+ethers-solc = { workspace = true, features = ["project-util", "full"] }
 pretty_assertions = "1.3.0"
 tokio = { version = "1", features = ["full"] }
 crc = "3.0.1"

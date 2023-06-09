@@ -198,6 +198,7 @@ dependencies = [
  "ethereum-forkid",
  "ethers",
  "ethers-reth",
+ "ethers-solc",
  "fdlimit",
  "flate2",
  "forge",
