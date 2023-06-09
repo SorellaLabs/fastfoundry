@@ -995,7 +995,8 @@ impl NodeConfig {
         if let Some(eth_ipc_path) = self.eth_ipc_path.clone() {
             if let Some(db_path) = self.eth_reth_db.clone() {
                 let ipc_provider = Provider::connect_ipc(eth_ipc_path.clone()).await.unwrap();
-                let provider = Arc::new(RethMiddleware::new(ipc_provider, Path::new(&db_path), handle));
+                let provider =
+                    Arc::new(RethMiddleware::new(ipc_provider, Path::new(&db_path), handle).unwrap());
 
                 let (db, chain_id, block) =
                     self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &mut fees).await;

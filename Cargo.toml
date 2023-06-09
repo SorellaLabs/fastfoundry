@@ -86,3 +86,4 @@ solang-parser = "=0.3.0"
 # ethers-signers = { path = "../ethers-rs/ethers-signers" }
 # ethers-solc = { path = "../ethers-rs/ethers-solc" }
 revm = { git = "https://github.com/bluealloy/revm/", branch = "release/v25" }
+revm-primitives = { git = "https://github.com/bluealloy/revm/", branch = "release/v25" }

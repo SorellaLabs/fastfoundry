@@ -92,7 +92,8 @@ pub async fn spawn(mut config: NodeConfig) -> (EthApi, NodeHandle) {
     let logger = if config.enable_tracing { init_tracing() } else { Default::default() };
     logger.set_enabled(!config.silent);
 
-    let backend = Arc::new(config.setup(Handle::current()).await);
+    let tokio_handle = Handle::current();
+    let backend = Arc::new(config.setup(tokio_handle.clone()).await);
 
     let fork = backend.get_fork();
 
@@ -170,7 +171,7 @@ pub async fn spawn(mut config: NodeConfig) -> (EthApi, NodeHandle) {
     // spawn the server on a new task
     let serve = tokio::task::spawn(server.map_err(NodeError::from));
 
-    let tokio_handle = Handle::current();
+    
     let (signal, on_shutdown) = shutdown::signal();
     let task_manager = TaskManager::new(tokio_handle, on_shutdown);
 
