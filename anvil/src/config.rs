@@ -54,6 +54,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
+use tokio::runtime::Handle;
 use yansi::Paint;
 
 /// Default port the rpc will open
@@ -922,7 +923,7 @@ impl NodeConfig {
     /// [Backend](mem::Backend)
     ///
     /// *Note*: only memory based backend for now
-    pub(crate) async fn setup(&mut self) -> mem::Backend {
+    pub(crate) async fn setup(&mut self, handle: Handle) -> mem::Backend {
         // configure the revm environment
         let mut env = revm::primitives::Env {
             cfg: CfgEnv {
@@ -994,7 +995,7 @@ impl NodeConfig {
         if let Some(eth_ipc_path) = self.eth_ipc_path.clone() {
             if let Some(db_path) = self.eth_reth_db.clone() {
                 let ipc_provider = Provider::connect_ipc(eth_ipc_path.clone()).await.unwrap();
-                let provider = Arc::new(RethMiddleware::new(ipc_provider, Path::new(&db_path)));
+                let provider = Arc::new(RethMiddleware::new(ipc_provider, Path::new(&db_path), handle));
 
                 let (db, chain_id, block) =
                     self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &mut fees).await;
