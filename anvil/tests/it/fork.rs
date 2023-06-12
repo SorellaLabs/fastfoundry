@@ -68,6 +68,52 @@ async fn test_spawn_fork() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn test_spawn_fork_ipc() {
+    // spawn a first node with http
+    let (origin_api, origin_handle) = spawn(fork_config().with_ipc(Some(None))).await;
+
+    // spawn a second node that is a fork of the first, connected through ipc
+    let (fork_api, _fork_handle) = spawn(fork_config().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))).await;
+
+    let head = origin_api.block_number().unwrap();
+    let head2 = fork_api.block_number().unwrap();
+    assert_eq!(head, head2)
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_fork_call_ipc() {
+    let input: Bytes = "0x77c7b8fc".parse().unwrap();
+    let to: Address = "0x99d1Fa417f94dcD62BfE781a1213c092a47041Bc".parse().unwrap();
+    let block_number = 14746300u64;
+
+    let provider = Provider::<Http>::try_from(rpc::next_http_archive_rpc_endpoint()).unwrap();
+    let mut tx = TypedTransaction::default();
+    tx.set_to(to).set_data(input.clone());
+    let res0 =
+        provider.call(&tx, Some(BlockNumber::Number(block_number.into()).into())).await.unwrap();
+
+    let (_origin_api, origin_handle) = spawn(fork_config().with_ipc(Some(None)).with_fork_block_number(Some(block_number))).await;
+    
+    let (fork_api, _fork_handle) = spawn(fork_config().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap())).with_fork_block_number(Some(block_number))).await;
+
+    let res1 = fork_api
+        .call(
+            EthTransactionRequest { to: Some(to), data: Some(input), ..Default::default() },
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(res0, res1);
+}
+
+
+//TODO: Implement ethers-reth mock in the main repo + then use in test
+
+
+
+#[tokio::test(flavor = "multi_thread")]
 async fn test_fork_eth_get_balance() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
