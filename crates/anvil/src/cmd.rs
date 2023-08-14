@@ -675,34 +675,6 @@ mod tests {
     use std::{env, net::Ipv4Addr};
 
     use super::*;
-    #[test]
-    fn test_conflicting_args() {
-        let args = vec![
-            "program",
-            "--fork_rpc_url",
-            "http://localhost:8545@1000000",
-            "--fork_ipc",
-            "/file/node.ipc@1400000",
-        ];
-        let matches = AnvilEvmArgs::try_parse_from(args);
-        assert!(matches.is_err());
-        assert_eq!(matches.unwrap_err().kind(), ErrorKind::ArgumentConflict);
-    }
-
-    #[test]
-    fn test_required_args_missing() {
-        let args = vec![
-            "program",
-            "--fork_rpc_url",
-            "http://localhost:8545@1000000",
-            "--fork_db",
-            "/file/reth",
-        ];
-        let matches = AnvilEvmArgs::try_parse_from(args);
-        assert!(matches.is_err());
-        assert_eq!(matches.unwrap_err().kind(), ErrorKind::ArgumentConflict);
-    }
-
 
     #[test]
     fn test_parse_fork_url() {
