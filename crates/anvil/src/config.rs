@@ -24,7 +24,7 @@ use anvil_server::ServerConfig;
 use ethers::{
     core::k256::ecdsa::SigningKey,
     prelude::{rand::thread_rng, Wallet, U256},
-    providers::{Provider, Middleware},
+    providers::{Middleware, Provider},
     signers::{
         coins_bip39::{English, Mnemonic},
         MnemonicBuilder, Signer,
@@ -863,11 +863,11 @@ latest block number: {latest_block}"
             panic!("Failed to get block for block number: {fork_block_number}")
         };
 
-                // we only use the gas limit value of the block if it is non-zero and the block gas
-                // limit is enabled, since there are networks where this is not used and is always
-                // `0x0` which would inevitably result in `OutOfGas` errors as soon as the evm is about to record gas, See also <https://github.com/foundry-rs/foundry/issues/3247>
-                let gas_limit = if self.disable_block_gas_limit || block.gas_limit.is_zero() {
-                    u256_to_ru256(u64::MAX.into())
+        // we only use the gas limit value of the block if it is non-zero and the block gas
+        // limit is enabled, since there are networks where this is not used and is always
+        // `0x0` which would inevitably result in `OutOfGas` errors as soon as the evm is about to record gas, See also <https://github.com/foundry-rs/foundry/issues/3247>
+        let gas_limit = if self.disable_block_gas_limit || block.gas_limit.is_zero() {
+            u256_to_ru256(u64::MAX.into())
         } else {
             u256_to_ru256(block.gas_limit)
         };

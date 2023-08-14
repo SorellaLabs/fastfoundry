@@ -73,7 +73,8 @@ async fn test_spawn_fork_ipc() {
     let (origin_api, origin_handle) = spawn(fork_config().with_ipc(Some(None))).await;
 
     // spawn a second node that is a fork of the first, connected through ipc
-    let (fork_api, _fork_handle) = spawn(fork_config().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))).await;
+    let (fork_api, _fork_handle) =
+        spawn(fork_config().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))).await;
 
     let head = origin_api.block_number().unwrap();
     let head2 = fork_api.block_number().unwrap();
@@ -92,9 +93,15 @@ async fn test_fork_call_ipc() {
     let res0 =
         provider.call(&tx, Some(BlockNumber::Number(block_number.into()).into())).await.unwrap();
 
-    let (_origin_api, origin_handle) = spawn(fork_config().with_ipc(Some(None)).with_fork_block_number(Some(block_number))).await;
-    
-    let (fork_api, _fork_handle) = spawn(fork_config().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap())).with_fork_block_number(Some(block_number))).await;
+    let (_origin_api, origin_handle) =
+        spawn(fork_config().with_ipc(Some(None)).with_fork_block_number(Some(block_number))).await;
+
+    let (fork_api, _fork_handle) = spawn(
+        fork_config()
+            .with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))
+            .with_fork_block_number(Some(block_number)),
+    )
+    .await;
 
     let res1 = fork_api
         .call(
@@ -108,10 +115,7 @@ async fn test_fork_call_ipc() {
     assert_eq!(res0, res1);
 }
 
-
 //TODO: Implement ethers-reth mock in the main repo + then use in test
-
-
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_fork_eth_get_balance() {
