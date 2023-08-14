@@ -24,7 +24,7 @@ use anvil_server::ServerConfig;
 use ethers::{
     core::k256::ecdsa::SigningKey,
     prelude::{rand::thread_rng, Wallet, U256},
-    providers::{Middleware, Provider},
+    providers::{Provider, Middleware},
     signers::{
         coins_bip39::{English, Mnemonic},
         MnemonicBuilder, Signer,
@@ -49,15 +49,10 @@ use revm::primitives::Env;
 use serde_json::{json, to_writer, Value};
 use std::{
     collections::HashMap,
-   
     fmt::Write as FmtWrite,
-   
     fs::File,
-   
-    net::{IpAddr,
-    Ipv4Addr},
+    net::{IpAddr, Ipv4Addr},
     path::{Path, PathBuf},
-   
     sync::Arc,
     time::Duration,
 };
@@ -247,12 +242,12 @@ Derivation path:   {}
 
 Fork
 ==================
-Endpoint:       {}
+Endpoint:       {:?}
 Block number:   {}
 Block hash:     {:?}
 Chain ID:       {}
 "#,
-                fork.eth_rpc_url(),
+                fork.provider_path(),
                 fork.block_number(),
                 fork.block_hash(),
                 fork.chain_id()
@@ -853,18 +848,26 @@ impl NodeConfig {
             block
         } else {
             if let Ok(latest_block) = provider.get_block_number().await {
-                panic!(
-                            "Failed to get block for block number: {fork_block_number}\nlatest block number: {latest_block}"
-                        );
+                let mut message = format!(
+                    "Failed to get block for block number: {fork_block_number}\n\
+latest block number: {latest_block}"
+                );
+                // If the `eth_getBlockByNumber` call succeeds, but returns null instead of
+                // the block, and the block number is less than equal the latest block, then
+                // the user is forking from a non-archive node with an older block number.
+                if fork_block_number <= latest_block.as_u64() {
+                    message.push_str(&format!("\n{}", NON_ARCHIVE_NODE_WARNING));
+                }
+                panic!("{}", message);
             }
             panic!("Failed to get block for block number: {fork_block_number}")
         };
 
-        // we only use the gas limit value of the block if it is non-zero, since there are networks
-        // where this is not used and is always `0x0` which would inevitably result in
-        // `OutOfGas` errors as soon as the evm is about to record gas, See also <https://github.com/foundry-rs/foundry/issues/3247>
-        let gas_limit = if block.gas_limit.is_zero() {
-            env.block.gas_limit
+                // we only use the gas limit value of the block if it is non-zero and the block gas
+                // limit is enabled, since there are networks where this is not used and is always
+                // `0x0` which would inevitably result in `OutOfGas` errors as soon as the evm is about to record gas, See also <https://github.com/foundry-rs/foundry/issues/3247>
+                let gas_limit = if self.disable_block_gas_limit || block.gas_limit.is_zero() {
+                    u256_to_ru256(u64::MAX.into())
         } else {
             u256_to_ru256(block.gas_limit)
         };
@@ -1023,8 +1026,11 @@ impl NodeConfig {
         if let Some(eth_ipc_path) = self.eth_ipc_path.clone() {
             if let Some(db_path) = self.eth_reth_db.clone() {
                 let ipc_provider = Provider::connect_ipc(eth_ipc_path.clone()).await.unwrap();
+
+                let chain_id = ipc_provider.get_chainid().await.unwrap().as_u64();
                 let provider = Arc::new(
-                    RethMiddleware::new(ipc_provider, Path::new(&db_path), handle).unwrap(),
+                    RethMiddleware::new(ipc_provider, Path::new(&db_path), handle, chain_id)
+                        .unwrap(),
                 );
 
                 let (db, chain_id, block) =

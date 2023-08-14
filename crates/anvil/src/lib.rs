@@ -92,7 +92,8 @@ pub async fn spawn(mut config: NodeConfig) -> (EthApi, NodeHandle) {
     let logger = if config.enable_tracing { init_tracing() } else { Default::default() };
     logger.set_enabled(!config.silent);
 
-    let backend = Arc::new(config.setup().await);
+    let tokio_handle = Handle::current();
+    let backend = Arc::new(config.setup(tokio_handle.clone()).await);
 
     if config.enable_auto_impersonate {
         backend.auto_impersonate_account(true).await;
@@ -178,6 +179,7 @@ pub async fn spawn(mut config: NodeConfig) -> (EthApi, NodeHandle) {
         servers.push(srv);
     }
 
+    let tokio_handle = Handle::current();
     let (signal, on_shutdown) = shutdown::signal();
     let task_manager = TaskManager::new(tokio_handle, on_shutdown);
 

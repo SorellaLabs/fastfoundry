@@ -11,7 +11,7 @@ use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
 use async_trait::async_trait;
 use ethers::{
     prelude::BlockNumber,
-    providers::{Provider, ProviderError},
+    providers::{Ipc, Middleware, Provider, ProviderError},
     types::{
         transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
         Filter, GethDebugTracingOptions, GethTrace, Log, Trace, Transaction, TransactionReceipt,
@@ -22,7 +22,6 @@ use tokio::runtime::Handle;
 
 use ethers::core::types::transaction::eip2718::TypedTransaction as EthersTypedTransactionRequest;
 
-use ethers::providers::{Ipc, Middleware};
 use ethers_reth::RethMiddleware;
 use foundry_evm::utils::u256_to_h256_be;
 use parking_lot::{
@@ -87,8 +86,7 @@ impl ClientForkTrait for ClientForkMiddleware {
             let chain_id = if let Some(chain_id) = override_chain_id {
                 chain_id.into()
             } else {
-                let provider = self.provider();
-                self.provider().clone().get_chainid().await.unwrap()
+                self.provider().get_chainid().await.unwrap()
             };
             cloned_config.chain_id = chain_id.as_u64();
 
@@ -492,7 +490,7 @@ impl ClientForkTrait for ClientForkMiddleware {
         &self,
         block_id: BlockId,
     ) -> Result<Option<Block<Transaction>>, ProviderError> {
-        if let Some(block) = self.provider().get_block_with_txs(block_id).await.unwrap() {
+        if let Some(block) = self.provider().clone().get_block_with_txs(block_id).await.unwrap() {
             let hash = block.hash.unwrap();
             let block_number = block.number.unwrap().as_u64();
             let mut storage = self.storage_write();
@@ -595,6 +593,7 @@ impl ClientForkConfigMiddleware {
                     .ok_or_else(|| BlockchainError::Internal("db_path not set".to_string()))?,
             ),
             Handle::current(),
+            self.chain_id,
         )
         .unwrap();
 
