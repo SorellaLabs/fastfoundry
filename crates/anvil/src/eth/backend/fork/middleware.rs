@@ -87,7 +87,8 @@ impl ClientForkTrait for ClientForkMiddleware {
             let chain_id = if let Some(chain_id) = override_chain_id {
                 chain_id.into()
             } else {
-                self.provider().get_chainid().await.unwrap()
+                let provider = self.provider();
+                self.provider().clone().get_chainid().await.unwrap()
             };
             cloned_config.chain_id = chain_id.as_u64();
 

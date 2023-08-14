@@ -675,7 +675,6 @@ mod tests {
     use std::{env, net::Ipv4Addr};
 
     use super::*;
-    /*
     #[test]
     fn test_conflicting_args() {
         let args = vec![

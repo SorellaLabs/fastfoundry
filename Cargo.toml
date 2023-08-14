@@ -141,3 +141,4 @@ solang-parser = "=0.3.1"
 
 [patch.crates-io]
 revm = { git = "https://github.com/bluealloy/revm/", branch = "release/v25" }
+revm-primitives = { git = "https://github.com/bluealloy/revm/", branch = "release/v25" }
