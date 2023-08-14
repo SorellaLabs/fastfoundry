@@ -804,7 +804,7 @@ impl NodeConfig {
         provider: Arc<P>,
         prov_path: &str,
         env: &mut Env,
-        fees: &mut FeeManager,
+        fees: &FeeManager,
     ) -> (Arc<tokio::sync::RwLock<ForkedDatabase>>, u64, Block<H256>)
     // (forked_db, chain_id, block)
     where
@@ -974,7 +974,7 @@ latest block number: {latest_block}"
             },
             tx: TxEnv { chain_id: self.get_chain_id().into(), ..Default::default() },
         };
-        let mut fees = FeeManager::new(env.cfg.spec_id, self.get_base_fee(), self.get_gas_price());
+        let fees = FeeManager::new(env.cfg.spec_id, self.get_base_fee(), self.get_gas_price());
 
         #[allow(clippy::type_complexity)]
         let (mut backend_db, mut client_fork): (
@@ -997,7 +997,7 @@ latest block number: {latest_block}"
             );
 
             let (db, chain_id, block) =
-                self.provider_setup(provider.clone(), &eth_rpc_url, &mut env, &mut fees).await;
+                self.provider_setup(provider.clone(), &eth_rpc_url, &mut env, &fees).await;
 
             let fork = ClientForkHttp::new_http(
                 ClientForkConfigHttp {
@@ -1034,7 +1034,7 @@ latest block number: {latest_block}"
                 );
 
                 let (db, chain_id, block) =
-                    self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &mut fees).await;
+                    self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &fees).await;
 
                 let fork = ClientForkMiddleware::new_middleware(
                     ClientForkConfigMiddleware {
@@ -1059,7 +1059,7 @@ latest block number: {latest_block}"
                 let provider = Arc::new(Provider::connect_ipc(&eth_ipc_path).await.unwrap());
 
                 let (db, chain_id, block) =
-                    self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &mut fees).await;
+                    self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &fees).await;
 
                 let fork = ClientForkIpc::new_ipc(
                     ClientForkConfigIpc {
