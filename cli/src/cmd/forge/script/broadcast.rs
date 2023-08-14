@@ -113,8 +113,12 @@ impl ScriptArgs {
                             TypedTransaction::Eip1559(ref mut inner) => {
                                 let eip1559_fees =
                                     eip1559_fees.expect("Could not get eip1559 fee estimation.");
+                                if let Some(priority_gas_price) = self.priority_gas_price {
+                                    inner.max_priority_fee_per_gas = Some(priority_gas_price);
+                                } else {
+                                    inner.max_priority_fee_per_gas = Some(eip1559_fees.1);
+                                }
                                 inner.max_fee_per_gas = Some(eip1559_fees.0);
-                                inner.max_priority_fee_per_gas = Some(eip1559_fees.1);
                             }
                         }
                     }
@@ -263,7 +267,7 @@ impl ScriptArgs {
         &self,
         mut result: ScriptResult,
         libraries: Libraries,
-        decoder: &mut CallTraceDecoder,
+        decoder: &CallTraceDecoder,
         mut script_config: ScriptConfig,
         verify: VerifyBundle,
     ) -> Result<()> {
@@ -360,7 +364,7 @@ impl ScriptArgs {
         txs: BroadcastableTransactions,
         script_result: &ScriptResult,
         script_config: &mut ScriptConfig,
-        decoder: &mut CallTraceDecoder,
+        decoder: &CallTraceDecoder,
         known_contracts: &ContractsByArtifact,
     ) -> Result<Vec<ScriptSequence>> {
         if !txs.is_empty() {
@@ -391,8 +395,8 @@ impl ScriptArgs {
     async fn fills_transactions_with_gas(
         &self,
         txs: BroadcastableTransactions,
-        script_config: &mut ScriptConfig,
-        decoder: &mut CallTraceDecoder,
+        script_config: &ScriptConfig,
+        decoder: &CallTraceDecoder,
         known_contracts: &ContractsByArtifact,
     ) -> Result<VecDeque<TransactionWithMetadata>> {
         let gas_filled_txs = if self.skip_simulation {

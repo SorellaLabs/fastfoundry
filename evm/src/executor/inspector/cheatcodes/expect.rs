@@ -1,14 +1,11 @@
 use super::{bail, ensure, fmt_err, Cheatcodes, Result};
-use crate::{
-    abi::HEVMCalls,
-    error::{ERROR_PREFIX, REVERT_PREFIX},
-    executor::backend::DatabaseExt,
-    utils::h160_to_b160,
-};
+use crate::{abi::HEVMCalls, executor::backend::DatabaseExt, utils::h160_to_b160};
 use ethers::{
     abi::{AbiDecode, RawLog},
+    contract::Lazy,
     types::{Address, Bytes, H160, U256},
 };
+use foundry_utils::error::{ERROR_PREFIX, REVERT_PREFIX};
 use revm::{
     interpreter::{return_ok, InstructionResult},
     primitives::Bytecode,
@@ -20,9 +17,9 @@ use std::cmp::Ordering;
 /// Solidity will see a successful call and attempt to decode the return data. Therefore, we need
 /// to populate the return with dummy bytes so the decode doesn't fail.
 ///
-/// 512 bytes was arbitrarily chosen because it is long enough for return values up to 16 words in
+/// 8912 bytes was arbitrarily chosen because it is long enough for return values up to 256 words in
 /// size.
-static DUMMY_CALL_OUTPUT: [u8; 512] = [0u8; 512];
+static DUMMY_CALL_OUTPUT: Lazy<Bytes> = Lazy::new(|| Bytes::from_static(&[0u8; 8192]));
 
 /// Same reasoning as [DUMMY_CALL_OUTPUT], but for creates.
 static DUMMY_CREATE_ADDRESS: Address =
@@ -62,7 +59,7 @@ pub fn handle_expect_revert(
                 (Some(DUMMY_CREATE_ADDRESS), Bytes::new())
             } else {
                 trace!("successfully handled expected revert");
-                (None, DUMMY_CALL_OUTPUT.to_vec().into())
+                (None, DUMMY_CALL_OUTPUT.clone())
             })
         };
     }
@@ -257,6 +254,7 @@ impl PartialOrd for MockCallDataContext {
 
 fn expect_safe_memory(state: &mut Cheatcodes, start: u64, end: u64, depth: u64) -> Result {
     ensure!(start < end, "Invalid memory range: [{start}:{end}]");
+    #[allow(clippy::single_range_in_vec_init)]
     let offsets = state.allowed_mem_writes.entry(depth).or_insert_with(|| vec![0..0x60]);
     offsets.push(start..end);
     Ok(Bytes::new())
@@ -509,6 +507,10 @@ pub fn apply<DB: DatabaseExt>(
             Ok(Bytes::new())
         }
         HEVMCalls::MockCall1(inner) => {
+            if let Err(err) = data.journaled_state.load_account(h160_to_b160(inner.0), data.db) {
+                return Some(Err(err.into()))
+            }
+
             state.mocked_calls.entry(inner.0).or_default().insert(
                 MockCallDataContext { calldata: inner.2.to_vec().into(), value: Some(inner.1) },
                 MockCallReturnData {

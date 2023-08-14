@@ -116,6 +116,15 @@ pub struct ScriptArgs {
     )]
     pub sig: String,
 
+    /// Max priority fee per gas for EIP1559 transactions.
+    #[clap(
+        long,
+        env = "ETH_PRIORITY_GAS_PRICE",
+        value_parser = parse_ether_value,
+        value_name = "PRICE"
+    )]
+    pub priority_gas_price: Option<U256>,
+
     /// Use legacy transactions instead of EIP1559 ones.
     ///
     /// This is auto-enabled for common networks without EIP1559.
@@ -133,15 +142,6 @@ pub struct ScriptArgs {
     /// Relative percentage to multiply gas estimates by.
     #[clap(long, short, default_value = "130")]
     pub gas_estimate_multiplier: u64,
-
-    #[clap(flatten)]
-    pub opts: BuildArgs,
-
-    #[clap(flatten)]
-    pub wallets: MultiWallet,
-
-    #[clap(flatten)]
-    pub evm_opts: EvmArgs,
 
     /// Send via `eth_sendTransaction` using the `--from` argument or `$ETH_FROM` as sender
     #[clap(
@@ -175,6 +175,12 @@ pub struct ScriptArgs {
     #[clap(long)]
     pub slow: bool,
 
+    /// Disables interactive prompts that might appear when deploying big contracts.
+    ///
+    /// For more info on the contract size limit, see EIP-170: <https://eips.ethereum.org/EIPS/eip-170>
+    #[clap(long)]
+    pub non_interactive: bool,
+
     /// The Etherscan (or equivalent) API key
     #[clap(long, env = "ETHERSCAN_API_KEY", value_name = "KEY")]
     pub etherscan_api_key: Option<String>,
@@ -182,9 +188,6 @@ pub struct ScriptArgs {
     /// Verifies all the contracts found in the receipts of a script, if any.
     #[clap(long)]
     pub verify: bool,
-
-    #[clap(flatten)]
-    pub verifier: super::verify::VerifierArgs,
 
     /// Output results in JSON format.
     #[clap(long)]
@@ -198,6 +201,18 @@ pub struct ScriptArgs {
         value_name = "PRICE",
     )]
     pub with_gas_price: Option<U256>,
+
+    #[clap(flatten)]
+    pub opts: BuildArgs,
+
+    #[clap(flatten)]
+    pub wallets: MultiWallet,
+
+    #[clap(flatten)]
+    pub evm_opts: EvmArgs,
+
+    #[clap(flatten)]
+    pub verifier: super::verify::VerifierArgs,
 
     #[clap(flatten)]
     pub retry: RetryArgs,
@@ -517,7 +532,8 @@ impl ScriptArgs {
         Ok((func.clone(), data))
     }
 
-    /// Checks if the transaction is a deployment with a size above the `CONTRACT_MAX_SIZE`.
+    /// Checks if the transaction is a deployment with either a size above the `CONTRACT_MAX_SIZE`
+    /// or specified `code_size_limit`.
     ///
     /// If `self.broadcast` is enabled, it asks confirmation of the user. Otherwise, it just warns
     /// the user.
@@ -571,11 +587,16 @@ impl ScriptArgs {
         }
 
         let mut prompt_user = false;
+        let max_size = match self.evm_opts.env.code_size_limit {
+            Some(size) => size,
+            None => CONTRACT_MAX_SIZE,
+        };
+
         for (data, to) in result.transactions.iter().flat_map(|txes| {
             txes.iter().filter_map(|tx| {
                 tx.transaction
                     .data()
-                    .filter(|data| data.len() > CONTRACT_MAX_SIZE)
+                    .filter(|data| data.len() > max_size)
                     .map(|data| (data, tx.transaction.to()))
             })
         }) {
@@ -597,19 +618,21 @@ impl ScriptArgs {
             {
                 let deployment_size = deployed_code.len();
 
-                if deployment_size > CONTRACT_MAX_SIZE {
+                if deployment_size > max_size {
                     prompt_user = self.broadcast;
                     shell::println(format!(
                         "{}",
                         Paint::red(format!(
-                            "`{name}` is above the EIP-170 contract size limit ({deployment_size} > {CONTRACT_MAX_SIZE})."
+                            "`{name}` is above the contract size limit ({deployment_size} > {max_size})."
                         ))
                     ))?;
                 }
             }
         }
 
+        // Only prompt if we're broadcasting and we've not disabled interactivity.
         if prompt_user &&
+            !self.non_interactive &&
             !Confirm::new().with_prompt("Do you wish to continue?".to_string()).interact()?
         {
             eyre::bail!("User canceled the script.");
@@ -838,6 +861,21 @@ mod tests {
             args.verifier.verifier_url,
             Some("http://localhost:3000/api/verify".to_string())
         );
+    }
+
+    #[test]
+    fn can_extract_code_size_limit() {
+        let args: ScriptArgs = ScriptArgs::parse_from([
+            "foundry-cli",
+            "script",
+            "script/Test.s.sol:TestScript",
+            "--fork-url",
+            "http://localhost:8545",
+            "--broadcast",
+            "--code-size-limit",
+            "50000",
+        ]);
+        assert_eq!(args.evm_opts.env.code_size_limit, Some(50000));
     }
 
     #[test]

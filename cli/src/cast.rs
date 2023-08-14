@@ -22,7 +22,6 @@ use foundry_common::{
     },
 };
 use foundry_config::Config;
-use rustc_hex::ToHex;
 use std::time::Instant;
 
 #[tokio::main]
@@ -83,21 +82,9 @@ async fn main() -> eyre::Result<()> {
         Subcommands::ToHexdata { input } => {
             let value = stdin::unwrap_line(input)?;
             let output = match value {
-                s if s.starts_with('@') => {
-                    let var = std::env::var(&s[1..])?;
-                    var.as_bytes().to_hex()
-                }
-                s if s.starts_with('/') => {
-                    let input = fs::read(s)?;
-                    input.to_hex()
-                }
-                s => {
-                    let mut output = String::new();
-                    for s in s.split(':') {
-                        output.push_str(&s.trim_start_matches("0x").to_lowercase())
-                    }
-                    output
-                }
+                s if s.starts_with('@') => hex::encode(std::env::var(&s[1..])?),
+                s if s.starts_with('/') => hex::encode(fs::read(s)?),
+                s => s.split(':').map(|s| s.trim_start_matches("0x").to_lowercase()).collect(),
             };
             println!("0x{output}");
         }
@@ -172,7 +159,7 @@ async fn main() -> eyre::Result<()> {
             println!("{}", SimpleCast::abi_encode(&sig, &args)?);
         }
         Subcommands::CalldataDecode { sig, calldata } => {
-            let tokens = SimpleCast::abi_decode(&sig, &calldata, true)?;
+            let tokens = SimpleCast::calldata_decode(&sig, &calldata, true)?;
             let tokens = format_tokens(&tokens);
             tokens.for_each(|t| println!("{t}"));
         }
@@ -263,6 +250,11 @@ async fn main() -> eyre::Result<()> {
             let provider = utils::get_provider(&config)?;
             println!("{}", Cast::new(provider).code(who, block, disassemble).await?);
         }
+        Subcommands::Codesize { block, who, rpc } => {
+            let config = Config::from(&rpc);
+            let provider = utils::get_provider(&config)?;
+            println!("{}", Cast::new(provider).codesize(who, block).await?);
+        }
         Subcommands::ComputeAddress { address, nonce, rpc } => {
             let config = Config::from(&rpc);
             let provider = utils::get_provider(&config)?;
@@ -337,10 +329,14 @@ async fn main() -> eyre::Result<()> {
         }
         Subcommands::Run(cmd) => cmd.run().await?,
         Subcommands::SendTx(cmd) => cmd.run().await?,
-        Subcommands::Tx { tx_hash, field, json, rpc } => {
+        Subcommands::Tx { tx_hash, field, raw, json, rpc } => {
             let config = Config::from(&rpc);
             let provider = utils::get_provider(&config)?;
-            println!("{}", Cast::new(&provider).transaction(tx_hash, field, json).await?)
+
+            // Can use either --raw or specify raw as a field
+            let raw = raw || field.as_ref().is_some_and(|f| f == "raw");
+
+            println!("{}", Cast::new(&provider).transaction(tx_hash, field, raw, json).await?)
         }
 
         // 4Byte
@@ -368,7 +364,7 @@ async fn main() -> eyre::Result<()> {
                 }
             };
 
-            let tokens = SimpleCast::abi_decode(sig, &calldata, true)?;
+            let tokens = SimpleCast::calldata_decode(sig, &calldata, true)?;
             for token in format_tokens(&tokens) {
                 println!("{token}");
             }

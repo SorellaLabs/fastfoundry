@@ -34,7 +34,9 @@ use ethers::{
 };
 use ethers_reth::RethMiddleware;
 use forge::utils::{h256_to_b256, u256_to_ru256};
-use foundry_common::{ProviderBuilder, ALCHEMY_FREE_TIER_CUPS, REQUEST_TIMEOUT};
+use foundry_common::{
+    ProviderBuilder, ALCHEMY_FREE_TIER_CUPS, NON_ARCHIVE_NODE_WARNING, REQUEST_TIMEOUT,
+};
 use foundry_config::Config;
 use foundry_evm::{
     executor::fork::{BlockchainDb, BlockchainDbMeta, SharedBackend},
@@ -47,10 +49,15 @@ use revm::primitives::Env;
 use serde_json::{json, to_writer, Value};
 use std::{
     collections::HashMap,
+   
     fmt::Write as FmtWrite,
+   
     fs::File,
-    net::IpAddr,
+   
+    net::{IpAddr,
+    Ipv4Addr},
     path::{Path, PathBuf},
+   
     sync::Arc,
     time::Duration,
 };
@@ -82,14 +89,14 @@ pub const VERSION_MESSAGE: &str = concat!(
     ")"
 );
 
-const BANNER: &str = r#"
+const BANNER: &str = r"
                              _   _
                             (_) | |
       __ _   _ __   __   __  _  | |
      / _` | | '_ \  \ \ / / | | | |
     | (_| | | | | |  \ V /  | | | |
      \__,_| |_| |_|   \_/   |_| |_|
-"#;
+";
 
 /// Configurations of the EVM node
 #[derive(Debug, Clone)]
@@ -143,7 +150,7 @@ pub struct NodeConfig {
     /// How to configure the server
     pub server_config: ServerConfig,
     /// The host the server will listen on
-    pub host: Option<IpAddr>,
+    pub host: Vec<IpAddr>,
     /// How transactions are sorted in the mempool
     pub transaction_order: TransactionOrder,
     /// Filename to write anvil output as json
@@ -162,6 +169,8 @@ pub struct NodeConfig {
     pub ipc_path: Option<Option<String>>,
     /// Enable transaction/call steps tracing for debug calls returning geth-style traces
     pub enable_steps_tracing: bool,
+    /// Enable auto impersonation of accounts on startup
+    pub enable_auto_impersonate: bool,
     /// Configure the code size limit
     pub code_size_limit: Option<usize>,
     /// Configures how to remove historic state.
@@ -231,6 +240,36 @@ Derivation path:   {}
             );
         }
 
+        if let Some(fork) = fork {
+            let _ = write!(
+                config_string,
+                r#"
+
+Fork
+==================
+Endpoint:       {}
+Block number:   {}
+Block hash:     {:?}
+Chain ID:       {}
+"#,
+                fork.eth_rpc_url(),
+                fork.block_number(),
+                fork.block_hash(),
+                fork.chain_id()
+            );
+        } else {
+            let _ = write!(
+                config_string,
+                r#"
+
+Chain ID
+==================
+{}
+"#,
+                Paint::green(format!("\n{}", self.get_chain_id()))
+            );
+        }
+
         if (SpecId::from(self.get_hardfork()) as u8) < (SpecId::LONDON as u8) {
             let _ = write!(
                 config_string,
@@ -245,7 +284,6 @@ Gas Price
             let _ = write!(
                 config_string,
                 r#"
-
 Base Fee
 ==================
 {}
@@ -273,25 +311,6 @@ Genesis Timestamp
 "#,
             Paint::green(format!("\n{}", self.get_genesis_timestamp()))
         );
-
-        if let Some(fork) = fork {
-            let _ = write!(
-                config_string,
-                r#"
-Fork
-==================
-Endpoint:       {:?}
-Block number:   {}
-Block hash:     {:?}
-Chain ID:       {}
-
-"#,
-                fork.provider_path(),
-                fork.block_number(),
-                fork.block_hash(),
-                fork.chain_id()
-            );
-        }
 
         config_string
     }
@@ -381,9 +400,10 @@ impl Default for NodeConfig {
             base_fee: None,
             enable_tracing: true,
             enable_steps_tracing: false,
+            enable_auto_impersonate: false,
             no_storage_caching: false,
             server_config: Default::default(),
-            host: None,
+            host: vec![IpAddr::V4(Ipv4Addr::LOCALHOST)],
             transaction_order: Default::default(),
             config_out: None,
             genesis: None,
@@ -720,6 +740,13 @@ impl NodeConfig {
         self
     }
 
+    /// Sets whether to enable autoImpersonate
+    #[must_use]
+    pub fn with_auto_impersonate(mut self, enable_auto_impersonate: bool) -> Self {
+        self.enable_auto_impersonate = enable_auto_impersonate;
+        self
+    }
+
     #[must_use]
     pub fn with_server_config(mut self, config: ServerConfig) -> Self {
         self.server_config = config;
@@ -728,8 +755,8 @@ impl NodeConfig {
 
     /// Sets the host the server will listen on
     #[must_use]
-    pub fn with_host(mut self, host: Option<IpAddr>) -> Self {
-        self.host = host;
+    pub fn with_host(mut self, host: Vec<IpAddr>) -> Self {
+        self.host = if host.is_empty() { vec![IpAddr::V4(Ipv4Addr::LOCALHOST)] } else { host };
         self
     }
 

@@ -24,7 +24,6 @@ use foundry_utils::Retry;
 use futures::FutureExt;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rustc_hex::ToHex;
 use semver::{BuildMetadata, Version};
 use std::{
     fmt::Debug,
@@ -33,7 +32,7 @@ use std::{
 use tracing::{error, trace, warn};
 
 pub static RE_BUILD_COMMIT: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"(?P<commit>commit\.[0-9,a-f]{8})"#).unwrap());
+    Lazy::new(|| Regex::new(r"(?P<commit>commit\.[0-9,a-f]{8})").unwrap());
 
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
@@ -432,8 +431,8 @@ impl EtherscanVerificationProvider {
             let encoded_args = encode_args(
                 &func,
                 &read_constructor_args_file(constructor_args_path.to_path_buf())?,
-            )?
-            .to_hex::<String>();
+            )?;
+            let encoded_args = hex::encode(encoded_args);
             return Ok(Some(encoded_args[8..].into()))
         }
 
@@ -534,7 +533,7 @@ mod tests {
         assert!(format!("{client:?}").contains("dummykey"));
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn fails_on_disabled_cache_and_missing_info() {
         let temp = tempdir().unwrap();
         let root = temp.path();

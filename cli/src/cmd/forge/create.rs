@@ -18,7 +18,6 @@ use ethers::{
 };
 use eyre::Context;
 use foundry_common::{abi::parse_tokens, compile, estimate_eip1559_fees};
-use rustc_hex::ToHex;
 use serde_json::json;
 use std::{path::PathBuf, sync::Arc};
 
@@ -45,15 +44,6 @@ pub struct CreateArgs {
     )]
     constructor_args_path: Option<PathBuf>,
 
-    #[clap(flatten)]
-    opts: CoreBuildArgs,
-
-    #[clap(flatten)]
-    tx: TransactionOpts,
-
-    #[clap(flatten)]
-    eth: EthereumOpts,
-
     /// Print the deployment information as JSON.
     #[clap(long, help_heading = "Display options")]
     json: bool,
@@ -65,6 +55,15 @@ pub struct CreateArgs {
     /// Send via `eth_sendTransaction` using the `--from` argument or `$ETH_FROM` as sender
     #[clap(long, requires = "from")]
     unlocked: bool,
+
+    #[clap(flatten)]
+    opts: CoreBuildArgs,
+
+    #[clap(flatten)]
+    tx: TransactionOpts,
+
+    #[clap(flatten)]
+    eth: EthereumOpts,
 
     #[clap(flatten)]
     pub verifier: verify::VerifierArgs,
@@ -263,10 +262,9 @@ impl CreateArgs {
                 let code = Vec::new();
                 let encoded_args = abi
                     .constructor()
-                    .ok_or(eyre::eyre!("could not find constructor"))?
-                    .encode_input(code, &args)?
-                    .to_hex::<String>();
-                constructor_args = Some(encoded_args);
+                    .ok_or_else(|| eyre::eyre!("could not find constructor"))?
+                    .encode_input(code, &args)?;
+                constructor_args = Some(hex::encode(encoded_args));
             }
 
             self.verify_preflight_check(constructor_args.clone(), chain).await?;

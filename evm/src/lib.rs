@@ -26,13 +26,11 @@ pub mod fuzz;
 /// utils for working with revm
 pub mod utils;
 
-pub mod error;
-
 // Re-exports
 pub use ethers::types::Address;
-pub use hashbrown::{self, HashMap};
-pub use revm;
+pub use hashbrown::{self};
 use revm::interpreter::{CallScheme, CreateScheme};
+pub use revm::{self, primitives::HashMap};
 use serde::{Deserialize, Serialize};
 
 /// Stores the caller address to be used as _sender_ account for:

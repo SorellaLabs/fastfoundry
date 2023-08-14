@@ -3,7 +3,7 @@
 
 use crate::cache::StorageCachingConfig;
 use ethers_core::types::{Address, Chain::Mainnet, H160, H256, U256};
-pub use ethers_solc::artifacts::OptimizerDetails;
+pub use ethers_solc::{self, artifacts::OptimizerDetails};
 use ethers_solc::{
     artifacts::{
         output_selection::ContractOutputSelection, serde_helpers, BytecodeHash, DebuggingSettings,
@@ -77,7 +77,9 @@ pub mod fix;
 pub use figment;
 use tracing::warn;
 
-mod providers;
+/// config providers
+pub mod providers;
+
 use crate::{
     error::ExtractConfigError,
     etherscan::{EtherscanConfigError, EtherscanConfigs, ResolvedEtherscanConfig},
@@ -314,6 +316,8 @@ pub struct Config {
     /// Multiple rpc endpoints and their aliases
     #[serde(default, skip_serializing_if = "RpcEndpoints::is_empty")]
     pub rpc_endpoints: RpcEndpoints,
+    /// Whether to store the referenced sources in the metadata as literal data.
+    pub use_literal_content: bool,
     /// Whether to include the metadata hash.
     ///
     /// The metadata hash is machine dependent. By default, this is set to [BytecodeHash::None] to allow for deterministic code, See: <https://docs.soliditylang.org/en/latest/metadata.html>
@@ -570,20 +574,17 @@ impl Config {
                 r.path.path = r.path.path.to_slash_lossy().into_owned().into();
             });
         }
-        // remove any potential duplicates
-        self.remappings.sort_unstable();
-        self.remappings.dedup();
     }
 
     /// Returns the directory in which dependencies should be installed
     ///
     /// Returns the first dir from `libs` that is not `node_modules` or `lib` if `libs` is empty
-    pub fn install_lib_dir(&self) -> PathBuf {
+    pub fn install_lib_dir(&self) -> &Path {
         self.libs
             .iter()
             .find(|p| !p.ends_with("node_modules"))
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("lib"))
+            .map(|p| p.as_path())
+            .unwrap_or_else(|| Path::new("lib"))
     }
 
     /// Serves as the entrypoint for obtaining the project.
@@ -1003,7 +1004,11 @@ impl Config {
             optimizer,
             evm_version: Some(self.evm_version),
             libraries,
-            metadata: Some(SettingsMetadata::new(self.bytecode_hash, self.cbor_metadata)),
+            metadata: Some(SettingsMetadata {
+                use_literal_content: Some(self.use_literal_content),
+                bytecode_hash: Some(self.bytecode_hash),
+                cbor_metadata: Some(self.cbor_metadata),
+            }),
             debug: self.revert_strings.map(|revert_strings| DebuggingSettings {
                 revert_strings: Some(revert_strings),
                 debug_info: Vec::new(),
@@ -1260,6 +1265,11 @@ impl Config {
     /// Returns the path to foundry's etherscan cache dir `~/.foundry/cache/etherscan`
     pub fn foundry_etherscan_cache_dir() -> Option<PathBuf> {
         Some(Self::foundry_cache_dir()?.join("etherscan"))
+    }
+
+    /// Returns the path to foundry's keystores dir `~/.foundry/keystores`
+    pub fn foundry_keystores_dir() -> Option<PathBuf> {
+        Some(Self::foundry_dir()?.join("keystores"))
     }
 
     /// Returns the path to foundry's etherscan cache dir for `chain_id`
@@ -1780,6 +1790,7 @@ impl Default for Config {
             etherscan: Default::default(),
             no_storage_caching: false,
             no_rpc_rate_limit: false,
+            use_literal_content: false,
             bytecode_hash: BytecodeHash::Ipfs,
             cbor_metadata: true,
             revert_strings: None,
@@ -2425,9 +2436,10 @@ impl BasicConfig {
     pub fn to_string_pretty(&self) -> Result<String, toml::ser::Error> {
         let s = toml::to_string_pretty(self)?;
         Ok(format!(
-            r#"[profile.{}]
+            "\
+[profile.{}]
 {s}
-# See more config options https://github.com/foundry-rs/foundry/tree/master/config"#,
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config\n",
             self.profile
         ))
     }
@@ -2713,13 +2725,12 @@ mod tests {
             assert_eq!(
                 config.remappings,
                 vec![
-                    // From environment
+                    // From environment (should have precedence over remapping.txt)
                     Remapping::from_str("ds-test=lib/ds-test/").unwrap().into(),
-                    // From remapping.txt
+                    Remapping::from_str("other/=lib/other/").unwrap().into(),
+                    // From remapping.txt (should have less precedence than remapping.txt)
                     Remapping::from_str("file-ds-test/=lib/ds-test/").unwrap().into(),
                     Remapping::from_str("file-other/=lib/other/").unwrap().into(),
-                    // From environment
-                    Remapping::from_str("other/=lib/other/").unwrap().into(),
                 ],
             );
 
@@ -3226,6 +3237,7 @@ mod tests {
                 remappings = ["ds-test=lib/ds-test/"]
                 via_ir = true
                 rpc_storage_caching = { chains = [1, "optimism", 999999], endpoints = "all"}
+                use_literal_content = false
                 bytecode_hash = "ipfs"
                 cbor_metadata = true
                 revert_strings = "strip"
@@ -3259,6 +3271,7 @@ mod tests {
                         ]),
                         endpoints: CachedEndpoints::All
                     },
+                    use_literal_content: false,
                     bytecode_hash: BytecodeHash::Ipfs,
                     cbor_metadata: true,
                     revert_strings: Some(RevertStrings::Strip),
@@ -3324,6 +3337,7 @@ mod tests {
                 block_prevrandao = '0x0000000000000000000000000000000000000000000000000000000000000000'
                 block_number = 1
                 block_timestamp = 1
+                use_literal_content = false
                 bytecode_hash = 'ipfs'
                 cbor_metadata = true
                 cache = true
@@ -4245,7 +4259,7 @@ mod tests {
         fake_block_cache(chain_dir.path(), "2", 500);
         // Pollution file that should not show up in the cached block
         let mut pol_file = File::create(chain_dir.path().join("pol.txt")).unwrap();
-        writeln!(pol_file, "{}", vec![' '; 10].iter().collect::<String>()).unwrap();
+        writeln!(pol_file, "{}", [' '; 10].iter().collect::<String>()).unwrap();
 
         let result = Config::get_cached_blocks(chain_dir.path())?;
 

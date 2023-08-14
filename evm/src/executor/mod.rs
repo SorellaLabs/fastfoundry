@@ -21,7 +21,6 @@ use ethers::{
     types::Log,
 };
 use foundry_common::{abi::IntoFunction, evm::Breakpoints};
-use hashbrown::HashMap;
 use revm::primitives::hex_literal::hex;
 /// Reexport commonly used revm types
 pub use revm::primitives::{Env, SpecId};
@@ -29,8 +28,8 @@ pub use revm::{
     db::{DatabaseCommit, DatabaseRef},
     interpreter::{return_ok, CreateScheme, InstructionResult, Memory, Stack},
     primitives::{
-        Account, BlockEnv, Bytecode, ExecutionResult, Output, ResultAndState, TransactTo, TxEnv,
-        B160, U256 as rU256,
+        Account, BlockEnv, Bytecode, ExecutionResult, HashMap, Output, ResultAndState, TransactTo,
+        TxEnv, B160, U256 as rU256,
     },
 };
 use std::collections::BTreeMap;
@@ -320,7 +319,6 @@ impl Executor {
             value,
         );
         let call_result = self.call_raw_with_env(env)?;
-
         convert_call_result(abi, &func, call_result)
     }
 
@@ -642,6 +640,9 @@ pub enum EvmError {
     /// Error which occurred during ABI encoding/decoding
     #[error(transparent)]
     AbiError(#[from] ethers::contract::AbiError),
+    /// Error caused which occurred due to calling the skip() cheatcode.
+    #[error("Skipped")]
+    SkipError,
     /// Any other error.
     #[error(transparent)]
     Eyre(#[from] eyre::Error),
@@ -669,6 +670,7 @@ pub struct DeployResult {
 /// The result of a call.
 #[derive(Debug)]
 pub struct CallResult<D: Detokenize> {
+    pub skipped: bool,
     /// Whether the call reverted or not
     pub reverted: bool,
     /// The decoded result of the call
@@ -798,7 +800,6 @@ fn convert_executed_result(
             (halt_to_instruction_result(reason), 0_u64, gas_used, None)
         }
     };
-
     let stipend = calc_stipend(&env.tx.data, env.cfg.spec_id);
 
     let result = match out {
@@ -897,11 +898,15 @@ fn convert_call_result<D: Detokenize>(
                 script_wallets,
                 env,
                 breakpoints,
+                skipped: false,
             })
         }
         _ => {
             let reason = decode::decode_revert(result.as_ref(), abi, Some(status))
                 .unwrap_or_else(|_| format!("{status:?}"));
+            if reason == "SKIPPED" {
+                return Err(EvmError::SkipError)
+            }
             Err(EvmError::Execution(Box::new(ExecutionErr {
                 reverted,
                 reason,

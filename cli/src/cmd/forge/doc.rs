@@ -50,7 +50,7 @@ impl Cmd for DocArgs {
     type Output = ();
 
     fn run(self) -> eyre::Result<Self::Output> {
-        let root = self.root.clone().unwrap_or(find_project_root_path()?);
+        let root = self.root.clone().unwrap_or(find_project_root_path(None)?);
         let config = load_config_with_root(Some(root.clone()));
 
         let mut doc_config = config.doc.clone();
@@ -75,14 +75,7 @@ impl Cmd for DocArgs {
             }
         }
 
-        let commit =
-            Command::new("git").args(["rev-parse", "HEAD"]).output().ok().and_then(|output| {
-                if !output.stdout.is_empty() {
-                    String::from_utf8(output.stdout).ok().map(|commit| commit.trim().to_owned())
-                } else {
-                    None
-                }
-            });
+        let commit = crate::utils::Git::new(&root).commit_hash(false).ok();
 
         let mut builder = DocBuilder::new(root.clone(), config.project_paths().sources)
             .with_should_build(self.build)

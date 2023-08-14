@@ -1,8 +1,10 @@
 //! Cache related abstraction
-use crate::{executor::backend::snapshot::StateSnapshot, HashMap as Map};
+use crate::executor::backend::snapshot::StateSnapshot;
 use parking_lot::RwLock;
 use revm::{
-    primitives::{Account, AccountInfo, B160, B256, KECCAK_EMPTY, U256},
+    primitives::{
+        Account, AccountInfo, AccountStatus, HashMap as Map, B160, B256, KECCAK_EMPTY, U256,
+    },
     DatabaseCommit,
 };
 use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
@@ -249,13 +251,17 @@ impl MemDb {
         let mut storage = self.storage.write();
         let mut accounts = self.accounts.write();
         for (add, mut acc) in changes {
-            if acc.is_empty() || acc.is_destroyed {
+            if acc.is_empty() || acc.is_selfdestructed() {
                 accounts.remove(&add);
                 storage.remove(&add);
             } else {
                 // insert account
-                if let Some(code_hash) =
-                    acc.info.code.as_ref().filter(|code| !code.is_empty()).map(|code| code.hash())
+                if let Some(code_hash) = acc
+                    .info
+                    .code
+                    .as_ref()
+                    .filter(|code| !code.is_empty())
+                    .map(|code| code.hash_slow())
                 {
                     acc.info.code_hash = code_hash;
                 } else if acc.info.code_hash.is_zero() {
@@ -264,7 +270,7 @@ impl MemDb {
                 accounts.insert(add, acc.info);
 
                 let acc_storage = storage.entry(add).or_default();
-                if acc.storage_cleared {
+                if acc.status.contains(AccountStatus::Created) {
                     acc_storage.clear();
                 }
                 for (index, value) in acc.storage {
@@ -324,12 +330,11 @@ impl JsonBlockCacheDB {
     pub fn load(path: impl Into<PathBuf>) -> eyre::Result<Self> {
         let path = path.into();
         trace!(target : "cache", ?path, "reading json cache");
-        let file = fs::File::open(&path).map_err(|err| {
+        let contents = std::fs::read_to_string(&path).map_err(|err| {
             warn!(?err, ?path, "Failed to read cache file");
             err
         })?;
-        let file = std::io::BufReader::new(file);
-        let data = serde_json::from_reader(file).map_err(|err| {
+        let data = serde_json::from_str(&contents).map_err(|err| {
             warn!(target : "cache", ?err, ?path, "Failed to deserialize cache data");
             err
         })?;

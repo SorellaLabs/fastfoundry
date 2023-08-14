@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity >=0.8.0;
 
-interface Cheats {
+interface Vm {
     // Possible caller modes for readCallers()
     enum CallerMode {
         None,
@@ -75,11 +75,17 @@ interface Cheats {
     // Gets address for a given private key, (privateKey) => (address)
     function addr(uint256) external returns (address);
 
-    // Derive a private key from a provided mnemonic string (or mnemonic file path) at the derivation path m/44'/60'/0'/0/{index}
+    // Derive a private key from a provided English mnemonic string (or mnemonic file path) at the derivation path m/44'/60'/0'/0/{index}
     function deriveKey(string calldata, uint32) external returns (uint256);
 
-    // Derive a private key from a provided mnemonic string (or mnemonic file path) at the derivation path {path}{index}
+    // Derive a private key from a provided English mnemonic string (or mnemonic file path) at the derivation path {path}{index}
     function deriveKey(string calldata, string calldata, uint32) external returns (uint256);
+
+    // Derive a private key from a provided mnemonic string (or mnemonic file path) of specified language at the derivation path m/44'/60'/0'/0/{index}
+    function deriveKey(string calldata, uint32, string calldata) external returns (uint256);
+
+    // Derive a private key from a provided mnemonic string (or mnemonic file path) of specified language at the derivation path {path}{index}
+    function deriveKey(string calldata, string calldata, uint32, string calldata) external returns (uint256);
 
     // Adds a private key to the local forge wallet and returns the address
     function rememberKey(uint256) external returns (address);
@@ -173,6 +179,12 @@ interface Cheats {
 
     // Sets an address' code, (who, newCode)
     function etch(address, bytes calldata) external;
+
+    // Skips a test.
+    function skip(bool) external;
+
+    // Sleeps for a given number of milliseconds.
+    function sleep(uint256) external;
 
     // Expects an error on next call
     function expectRevert() external;
@@ -513,6 +525,8 @@ interface Cheats {
 
     function parseJson(string calldata) external returns (bytes memory);
 
+    function parseJsonKeys(string calldata, string calldata) external returns (string[] memory);
+
     function parseJsonUint(string calldata, string calldata) external returns (uint256);
 
     function parseJsonUintArray(string calldata, string calldata) external returns (uint256[] memory);
@@ -573,9 +587,27 @@ interface Cheats {
 
     function writeJson(string calldata, string calldata, string calldata) external;
 
+    // Checks if a key exists in the given json string
+    function keyExists(string calldata, string calldata) external returns (bool);
+
     // Pauses gas metering (gas usage will not be counted)
     function pauseGasMetering() external;
 
     // Resumes gas metering from where it left off
     function resumeGasMetering() external;
+
+    // Starts recording all map SSTOREs for later retrieval.
+    function startMappingRecording() external;
+
+    // Stops recording all map SSTOREs for later retrieval and clears the recorded data.
+    function stopMappingRecording() external;
+
+    // Gets the length of a mapping at a given slot, for a given address.
+    function getMappingLength(address target, bytes32 slot) external returns (uint256);
+
+    // Gets the element at index idx of a mapping at a given slot, for a given address.
+    function getMappingSlotAt(address target, bytes32 slot, uint256 idx) external returns (bytes32);
+
+    // Gets the map key and parent of a mapping at a given slot, for a given address.
+    function getMappingKeyAndParentOf(address target, bytes32 slot) external returns (bool, bytes32, bytes32);
 }

@@ -13,7 +13,7 @@ use crate::{
             time::{utc_from_secs, TimeManager},
             validate::TransactionValidator,
         },
-        error::{BlockchainError, InvalidTransactionError},
+        error::{BlockchainError, ErrDetail, InvalidTransactionError},
         fees::{FeeDetails, FeeManager},
         macros::node_info,
         pool::transactions::PoolTransaction,
@@ -57,7 +57,6 @@ use ethers::{
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use forge::{
     executor::inspector::AccessListTracer,
-    hashbrown,
     revm::{
         interpreter::{return_ok, InstructionResult},
         primitives::{BlockEnv, ExecutionResult},
@@ -70,10 +69,12 @@ use forge::{
 use foundry_evm::{
     decode::{decode_custom_error_args, decode_revert},
     executor::backend::{DatabaseError, DatabaseResult},
-    revm,
     revm::{
+        self,
         db::CacheDB,
-        primitives::{Account, CreateScheme, Env, Output, SpecId, TransactTo, TxEnv, KECCAK_EMPTY},
+        primitives::{
+            Account, CreateScheme, EVMError, Env, Output, SpecId, TransactTo, TxEnv, KECCAK_EMPTY,
+        },
     },
     utils::u256_to_h256_be,
 };
@@ -315,9 +316,8 @@ impl Backend {
     }
 
     /// If set to true will make every account impersonated
-    pub async fn auto_impersonate_account(&self, enabled: bool) -> DatabaseResult<()> {
+    pub async fn auto_impersonate_account(&self, enabled: bool) {
         self.cheats.set_auto_impersonate_account(enabled);
-        Ok(())
     }
 
     /// Returns the configured fork, if any
@@ -505,6 +505,11 @@ impl Backend {
     /// Returns true for post London
     pub fn is_eip1559(&self) -> bool {
         (self.spec_id() as u8) >= (SpecId::LONDON as u8)
+    }
+
+    /// Returns true for post Merge
+    pub fn is_eip3675(&self) -> bool {
+        (self.spec_id() as u8) >= (SpecId::MERGE as u8)
     }
 
     /// Returns true for post Berlin
@@ -700,7 +705,7 @@ impl Backend {
             Err(e) => return Err(e.into()),
         };
         let state = result_and_state.state;
-        let state: hashbrown::HashMap<H160, Account> =
+        let state: revm::primitives::HashMap<H160, Account> =
             state.into_iter().map(|kv| (kv.0.into(), kv.1)).collect();
         let (exit_reason, gas_used, out, logs) = match result_and_state.result {
             ExecutionResult::Success { reason, gas_used, logs, output, .. } => {
@@ -841,7 +846,12 @@ impl Backend {
             // update block metadata
             storage.best_number = block_number;
             storage.best_hash = block_hash;
-            storage.total_difficulty = storage.total_difficulty.saturating_add(header.difficulty);
+            // Difficulty is removed and not used after Paris (aka TheMerge). Value is replaced with
+            // prevrandao. https://github.com/bluealloy/revm/blob/1839b3fce8eaeebb85025576f2519b80615aca1e/crates/interpreter/src/instructions/host_env.rs#L27
+            if !self.is_eip3675() {
+                storage.total_difficulty =
+                    storage.total_difficulty.saturating_add(header.difficulty);
+            }
 
             storage.blocks.insert(block_hash, block);
             storage.hashes.insert(block_number, block_hash);
@@ -1046,12 +1056,16 @@ impl Backend {
         evm.database(state);
         let result_and_state = match evm.inspect_ref(&mut inspector) {
             Ok(result_and_state) => result_and_state,
-            Err(_) => {
-                return Err(BlockchainError::InvalidTransaction(InvalidTransactionError::GasTooHigh))
-            }
+            Err(e) => match e {
+                EVMError::Transaction(invalid_tx) => {
+                    return Err(BlockchainError::InvalidTransaction(invalid_tx.into()))
+                }
+                EVMError::PrevrandaoNotSet => return Err(BlockchainError::PrevrandaoNotSet),
+                EVMError::Database(e) => return Err(BlockchainError::DatabaseError(e)),
+            },
         };
         let state = result_and_state.state;
-        let state: hashbrown::HashMap<H160, Account> =
+        let state: revm::primitives::HashMap<H160, Account> =
             state.into_iter().map(|kv| (kv.0.into(), kv.1)).collect();
         let (exit_reason, gas_used, out) = match result_and_state.result {
             ExecutionResult::Success { reason, gas_used, output, .. } => {
@@ -1171,12 +1185,11 @@ impl Backend {
         filter: Filter,
         hash: H256,
     ) -> Result<Vec<Log>, BlockchainError> {
-        if let Some(block) = self.blockchain.storage.read().blocks.get(&hash).cloned() {
+        if let Some(block) = self.blockchain.get_block_by_hash(&hash) {
             return Ok(self.mined_logs_for_block(filter, block))
         }
 
         if let Some(fork) = self.get_fork() {
-            let filter = filter;
             return Ok(fork.logs(&filter).await?)
         }
 
@@ -1336,12 +1349,22 @@ impl Backend {
     }
 
     fn mined_block_by_hash(&self, hash: H256) -> Option<EthersBlock<TxHash>> {
-        let block = self.blockchain.storage.read().blocks.get(&hash)?.clone();
+        let block = self.blockchain.get_block_by_hash(&hash)?;
         Some(self.convert_block(block))
     }
 
+    pub(crate) async fn mined_transactions_by_block_number(
+        &self,
+        number: BlockNumber,
+    ) -> Option<Vec<Transaction>> {
+        if let Some(block) = self.get_block(number) {
+            return self.mined_transactions_in_block(&block)
+        }
+        None
+    }
+
     /// Returns all transactions given a block
-    fn mined_transactions_in_block(&self, block: &Block) -> Option<Vec<Transaction>> {
+    pub(crate) fn mined_transactions_in_block(&self, block: &Block) -> Option<Vec<Transaction>> {
         let mut transactions = Vec::with_capacity(block.transactions.len());
         let base_fee = block.header.base_fee_per_gas;
         let storage = self.blockchain.storage.read();
@@ -1349,7 +1372,7 @@ impl Backend {
             let info = storage.transactions.get(&hash)?.info.clone();
             let tx = block.transactions.get(info.transaction_index as usize)?.clone();
 
-            let tx = transaction_build(Some(hash), tx, Some(block), Some(info), true, base_fee);
+            let tx = transaction_build(Some(hash), tx, Some(block), Some(info), base_fee);
             transactions.push(tx);
         }
         Some(transactions)
@@ -1425,10 +1448,10 @@ impl Backend {
     }
 
     pub fn get_block_by_hash(&self, hash: H256) -> Option<Block> {
-        self.blockchain.storage.read().blocks.get(&hash).cloned()
+        self.blockchain.get_block_by_hash(&hash)
     }
 
-    fn mined_block_by_number(&self, number: BlockNumber) -> Option<EthersBlock<TxHash>> {
+    pub fn mined_block_by_number(&self, number: BlockNumber) -> Option<EthersBlock<TxHash>> {
         Some(self.convert_block(self.get_block(number)?))
     }
 
@@ -1608,7 +1631,6 @@ impl Backend {
 
                     block.number = block_number.into();
                     block.timestamp = rU256::from(fork.timestamp());
-                    block.difficulty = fork.total_difficulty().into();
                     block.basefee = fork.base_fee().unwrap_or_default().into();
 
                     return Ok(f(Box::new(&gen_db), block))
@@ -1738,12 +1760,12 @@ impl Backend {
     }
 
     /// Returns the traces for the given transaction
-    fn mined_parity_trace_transaction(&self, hash: H256) -> Option<Vec<Trace>> {
+    pub(crate) fn mined_parity_trace_transaction(&self, hash: H256) -> Option<Vec<Trace>> {
         self.blockchain.storage.read().transactions.get(&hash).map(|tx| tx.parity_traces())
     }
 
-    /// Returns the traces for the given transaction
-    fn mined_parity_trace_block(&self, block: u64) -> Option<Vec<Trace>> {
+    /// Returns the traces for the given block
+    pub(crate) fn mined_parity_trace_block(&self, block: u64) -> Option<Vec<Trace>> {
         let block = self.get_block(block)?;
         let mut traces = vec![];
         let storage = self.blockchain.storage.read();
@@ -1831,13 +1853,13 @@ impl Backend {
     /// Returns the transaction receipt for the given hash
     pub(crate) fn mined_transaction_receipt(&self, hash: H256) -> Option<MinedTransactionReceipt> {
         let MinedTransaction { info, receipt, block_hash, .. } =
-            self.blockchain.storage.read().transactions.get(&hash)?.clone();
+            self.blockchain.get_transaction_by_hash(&hash)?;
 
         let EIP658Receipt { status_code, gas_used, logs_bloom, logs } = receipt.into();
 
         let index = info.transaction_index as usize;
 
-        let block = self.blockchain.storage.read().blocks.get(&block_hash).cloned()?;
+        let block = self.blockchain.get_block_by_hash(&block_hash)?;
 
         // TODO store cumulative gas used in receipt instead
         let receipts = self.get_receipts(block.transactions.iter().map(|tx| tx.hash()));
@@ -1968,7 +1990,6 @@ impl Backend {
             tx,
             Some(&block),
             Some(info),
-            true,
             block.header.base_fee_per_gas,
         ))
     }
@@ -2004,7 +2025,6 @@ impl Backend {
             tx,
             Some(&block),
             Some(info),
-            true,
             block.header.base_fee_per_gas,
         ))
     }
@@ -2162,9 +2182,12 @@ impl TransactionValidator for Backend {
             return Err(InvalidTransactionError::GasTooLow)
         }
 
-        if tx.gas_limit() > env.block.gas_limit.into() {
+        // Check gas limit, iff block gas limit is set.
+        if !env.cfg.disable_block_gas_limit && tx.gas_limit() > env.block.gas_limit.into() {
             warn!(target: "backend", "[{:?}] gas too high", tx.hash());
-            return Err(InvalidTransactionError::GasTooHigh)
+            return Err(InvalidTransactionError::GasTooHigh(ErrDetail {
+                detail: String::from("tx.gas_limit > env.block.gas_limit"),
+            }))
         }
 
         // check nonce
@@ -2228,12 +2251,11 @@ pub fn transaction_build(
     eth_transaction: MaybeImpersonatedTransaction,
     block: Option<&Block>,
     info: Option<TransactionInfo>,
-    is_eip1559: bool,
     base_fee: Option<U256>,
 ) -> Transaction {
     let mut transaction: Transaction = eth_transaction.clone().into();
 
-    if let TypedTransaction::EIP1559(_) = eth_transaction.as_ref() {
+    if eth_transaction.is_dynamic_fee() {
         if block.is_none() && info.is_none() {
             // transaction is not mined yet, gas price is considered just `max_fee_per_gas`
             transaction.gas_price = transaction.max_fee_per_gas;
@@ -2247,10 +2269,9 @@ pub fn transaction_build(
                 base_fee.checked_add(max_priority_fee_per_gas).unwrap_or_else(U256::max_value),
             );
         }
-    } else if !is_eip1559 {
+    } else {
         transaction.max_fee_per_gas = None;
         transaction.max_priority_fee_per_gas = None;
-        transaction.transaction_type = None;
     }
 
     transaction.block_hash =

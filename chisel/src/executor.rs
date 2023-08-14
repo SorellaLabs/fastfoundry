@@ -236,16 +236,21 @@ impl SessionSource {
     ///
     /// A configured [ChiselRunner]
     async fn prepare_runner(&mut self, final_pc: usize) -> ChiselRunner {
-        let env = self.config.evm_opts.evm_env().await;
+        let env =
+            self.config.evm_opts.evm_env().await.expect("Could not instantiate fork environment");
 
         // Create an in-memory backend
-        let backend = self.config.backend.take().unwrap_or_else(|| {
-            let backend = Backend::spawn(
-                self.config.evm_opts.get_fork(&self.config.foundry_config, env.clone()),
-            );
-            self.config.backend = Some(backend.clone());
-            backend
-        });
+        let backend = match self.config.backend.take() {
+            Some(backend) => backend,
+            None => {
+                let backend = Backend::spawn(
+                    self.config.evm_opts.get_fork(&self.config.foundry_config, env.clone()),
+                )
+                .await;
+                self.config.backend = Some(backend.clone());
+                backend
+            }
+        };
 
         // Build a new executor
         let executor = ExecutorBuilder::default()

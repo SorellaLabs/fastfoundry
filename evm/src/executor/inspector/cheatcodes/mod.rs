@@ -1,11 +1,11 @@
 use self::{
     env::Broadcast,
     expect::{handle_expect_emit, handle_expect_revert, ExpectedCallType},
-    util::{check_if_fixed_gas_limit, process_create, BroadcastableTransactions},
+    mapping::MappingSlots,
+    util::{check_if_fixed_gas_limit, process_create, BroadcastableTransactions, MAGIC_SKIP_BYTES},
 };
 use crate::{
     abi::HEVMCalls,
-    error::SolError,
     executor::{
         backend::DatabaseExt, inspector::cheatcodes::env::RecordedLogs, CHEATCODE_ADDRESS,
         HARDHAT_CONSOLE_ADDRESS,
@@ -21,6 +21,7 @@ use ethers::{
     },
 };
 use foundry_common::evm::Breakpoints;
+use foundry_utils::error::SolError;
 use itertools::Itertools;
 use revm::{
     interpreter::{opcode, CallInputs, CreateInputs, Gas, InstructionResult, Interpreter},
@@ -54,6 +55,8 @@ mod fork;
 mod fs;
 /// Cheatcodes that configure the fuzzer
 mod fuzz;
+/// Mapping related cheatcodes
+mod mapping;
 /// Snapshot related cheatcodes
 mod snapshot;
 /// Utility cheatcodes (`sign` etc.)
@@ -114,6 +117,9 @@ pub struct Cheatcodes {
 
     /// Rememebered private keys
     pub script_wallets: Vec<LocalWallet>,
+
+    /// Whether the skip cheatcode was activated
+    pub skip: bool,
 
     /// Prank information
     pub prank: Option<Prank>,
@@ -179,6 +185,10 @@ pub struct Cheatcodes {
     /// CREATE / CREATE2 frames. This is needed to make gas meter pausing work correctly when
     /// paused and creating new contracts.
     pub gas_metering_create: Option<Option<revm::interpreter::Gas>>,
+
+    /// Holds mapping slots info
+    pub mapping_slots: Option<BTreeMap<Address, MappingSlots>>,
+
     /// current program counter
     pub pc: usize,
     /// Breakpoints supplied by the `vm.breakpoint("<char>")` cheatcode
@@ -293,7 +303,6 @@ where
         &mut self,
         _: &mut Interpreter,
         data: &mut EVMData<'_, DB>,
-        _: bool,
     ) -> InstructionResult {
         // When the first interpreter is initialized we've circumvented the balance and gas checks,
         // so we apply our actual block data with the correct fees and all.
@@ -311,7 +320,6 @@ where
         &mut self,
         interpreter: &mut Interpreter,
         data: &mut EVMData<'_, DB>,
-        _: bool,
     ) -> InstructionResult {
         self.pc = interpreter.program_counter();
 
@@ -512,7 +520,7 @@ where
                 (CALLCODE, 5, 6, true),
                 (STATICCALL, 4, 5, true),
                 (DELEGATECALL, 4, 5, true),
-                (SHA3, 0, 1, false),
+                (KECCAK256, 0, 1, false),
                 (LOG0, 0, 1, false),
                 (LOG1, 0, 1, false),
                 (LOG2, 0, 1, false),
@@ -523,6 +531,11 @@ where
                 (RETURN, 0, 1, false),
                 (REVERT, 0, 1, false)
             ])
+        }
+
+        // Record writes with sstore (and sha3) if `StartMappingRecording` has been called
+        if let Some(mapping_slots) = &mut self.mapping_slots {
+            mapping::on_evm_step(mapping_slots, interpreter, data)
         }
 
         InstructionResult::Continue
@@ -562,7 +575,6 @@ where
         &mut self,
         data: &mut EVMData<'_, DB>,
         call: &mut CallInputs,
-        is_static: bool,
     ) -> (InstructionResult, Gas, bytes::Bytes) {
         if call.contract == h160_to_b160(CHEATCODE_ADDRESS) {
             let gas = Gas::new(call.gas_limit);
@@ -671,7 +683,7 @@ where
                     // because we only need the from, to, value, and data. We can later change this
                     // into 1559, in the cli package, relatively easily once we
                     // know the target chain supports EIP-1559.
-                    if !is_static {
+                    if !call.is_static {
                         if let Err(err) = data
                             .journaled_state
                             .load_account(h160_to_b160(broadcast.new_origin), data.db)
@@ -736,12 +748,19 @@ where
         remaining_gas: Gas,
         status: InstructionResult,
         retdata: bytes::Bytes,
-        _: bool,
     ) -> (InstructionResult, Gas, bytes::Bytes) {
         if call.contract == h160_to_b160(CHEATCODE_ADDRESS) ||
             call.contract == h160_to_b160(HARDHAT_CONSOLE_ADDRESS)
         {
             return (status, remaining_gas, retdata)
+        }
+
+        if data.journaled_state.depth() == 0 && self.skip {
+            return (
+                InstructionResult::Revert,
+                remaining_gas,
+                Error::custom_bytes(MAGIC_SKIP_BYTES).encode_error().0,
+            )
         }
 
         // Clean up pranks
@@ -844,14 +863,15 @@ where
                                 .into_iter()
                                 .flatten()
                                 .join(" and ");
+                                let failure_message = match status {
+                                    InstructionResult::Continue | InstructionResult::Stop | InstructionResult::Return | InstructionResult::SelfDestruct =>
+                                    format!("Expected call to {address:?} with {expected_values} to be called {count} time(s), but was called {actual_count} time(s)"),
+                                    _ => format!("Expected call to {address:?} with {expected_values} to be called {count} time(s), but the call reverted instead. Ensure you're testing the happy path when using the expectCall cheatcode"),
+                                };
                                 return (
                                     InstructionResult::Revert,
                                     remaining_gas,
-                                    format!(
-                                        "Expected call to {address:?} with {expected_values} to be called {count} time(s), but was called {actual_count} time(s)"
-                                    )
-                                    .encode()
-                                    .into(),
+                                    failure_message.encode().into(),
                                 )
                             }
                         }
@@ -870,14 +890,15 @@ where
                                 .into_iter()
                                 .flatten()
                                 .join(" and ");
+                                let failure_message = match status {
+                                    InstructionResult::Continue | InstructionResult::Stop | InstructionResult::Return | InstructionResult::SelfDestruct =>
+                                    format!("Expected call to {address:?} with {expected_values} to be called {count} time(s), but was called {actual_count} time(s)"),
+                                    _ => format!("Expected call to {address:?} with {expected_values} to be called {count} time(s), but the call reverted instead. Ensure you're testing the happy path when using the expectCall cheatcode"),
+                                };
                                 return (
                                     InstructionResult::Revert,
                                     remaining_gas,
-                                    format!(
-                                        "Expected call to {address:?} with {expected_values} to be called at least {count} time(s), but was called {actual_count} time(s)"
-                                    )
-                                    .encode()
-                                    .into(),
+                                    failure_message.encode().into(),
                                 )
                             }
                         }
@@ -890,13 +911,15 @@ where
             self.expected_emits.retain(|expected| !expected.found);
             // If not empty, we got mismatched emits
             if !self.expected_emits.is_empty() {
+                let failure_message = match status {
+                    InstructionResult::Continue | InstructionResult::Stop | InstructionResult::Return | InstructionResult::SelfDestruct =>
+                    "Expected an emit, but no logs were emitted afterward. You might have mismatched events or not enough events were emitted.",
+                    _ => "Expected an emit, but the call reverted instead. Ensure you're testing the happy path when using the `expectEmit` cheatcode.",
+                };
                 return (
                     InstructionResult::Revert,
                     remaining_gas,
-                    "Expected an emit, but no logs were emitted afterward. You might have mismatched events or not enough events were emitted."
-                        .to_string()
-                        .encode()
-                        .into(),
+                    failure_message.to_string().encode().into(),
                 )
             }
         }
