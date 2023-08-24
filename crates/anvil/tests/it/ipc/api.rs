@@ -76,7 +76,7 @@ async fn can_get_client_version() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_chain_id() {
-    let (_api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64))).await;
+    let (_api, handle) = spawn(NodeConfig::test_ipc().with_chain_id(Some(1 as u64))).await;
     let provider = handle.http_provider();
 
     let chain_id = provider.get_chainid().await.unwrap();
@@ -133,7 +133,7 @@ async fn can_get_block_by_number() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_ipc()).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64))).await;
     let provider = handle.http_provider();
     let accounts: Vec<_> = handle.dev_wallets().collect();
 
