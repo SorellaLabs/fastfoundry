@@ -3,7 +3,7 @@ use anvil::{spawn, NodeConfig};
 use ethers::{
     contract::ContractInstance,
     prelude::{
-        Action, ContractFactory, GethTrace, GethTraceFrame, Middleware, Signer, SignerMiddleware, 
+        Action, ContractFactory, GethTrace, GethTraceFrame, Middleware, Signer, SignerMiddleware,
         TransactionRequest,
     },
     types::{ActionType, Address, GethDebugTracingCallOptions, Trace},

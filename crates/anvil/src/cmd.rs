@@ -706,16 +706,10 @@ mod tests {
         );
 
         let fork: ForkUrl = "/home/path/to/test.ipc".parse().unwrap();
-        assert_eq!(
-            fork,
-            ForkUrl { url: "/home/path/to/test.ipc".to_string(), block: None }
-        );
+        assert_eq!(fork, ForkUrl { url: "/home/path/to/test.ipc".to_string(), block: None });
 
         let fork: ForkUrl = "/home/path/to/test.ipc/@latest".parse().unwrap();
-        assert_eq!(
-            fork,
-            ForkUrl { url: "/home/path/to/test.ipc/".to_string(), block: None }
-        );
+        assert_eq!(fork, ForkUrl { url: "/home/path/to/test.ipc/".to_string(), block: None });
 
         let fork: ForkUrl = "/home/path/to/test.ipc@100000".parse().unwrap();
         assert_eq!(
@@ -786,30 +780,42 @@ mod tests {
         assert_eq!(args.host, vec![IpAddr::V4(Ipv4Addr::LOCALHOST)]);
 
         let args = NodeArgs::try_parse_from([
-            "anvil", "--fork_rpc_url", "http://localhost:8545", "--fork_ipc", "/home/test.ipc",
-        ]);
-        assert!(args.is_err());
-        
-        let args = NodeArgs::try_parse_from([
-            "anvil", "--fork_rpc_url", "http://localhost:8545", "--fork_db", "/home/test",
+            "anvil",
+            "--fork_rpc_url",
+            "http://localhost:8545",
+            "--fork_ipc",
+            "/home/test.ipc",
         ]);
         assert!(args.is_err());
 
         let args = NodeArgs::try_parse_from([
-            "anvil", "--fork_db", "/home/test",
+            "anvil",
+            "--fork_rpc_url",
+            "http://localhost:8545",
+            "--fork_db",
+            "/home/test",
         ]);
+        assert!(args.is_err());
+
+        let args = NodeArgs::try_parse_from(["anvil", "--fork_db", "/home/test"]);
         assert!(args.is_err());
 
         let args = NodeArgs::parse_from([
-            "anvil", "--fork_ipc", "/home/test.ipc", "--fork_db", "/home/test",
+            "anvil",
+            "--fork_ipc",
+            "/home/test.ipc",
+            "--fork_db",
+            "/home/test",
         ]);
-        assert_eq!(
-            args.ipc,
-            None
-        );
+        assert_eq!(args.ipc, None);
 
         let args = NodeArgs::parse_from([
-            "anvil", "--ipc", "--fork_ipc", "/home/test.ipc@5000", "--fork_db", "/home/test",
+            "anvil",
+            "--ipc",
+            "--fork_ipc",
+            "/home/test.ipc@5000",
+            "--fork_db",
+            "/home/test",
         ]);
         assert_eq!(
             args.evm_opts.fork_ipc,

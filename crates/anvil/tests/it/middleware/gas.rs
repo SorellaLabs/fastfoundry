@@ -14,7 +14,9 @@ const GAS_TRANSFER: u64 = 21_000u64;
 #[tokio::test(flavor = "multi_thread")]
 async fn test_basefee_full_block() {
     let (_api, handle) = spawn(
-        NodeConfig::test_middleware().with_base_fee(Some(INITIAL_BASE_FEE)).with_gas_limit(Some(GAS_TRANSFER)),
+        NodeConfig::test_middleware()
+            .with_base_fee(Some(INITIAL_BASE_FEE))
+            .with_gas_limit(Some(GAS_TRANSFER)),
     )
     .await;
     let provider = handle.http_provider();
@@ -53,7 +55,8 @@ async fn test_basefee_half_block() {
 }
 #[tokio::test(flavor = "multi_thread")]
 async fn test_basefee_empty_block() {
-    let (api, handle) = spawn(NodeConfig::test_middleware().with_base_fee(Some(INITIAL_BASE_FEE))).await;
+    let (api, handle) =
+        spawn(NodeConfig::test_middleware().with_base_fee(Some(INITIAL_BASE_FEE))).await;
 
     let provider = handle.http_provider();
     let tx = TransactionRequest::new().to(Address::random()).value(1337u64);

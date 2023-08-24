@@ -14,8 +14,9 @@ use foundry_evm::revm::primitives::KECCAK_EMPTY;
 
 mod eip1186;
 use crate::middleware::proof::eip1186::verify_proof;
-
-#[tokio::test(flavor = "multi_thread")]
+use serial_test::serial;
+#[tokio::test]
+#[serial]
 async fn can_get_proof() {
     let (api, _handle) = spawn(NodeConfig::test_middleware()).await;
 
@@ -61,7 +62,8 @@ async fn can_get_proof() {
     .unwrap();
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_random_account_proofs() {
     let (api, _handle) = spawn(NodeConfig::test_middleware()).await;
 

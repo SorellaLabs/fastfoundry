@@ -1,10 +1,10 @@
 mod abi;
 mod ganache;
 mod geth;
-pub mod utils;
 mod http;
 mod ipc;
 mod middleware;
+pub mod utils;
 
 #[allow(unused)]
 pub(crate) fn init_tracing() {

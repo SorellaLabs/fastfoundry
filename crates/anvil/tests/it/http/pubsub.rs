@@ -231,7 +231,8 @@ async fn test_filters() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_subscriptions() {
     let (_api, handle) =
-        spawn(NodeConfig::test_http().with_blocktime(Some(std::time::Duration::from_secs(1)))).await;
+        spawn(NodeConfig::test_http().with_blocktime(Some(std::time::Duration::from_secs(1))))
+            .await;
     let ws = Ws::connect(handle.ws_endpoint()).await.unwrap();
 
     // Subscribing requires sending the sub request and then subscribing to

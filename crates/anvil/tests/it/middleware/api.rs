@@ -77,7 +77,8 @@ async fn can_get_chain_id() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_modify_chain_id() {
-    let (_api, handle) = spawn(NodeConfig::test_middleware().with_chain_id(Some(Chain::Goerli))).await;
+    let (_api, handle) =
+        spawn(NodeConfig::test_middleware().with_chain_id(Some(Chain::Goerli))).await;
     let provider = handle.http_provider();
 
     let chain_id = provider.get_chainid().await.unwrap();

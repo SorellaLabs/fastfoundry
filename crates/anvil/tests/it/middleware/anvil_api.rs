@@ -24,7 +24,8 @@ use std::{
 #[tokio::test(flavor = "multi_thread")]
 async fn can_set_gas_price() {
     println!("{:?}", NodeConfig::test_middleware().with_hardfork(Some(Hardfork::Berlin)));
-    let (api, handle) = spawn(NodeConfig::test_middleware().with_hardfork(Some(Hardfork::Berlin))).await;
+    let (api, handle) =
+        spawn(NodeConfig::test_middleware().with_hardfork(Some(Hardfork::Berlin))).await;
     let provider = handle.http_provider();
 
     let gas_price = 1337u64.into();
@@ -392,8 +393,10 @@ async fn test_timestamp_interval() {
 // <https://github.com/foundry-rs/foundry/issues/2341>
 #[tokio::test(flavor = "multi_thread")]
 async fn test_can_set_storage_bsc_fork() {
-    let (api, handle) =
-        spawn(NodeConfig::test_middleware().with_eth_rpc_url(Some("https://bsc-dataseed.binance.org/"))).await;
+    let (api, handle) = spawn(
+        NodeConfig::test_middleware().with_eth_rpc_url(Some("https://bsc-dataseed.binance.org/")),
+    )
+    .await;
     let provider = Arc::new(handle.http_provider());
 
     let busd_addr: Address = "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56".parse().unwrap();

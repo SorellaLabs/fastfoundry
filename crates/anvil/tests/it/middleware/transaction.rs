@@ -992,7 +992,8 @@ async fn can_call_with_high_gas_limit() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_reject_eip1559_pre_london() {
-    let (api, handle) = spawn(NodeConfig::test_middleware().with_hardfork(Some(Hardfork::Berlin))).await;
+    let (api, handle) =
+        spawn(NodeConfig::test_middleware().with_hardfork(Some(Hardfork::Berlin))).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();

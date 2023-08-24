@@ -369,7 +369,8 @@ async fn can_reset_properly() {
     assert_eq!(origin_nonce, origin_provider.get_transaction_count(account, None).await.unwrap());
 
     let (fork_api, fork_handle) =
-        spawn(NodeConfig::test_middleware().with_eth_rpc_url(Some(origin_handle.http_endpoint()))).await;
+        spawn(NodeConfig::test_middleware().with_eth_rpc_url(Some(origin_handle.http_endpoint())))
+            .await;
 
     let fork_provider = fork_handle.http_provider();
     assert_eq!(origin_nonce, fork_provider.get_transaction_count(account, None).await.unwrap());
@@ -634,7 +635,9 @@ async fn test_fork_init_base_fee() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_reset_fork_on_new_blocks() {
     let (api, handle) = spawn(
-        NodeConfig::test_middleware().with_eth_rpc_url(Some(rpc::next_http_archive_rpc_endpoint())).silent(),
+        NodeConfig::test_middleware()
+            .with_eth_rpc_url(Some(rpc::next_http_archive_rpc_endpoint()))
+            .silent(),
     )
     .await;
 

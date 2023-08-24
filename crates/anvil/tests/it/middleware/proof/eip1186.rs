@@ -280,7 +280,7 @@ where
         (Some(Value::Node(plain_hash, _)), Some(next_proof_item), Some(value)) => {
             let value_hash = L::Hash::hash(value);
             let node_hash = decode_hash::<L::Hash>(plain_hash)
-                .ok_or_else(|| VerifyError::HashDecodeError(plain_hash))?; 
+                .ok_or_else(|| VerifyError::HashDecodeError(plain_hash))?;
             if node_hash != value_hash {
                 Err(VerifyError::HashMismatch(node_hash))
             } else if next_proof_item != value {
