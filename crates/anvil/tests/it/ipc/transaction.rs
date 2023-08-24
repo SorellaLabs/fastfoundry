@@ -514,6 +514,8 @@ async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
     let provider = handle.ws_provider().await;
 
     let accounts: Vec<_> = handle.dev_wallets().collect();
+    println!("{:?}", accounts);
+
     let from = accounts[0].address();
     let to = accounts[1].address();
 
