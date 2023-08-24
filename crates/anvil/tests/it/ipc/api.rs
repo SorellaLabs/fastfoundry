@@ -9,7 +9,7 @@ use ethers::{
     abi::{Address, Tokenizable},
     prelude::{builders::ContractCall, decode_function_data, Middleware, SignerMiddleware},
     signers::Signer,
-    types::{Block, BlockNumber, Chain, Transaction, TransactionRequest, H256, U256},
+    types::{Block, BlockNumber, Chain, Transaction, TransactionRequest, H256, U256, U64},
     utils::get_contract_address,
 };
 use std::{collections::HashMap, sync::Arc, time::Duration};
@@ -23,6 +23,8 @@ async fn can_get_block_number() {
 
     let block_num = api.block_number().unwrap();
     assert_eq!(block_num, U256::zero());
+
+    println!("BLOCK NUM: {:?}, {:?}, {:?}", block_num, block_num.as_u64(), Into::<U64>::into(block_num.as_u64()));
 
     let provider = handle.http_provider();
 
