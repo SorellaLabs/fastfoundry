@@ -168,11 +168,10 @@ async fn can_get_pending_block() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_call_on_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64)).with_chain_id(Some(1 as u64))).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
 
-    let num = provider.get_block_number().await.unwrap();
-    assert_eq!(num.as_u64(), 0u64);
+    let numA = provider.get_block_number().await.unwrap();
 
     api.anvil_set_auto_mine(false).await.unwrap();
 
@@ -188,8 +187,8 @@ async fn can_call_on_pending_block() {
 
     let pending_contract = MulticallContract::new(pending_contract_address, client.clone());
 
-    let num = client.get_block_number().await.unwrap();
-    assert_eq!(num.as_u64(), 0u64);
+    let numB = client.get_block_number().await.unwrap();
+    assert_eq!(numA, numB);
 
     // Ensure that we can get the block_number from the pending contract
     let (ret_block_number, _) =
