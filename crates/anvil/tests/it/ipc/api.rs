@@ -204,7 +204,7 @@ async fn can_call_on_pending_block() {
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
     // Ensure that the right header values are set when calling a past block
-    for block_number in block_num.as_u64()+1..(api.block_number().unwrap().as_usize() + 1) {
+    for block_number in block_num.as_usize()+1..(api.block_number().unwrap().as_usize() + 1) {
         let block_number = BlockNumber::Number(block_number.into());
         let block = api.block_by_number(block_number).await.unwrap().unwrap();
 
