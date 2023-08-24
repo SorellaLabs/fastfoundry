@@ -169,27 +169,26 @@ async fn can_get_pending_block() {
 #[serial]
 async fn can_call_on_pending_block() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
-    println!("NODE INFO IPC: {:?}", api.anvil_node_info().await);
     let provider = handle.http_provider();
 
-    let num_a = provider.get_block_number().await.unwrap();
-
+    let block_num = provider.get_block_number().await.unwrap();
     api.anvil_set_auto_mine(false).await.unwrap();
 
     let wallet = handle.dev_wallets().next().unwrap();
     let sender = wallet.address();
-    println!("SEBDER {:?}", provider.get_transaction_count(sender, None).await);
+    let nonce = provider.get_transaction_count(sender, Some(block_num.into())).await.unwrap();
+
     let client = Arc::new(SignerMiddleware::new(provider, wallet));
     let mut deploy_tx = MulticallContract::deploy(Arc::clone(&client), ()).unwrap().deployer.tx;
-    deploy_tx.set_nonce(0);
+    deploy_tx.set_nonce(nonce);
     let pending_contract_address = get_contract_address(sender, deploy_tx.nonce().unwrap());
 
     client.send_transaction(deploy_tx, None).await.unwrap();
 
     let pending_contract = MulticallContract::new(pending_contract_address, client.clone());
 
-    let num_b = client.get_block_number().await.unwrap();
-    assert_eq!(num_a, num_b);
+    let num = client.get_block_number().await.unwrap();
+    assert_eq!(block_num, num);
 
     // Ensure that we can get the block_number from the pending contract
     let (ret_block_number, _) =
