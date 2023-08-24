@@ -1,18 +1,17 @@
 //! tests for custom anvil endpoints
-use crate::{abi::*, middleware::fork::fork_config};
+use crate::{abi::*, ipc::fork::fork_config};
 use anvil::{spawn, Hardfork, NodeConfig};
 use anvil_core::{
     eth::EthRequest,
     types::{NodeEnvironment, NodeForkConfig, NodeInfo},
 };
 use ethers::{
-    abi::{ethereum_types::BigEndianHash, AbiDecode},
+    abi::ethereum_types::BigEndianHash,
     prelude::{Middleware, SignerMiddleware},
     types::{
         transaction::eip2718::TypedTransaction, Address, BlockNumber, Eip1559TransactionRequest,
         TransactionRequest, H256, U256, U64,
     },
-    utils::hex,
 };
 use forge::revm::primitives::SpecId;
 use std::{
