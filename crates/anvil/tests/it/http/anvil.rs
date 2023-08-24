@@ -8,11 +8,9 @@ use serial_test::serial;
 async fn test_can_change_mining_mode() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
-    println!("{:?}", provider.get_block_number().await);
 
     assert!(api.anvil_get_auto_mine().unwrap());
-    println!("{:?}", provider.get_block_number().await);
-    
+
     let num = provider.get_block_number().await.unwrap();
     assert_eq!(num.as_u64(), 0);
 
