@@ -8,10 +8,8 @@ use serial_test::serial;
 async fn test_can_change_mining_mode() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
-    println!("{:?}", provider.get_block_number().await);
 
     assert!(api.anvil_get_auto_mine().unwrap());
-    println!("{:?}", provider.get_block_number().await);
 
     let num = provider.get_block_number().await.unwrap();
     assert_eq!(num.as_u64(), 0);
@@ -72,6 +70,7 @@ async fn test_can_set_genesis_timestamp() {
 async fn test_can_use_default_genesis_timestamp() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
+    println!("BLOCK::::: {:?}", provider.get_block(0).await);
 
     assert_ne!(0u64, provider.get_block(0).await.unwrap().unwrap().timestamp.as_u64());
 }
