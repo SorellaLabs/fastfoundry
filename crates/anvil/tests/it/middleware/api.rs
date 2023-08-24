@@ -166,20 +166,19 @@ async fn can_get_pending_block() {
 #[tokio::test]
 #[serial]
 async fn can_call_on_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_middleware().with_fork_block_number(Some(0 as u64))).await;
+    let (api, handle) = spawn(NodeConfig::test_middleware()).await;
     let provider = handle.http_provider();
 
-    let num = provider.get_block_number().await.unwrap();
-    assert_eq!(num.as_u64(), 0u64);
-
+    let block_num = provider.get_block_number().await.unwrap();
     api.anvil_set_auto_mine(false).await.unwrap();
 
     let wallet = handle.dev_wallets().next().unwrap();
     let sender = wallet.address();
-    let client = Arc::new(SignerMiddleware::new(provider, wallet));
+    let nonce = provider.get_transaction_count(sender, Some(block_num.into())).await.unwrap();
 
+    let client = Arc::new(SignerMiddleware::new(provider, wallet));
     let mut deploy_tx = MulticallContract::deploy(Arc::clone(&client), ()).unwrap().deployer.tx;
-    deploy_tx.set_nonce(0);
+    deploy_tx.set_nonce(nonce);
     let pending_contract_address = get_contract_address(sender, deploy_tx.nonce().unwrap());
 
     client.send_transaction(deploy_tx, None).await.unwrap();
@@ -187,12 +186,12 @@ async fn can_call_on_pending_block() {
     let pending_contract = MulticallContract::new(pending_contract_address, client.clone());
 
     let num = client.get_block_number().await.unwrap();
-    assert_eq!(num.as_u64(), 0u64);
+    assert_eq!(block_num, num);
 
     // Ensure that we can get the block_number from the pending contract
     let (ret_block_number, _) =
         pending_contract.aggregate(vec![]).block(BlockNumber::Pending).call().await.unwrap();
-    assert_eq!(ret_block_number.as_u64(), 1u64);
+    assert_eq!(ret_block_number.as_u64(), block_num.as_u64()+1);
 
     let accounts: Vec<Address> = handle.dev_wallets().map(|w| w.address()).collect();
     for i in 1..10 {
@@ -203,7 +202,7 @@ async fn can_call_on_pending_block() {
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
     // Ensure that the right header values are set when calling a past block
-    for block_number in 1..(api.block_number().unwrap().as_usize() + 1) {
+    for block_number in block_num.as_usize()+1..(api.block_number().unwrap().as_usize() + 1) {
         let block_number = BlockNumber::Number(block_number.into());
         let block = api.block_by_number(block_number).await.unwrap().unwrap();
 
