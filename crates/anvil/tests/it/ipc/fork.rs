@@ -631,8 +631,7 @@ async fn test_fork_base_fee() {
     let _res = provider.send_transaction(tx, None).await.unwrap().await.unwrap().unwrap();
 }
 
-#[tokio::test]
-#[serial]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_fork_init_base_fee() {
     let (api, handle) = spawn(fork_config().with_fork_block_number(Some(13184859u64))).await;
 
