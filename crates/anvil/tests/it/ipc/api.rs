@@ -171,7 +171,7 @@ async fn can_call_on_pending_block() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
 
-    let numA = provider.get_block_number().await.unwrap();
+    let num_a = provider.get_block_number().await.unwrap();
 
     api.anvil_set_auto_mine(false).await.unwrap();
 
@@ -180,15 +180,14 @@ async fn can_call_on_pending_block() {
     let client = Arc::new(SignerMiddleware::new(provider, wallet));
 
     let mut deploy_tx = MulticallContract::deploy(Arc::clone(&client), ()).unwrap().deployer.tx;
-    deploy_tx.set_nonce(0);
     let pending_contract_address = get_contract_address(sender, deploy_tx.nonce().unwrap());
 
     client.send_transaction(deploy_tx, None).await.unwrap();
 
     let pending_contract = MulticallContract::new(pending_contract_address, client.clone());
 
-    let numB = client.get_block_number().await.unwrap();
-    assert_eq!(numA, numB);
+    let num_b = client.get_block_number().await.unwrap();
+    assert_eq!(num_a, num_b);
 
     // Ensure that we can get the block_number from the pending contract
     let (ret_block_number, _) =
