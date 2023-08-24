@@ -368,7 +368,7 @@ impl NodeConfig {
     #[doc(hidden)]
     pub fn test_ipc() -> Self {
         Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }
-            .with_eth_ipc_path(Some("./tmp/reth.ipc"))
+            .with_eth_ipc_path(Some("/tmp/reth.ipc"))
     }
 
     #[doc(hidden)]
