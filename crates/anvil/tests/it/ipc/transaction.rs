@@ -520,7 +520,7 @@ async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
     let to = accounts[1].address();
 
     let nonce = provider.get_transaction_count(from, None).await.unwrap();
-    println!("{:?}", none);
+    println!("{:?}", nonce);
 
     // explicitly set the nonce
     let tx = TransactionRequest::new().to(to).value(100u64).from(from).nonce(nonce).gas(21_000u64);
