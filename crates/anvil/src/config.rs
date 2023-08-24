@@ -369,7 +369,7 @@ impl NodeConfig {
     pub fn test_ipc() -> Self {
         Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }
             .with_eth_ipc_path(Some("/tmp/reth.ipc"))
-            .with_fork_block_number(Some(0))
+            .with_fork_block_number(Some(0 as u64))
     }
 
     #[doc(hidden)]
@@ -377,7 +377,7 @@ impl NodeConfig {
         Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }
             .with_eth_ipc_path(Some("/tmp/reth.ipc"))
             .with_eth_reth_db(Some("/home/data/reth/db"))
-            .with_fork_block_number(Some(0))
+            .with_fork_block_number(Some(0 as u64))
     }
 }
 
