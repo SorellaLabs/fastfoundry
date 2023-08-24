@@ -165,6 +165,7 @@ async fn can_get_pending_block() {
 #[serial]
 async fn can_call_on_pending_block() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
+    println!("NODE INFO IPC: {:?}", api.anvil_node_info().await);
     let provider = handle.http_provider();
 
     let num = provider.get_block_number().await.unwrap();
