@@ -21,8 +21,8 @@ use std::{
     time::{Duration, SystemTime},
 };
 use serial_test::serial;
-#[tokio::test]
-#[serial]
+
+#[tokio::test(flavor = "multi_thread")]
 async fn can_set_gas_price() {
     println!("{:?}", NodeConfig::test_middleware().with_hardfork(Some(Hardfork::Berlin)));
     let (api, handle) = spawn(NodeConfig::test_middleware().with_hardfork(Some(Hardfork::Berlin))).await;
