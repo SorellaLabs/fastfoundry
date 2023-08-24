@@ -5,7 +5,7 @@ use ethers::{
     abi::ethereum_types::BigEndianHash,
     types::{Address, H256, U256},
 };
-
+use serial_test::serial;
 use anvil_core::eth::proof::{AccountProof, BasicAccount};
 
 use anvil_core::eth::trie::ExtensionLayout;
@@ -15,7 +15,8 @@ use foundry_evm::revm::primitives::KECCAK_EMPTY;
 mod eip1186;
 use crate::ipc::proof::eip1186::verify_proof;
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_proof() {
     let (api, _handle) = spawn(NodeConfig::test_ipc()).await;
 
@@ -61,7 +62,8 @@ async fn can_get_proof() {
     .unwrap();
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_random_account_proofs() {
     let (api, _handle) = spawn(NodeConfig::test_ipc()).await;
 

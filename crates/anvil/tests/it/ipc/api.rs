@@ -13,10 +13,11 @@ use ethers::{
     utils::get_contract_address,
 };
 use std::{collections::HashMap, sync::Arc, time::Duration};
-
+use serial_test::serial;
 use crate::abi::{MulticallContract, SimpleStorage};
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_block_number() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
 
@@ -29,7 +30,8 @@ async fn can_get_block_number() {
     assert_eq!(num, block_num.as_u64().into());
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_dev_get_balance() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -41,7 +43,8 @@ async fn can_dev_get_balance() {
     }
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_price() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -49,7 +52,8 @@ async fn can_get_price() {
     let _ = provider.get_gas_price().await.unwrap();
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_accounts() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -57,7 +61,8 @@ async fn can_get_accounts() {
     let _ = provider.get_accounts().await.unwrap();
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_client_version() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -66,7 +71,8 @@ async fn can_get_client_version() {
     assert_eq!(CLIENT_VERSION, version);
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_chain_id() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -75,7 +81,8 @@ async fn can_get_chain_id() {
     assert_eq!(chain_id, CHAIN_ID.into());
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_modify_chain_id() {
     let (_api, handle) = spawn(NodeConfig::test_ipc().with_chain_id(Some(Chain::Goerli))).await;
     let provider = handle.http_provider();
@@ -87,7 +94,8 @@ async fn can_modify_chain_id() {
     assert_eq!(chain_id, (Chain::Goerli as u64).to_string());
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_network_id() {
     let (api, _handle) = spawn(NodeConfig::test_ipc()).await;
 
@@ -95,7 +103,8 @@ async fn can_get_network_id() {
     assert_eq!(chain_id, CHAIN_ID.to_string());
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_block_by_number() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -117,7 +126,8 @@ async fn can_get_block_by_number() {
     assert_eq!(block.transactions.len(), 1);
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_pending_block() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -151,7 +161,8 @@ async fn can_get_pending_block() {
     assert_eq!(block.transactions.len(), 1);
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_call_on_pending_block() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -240,7 +251,8 @@ where
     decode_function_data(&call.function, result.as_ref(), false).unwrap()
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_call_with_state_override() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();

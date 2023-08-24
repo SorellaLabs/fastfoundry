@@ -9,8 +9,9 @@ use ethers::{
 };
 use futures::StreamExt;
 use std::sync::Arc;
-
-#[tokio::test(flavor = "multi_thread")]
+use serial_test::serial;
+#[tokio::test]
+#[serial]
 async fn get_past_events() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -47,7 +48,8 @@ async fn get_past_events() {
     assert_eq!(logs.len(), 1);
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn get_all_events() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -84,7 +86,8 @@ async fn get_all_events() {
     assert_eq!(logs.len(), num_logs);
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_install_filter() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -126,7 +129,8 @@ async fn can_install_filter() {
     assert_eq!(all_logs.len(), num_logs + 1);
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn watch_events() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let wallet = handle.dev_wallets().next().unwrap();

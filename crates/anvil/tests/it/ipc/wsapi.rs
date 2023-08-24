@@ -2,8 +2,9 @@
 
 use anvil::{spawn, NodeConfig};
 use ethers::{prelude::Middleware, types::U256};
-
-#[tokio::test(flavor = "multi_thread")]
+use serial_test::serial;
+#[tokio::test]
+#[serial]
 async fn can_get_block_number_ws() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let block_num = api.block_number().unwrap();
@@ -15,7 +16,8 @@ async fn can_get_block_number_ws() {
     assert_eq!(num, block_num.as_u64().into());
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_dev_get_balance_ws() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.ws_provider().await;

@@ -3,7 +3,7 @@
 use anvil::{spawn, NodeConfig};
 use ethers::{core::rand, prelude::Middleware, types::U256};
 use futures::StreamExt;
-
+use serial_test::serial;
 pub fn rand_ipc_endpoint() -> String {
     let num: u64 = rand::Rng::gen(&mut rand::thread_rng());
     if cfg!(windows) {
@@ -17,7 +17,8 @@ fn ipc_config() -> NodeConfig {
     NodeConfig::test_ipc().with_ipc(Some(Some(rand_ipc_endpoint())))
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_get_block_number_ipc() {
     let (api, handle) = spawn(ipc_config()).await;
 
@@ -30,7 +31,8 @@ async fn can_get_block_number_ipc() {
     assert_eq!(num, block_num.as_u64().into());
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn test_sub_new_heads_ipc() {
     let (api, handle) = spawn(ipc_config()).await;
 

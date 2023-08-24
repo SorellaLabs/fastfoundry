@@ -5,8 +5,9 @@ use ethers::{
     prelude::Middleware,
     types::{TransactionRequest, U256},
 };
-
-#[tokio::test(flavor = "multi_thread")]
+use serial_test::serial;
+#[tokio::test]
+#[serial]
 async fn geth_txpool() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
