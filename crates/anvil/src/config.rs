@@ -375,7 +375,7 @@ impl NodeConfig {
     pub fn test_middleware() -> Self {
         Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }
             .with_eth_ipc_path(Some("/tmp/reth.ipc"))
-            .with_eth_reth_db(Some("/home/data/reth/"))
+            .with_eth_reth_db(Some("/home/data/reth/db"))
     }
 }
 
