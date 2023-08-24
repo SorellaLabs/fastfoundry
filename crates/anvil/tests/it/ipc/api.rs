@@ -76,7 +76,7 @@ async fn can_get_client_version() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_chain_id() {
-    let (_api, handle) = spawn(NodeConfig::test_ipc().with_chain_id(Some(1 as u64))).await;
+    let (_api, handle) = spawn(NodeConfig::test_ipc().with_chain_id(Some(31337 as u64))).await;
     let provider = handle.http_provider();
 
     let chain_id = provider.get_chainid().await.unwrap();
