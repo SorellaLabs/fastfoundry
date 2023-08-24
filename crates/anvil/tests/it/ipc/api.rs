@@ -119,6 +119,7 @@ async fn can_get_block_by_number() {
     let _ = provider.send_transaction(tx, None).await.unwrap().await.unwrap().unwrap();
 
     let block: Block<Transaction> = provider.get_block_with_txs(1u64).await.unwrap().unwrap();
+    println!("{:?}", block);
     assert_eq!(block.transactions.len(), 1);
 
     let block = provider.get_block(1u64).await.unwrap().unwrap();
