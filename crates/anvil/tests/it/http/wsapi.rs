@@ -4,6 +4,7 @@ use anvil::{spawn, NodeConfig};
 use ethers::{prelude::Middleware, types::U256};
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_get_block_number_ws() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let block_num = api.block_number().unwrap();
@@ -16,6 +17,7 @@ async fn can_get_block_number_ws() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_dev_get_balance_ws() {
     let (_api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.ws_provider().await;

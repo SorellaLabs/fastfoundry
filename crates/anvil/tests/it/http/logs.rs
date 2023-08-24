@@ -11,6 +11,7 @@ use futures::StreamExt;
 use std::sync::Arc;
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn get_past_events() {
     let (_api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -48,6 +49,7 @@ async fn get_past_events() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn get_all_events() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -85,6 +87,7 @@ async fn get_all_events() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_install_filter() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -127,6 +130,7 @@ async fn can_install_filter() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn watch_events() {
     let (_api, handle) = spawn(NodeConfig::test_http()).await;
     let wallet = handle.dev_wallets().next().unwrap();

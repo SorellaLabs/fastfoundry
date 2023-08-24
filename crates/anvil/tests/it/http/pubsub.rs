@@ -13,6 +13,7 @@ use futures::StreamExt;
 use std::sync::Arc;
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_sub_new_heads() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
 
@@ -30,6 +31,7 @@ async fn test_sub_new_heads() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_sub_logs_legacy() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
 
@@ -69,6 +71,7 @@ async fn test_sub_logs_legacy() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_sub_logs() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
 
@@ -107,6 +110,7 @@ async fn test_sub_logs() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_sub_logs_impersonated() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
 
@@ -148,6 +152,7 @@ async fn test_sub_logs_impersonated() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_filters_legacy() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
 
@@ -189,6 +194,7 @@ async fn test_filters_legacy() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_filters() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
 
@@ -229,6 +235,7 @@ async fn test_filters() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_subscriptions() {
     let (_api, handle) =
         spawn(NodeConfig::test_http().with_blocktime(Some(std::time::Duration::from_secs(1))))
@@ -251,6 +258,7 @@ async fn test_subscriptions() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_sub_new_heads_fast() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
 

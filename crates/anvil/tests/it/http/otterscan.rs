@@ -17,6 +17,7 @@ use ethers_solc::{project_util::TempProject, Artifact};
 use std::{collections::VecDeque, str::FromStr, sync::Arc};
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_erigon_get_header_by_number() {
     let (api, _handle) = spawn(NodeConfig::test_http()).await;
     api.mine_one().await;
@@ -29,6 +30,7 @@ async fn can_call_erigon_get_header_by_number() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_get_api_level() {
     let (api, _handle) = spawn(NodeConfig::test_http()).await;
 
@@ -36,6 +38,7 @@ async fn can_call_ots_get_api_level() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_get_internal_operations_contract_deploy() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -65,6 +68,7 @@ async fn can_call_ots_get_internal_operations_contract_deploy() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_has_code() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -99,6 +103,7 @@ async fn can_call_ots_has_code() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_call_call_ots_trace_transaction() {
     let prj = TempProject::dapptools().unwrap();
     prj.add_source(
@@ -203,6 +208,7 @@ contract Contract {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_get_transaction_error() {
     let prj = TempProject::dapptools().unwrap();
     prj.add_source(
@@ -247,6 +253,7 @@ contract Contract {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_get_block_details() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -264,6 +271,7 @@ async fn can_call_ots_get_block_details() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_get_block_details_by_hash() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -282,6 +290,7 @@ async fn can_call_ots_get_block_details_by_hash() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_get_block_transactions() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -322,6 +331,7 @@ async fn can_call_ots_get_block_transactions() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_search_transactions_before() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -357,6 +367,7 @@ async fn can_call_ots_search_transactions_before() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_search_transactions_after() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -392,6 +403,7 @@ async fn can_call_ots_search_transactions_after() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_get_transaction_by_sender_and_nonce() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -415,6 +427,7 @@ async fn can_call_ots_get_transaction_by_sender_and_nonce() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_ots_get_contract_creator() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();

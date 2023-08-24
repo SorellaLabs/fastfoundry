@@ -6,6 +6,7 @@ use ethers::{
 };
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_sign_typed_data() {
     let (api, _handle) = spawn(NodeConfig::test_http()).await;
 
@@ -94,6 +95,7 @@ async fn can_sign_typed_data() {
 
 // <https://github.com/foundry-rs/foundry/issues/2458>
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_sign_typed_data_os() {
     let (api, _handle) = spawn(NodeConfig::test_http()).await;
 
@@ -281,6 +283,7 @@ async fn can_sign_typed_data_os() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn rejects_different_chain_id() {
     let (_api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();
@@ -296,6 +299,7 @@ async fn rejects_different_chain_id() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn rejects_invalid_chain_id() {
     let (_api, handle) = spawn(NodeConfig::test_http()).await;
     let wallet = handle.dev_wallets().next().unwrap().with_chain_id(99u64);
@@ -308,6 +312,7 @@ async fn rejects_invalid_chain_id() {
 
 // <https://github.com/foundry-rs/foundry/issues/3409>
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_sign_typed_seaport_data() {
     let (api, _handle) = spawn(NodeConfig::test_http()).await;
 
