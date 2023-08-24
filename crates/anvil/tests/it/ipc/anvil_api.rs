@@ -281,7 +281,7 @@ async fn can_mine_manually() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_set_next_timestamp() {
-    let (api, handle) = spawn(NodeConfig::test_ipc()).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64))).await;
     let provider = handle.http_provider();
 
     let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
