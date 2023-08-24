@@ -193,7 +193,7 @@ async fn can_call_on_pending_block() {
     // Ensure that we can get the block_number from the pending contract
     let (ret_block_number, _) =
         pending_contract.aggregate(vec![]).block(BlockNumber::Pending).call().await.unwrap();
-    assert_eq!(ret_block_number.as_u64(), 1u64);
+    assert_eq!(ret_block_number.as_u64(), block_num.as_u64()+1);
 
     let accounts: Vec<Address> = handle.dev_wallets().map(|w| w.address()).collect();
     for i in 1..10 {
