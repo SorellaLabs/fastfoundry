@@ -164,7 +164,7 @@ async fn can_get_pending_block() {
 #[tokio::test]
 #[serial]
 async fn can_call_on_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_middleware()).await;
+    let (api, handle) = spawn(NodeConfig::test_middleware().with_fork_block(Some(0))).await;
     let provider = handle.http_provider();
 
     let num = provider.get_block_number().await.unwrap();
