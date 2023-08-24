@@ -520,6 +520,7 @@ async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
     let to = accounts[1].address();
 
     let nonce = provider.get_transaction_count(from, None).await.unwrap();
+    println!("{:?}", none);
 
     // explicitly set the nonce
     let tx = TransactionRequest::new().to(to).value(100u64).from(from).nonce(nonce).gas(21_000u64);
@@ -536,6 +537,8 @@ async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
     let successful_tx =
         join_all(tasks).await.into_iter().filter(|res| res.as_ref().unwrap().is_ok()).count();
     assert_eq!(successful_tx, 1);
+
+    println!("{:?}", provider.get_transaction_count(from, None).await.unwrap());
 
     assert_eq!(provider.get_transaction_count(from, None).await.unwrap(), 1u64.into());
 }
