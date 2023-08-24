@@ -540,7 +540,7 @@ async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
 
     println!("{:?}", provider.get_transaction_count(from, None).await.unwrap());
 
-    assert_eq!(provider.get_transaction_count(from, None).await.unwrap(), 1u64.into());
+    assert_eq!(provider.get_transaction_count(from, None).await.unwrap(), nonce);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -575,7 +575,7 @@ async fn can_handle_multiple_concurrent_deploys_with_same_nonce() {
     let successful_tx =
         join_all(tasks).await.into_iter().filter(|res| res.as_ref().unwrap().is_ok()).count();
     assert_eq!(successful_tx, 1);
-    assert_eq!(client.get_transaction_count(from, None).await.unwrap(), 1u64.into());
+    assert_eq!(client.get_transaction_count(from, None).await.unwrap(), nonce);
 }
 
 #[tokio::test(flavor = "multi_thread")]
