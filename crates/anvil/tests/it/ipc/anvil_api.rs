@@ -435,7 +435,7 @@ async fn test_can_set_storage_bsc_fork() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_node_info() {
-    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64))).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc()).await;
 
     let node_info = api.anvil_node_info().await.unwrap();
 
@@ -448,17 +448,17 @@ async fn can_get_node_info() {
         current_block_number: U64([0]),
         current_block_timestamp: 1,
         current_block_hash: block.hash.unwrap(),
-        hard_fork: SpecId::SHANGHAI,
+        hard_fork: SpecId::FRONTIER,
         transaction_order: "fees".to_owned(),
         environment: NodeEnvironment {
             base_fee: U256::from_str("0x3b9aca00").unwrap(),
-            chain_id: U256::from_str("0x7a69").unwrap(),
-            gas_limit: U256::from_str("0x1c9c380").unwrap(),
+            chain_id: U256::from_str("0x1").unwrap(),
+            gas_limit: U256::from_str("0x1388").unwrap(),
             gas_price: U256::from_str("0x77359400").unwrap(),
         },
         fork_config: NodeForkConfig {
-            fork_url: None,
-            fork_block_number: None,
+            fork_url: Some("/tmp/reth.ipc".to_string()),
+            fork_block_number: Some(0),
             fork_retry_backoff: None,
         },
     };
