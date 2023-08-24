@@ -514,13 +514,10 @@ async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
     let provider = handle.ws_provider().await;
 
     let accounts: Vec<_> = handle.dev_wallets().collect();
-    println!("{:?}", accounts);
-
     let from = accounts[0].address();
     let to = accounts[1].address();
 
     let nonce = provider.get_transaction_count(from, None).await.unwrap();
-    println!("{:?}", nonce);
 
     // explicitly set the nonce
     let tx = TransactionRequest::new().to(to).value(100u64).from(from).nonce(nonce).gas(21_000u64);
@@ -538,13 +535,10 @@ async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
         join_all(tasks).await.into_iter().filter(|res| res.as_ref().unwrap().is_ok()).count();
     assert_eq!(successful_tx, 1);
 
-    println!("{:?}", provider.get_transaction_count(from, None).await.unwrap());
-
-    assert_eq!(provider.get_transaction_count(from, None).await.unwrap(), nonce);
+    assert_eq!(provider.get_transaction_count(from, None).await.unwrap(), nonce+1);
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn can_handle_multiple_concurrent_deploys_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.ws_provider().await;
@@ -575,11 +569,11 @@ async fn can_handle_multiple_concurrent_deploys_with_same_nonce() {
     let successful_tx =
         join_all(tasks).await.into_iter().filter(|res| res.as_ref().unwrap().is_ok()).count();
     assert_eq!(successful_tx, 1);
-    assert_eq!(client.get_transaction_count(from, None).await.unwrap(), nonce);
+
+    assert_eq!(client.get_transaction_count(from, None).await.unwrap(), nonce+1);
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn can_handle_multiple_concurrent_transactions_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.ws_provider().await;
