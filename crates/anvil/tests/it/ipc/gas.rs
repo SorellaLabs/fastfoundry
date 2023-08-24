@@ -18,18 +18,17 @@ async fn test_basefee_full_block() {
         NodeConfig::test_ipc()
             .with_base_fee(Some(INITIAL_BASE_FEE))
             .with_gas_limit(Some(GAS_TRANSFER))
-            .with_fork_block_number(Some(BlockNumber::Latest-5)),
     )
     .await;
     let provider = handle.http_provider();
     let tx = TransactionRequest::new().to(Address::random()).value(1337u64);
     provider.send_transaction(tx.clone(), None).await.unwrap().await.unwrap().unwrap();
     let base_fee =
-        provider.get_block(BlockNumber::Latest-5).await.unwrap().unwrap().base_fee_per_gas.unwrap();
+        provider.get_block(BlockNumber::Latest).await.unwrap().unwrap().base_fee_per_gas.unwrap();
     let tx = TransactionRequest::new().to(Address::random()).value(1337u64);
     provider.send_transaction(tx.clone(), None).await.unwrap().await.unwrap().unwrap();
     let next_base_fee =
-        provider.get_block(BlockNumber::Latest-5).await.unwrap().unwrap().base_fee_per_gas.unwrap();
+        provider.get_block(BlockNumber::Latest).await.unwrap().unwrap().base_fee_per_gas.unwrap();
 
     assert!(next_base_fee > base_fee);
     // max increase, full block
@@ -39,15 +38,17 @@ async fn test_basefee_full_block() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_basefee_half_block() {
+    let block_num = BlockNumber::Latest.as_number().unwrap()-5;
     let (_api, handle) = spawn(
         NodeConfig::test_ipc()
             .with_base_fee(Some(INITIAL_BASE_FEE))
-            .with_gas_limit(Some(GAS_TRANSFER * 2)).with_start,
+            .with_gas_limit(Some(GAS_TRANSFER * 2))
+            .with_fork_block_number(Some(block_num.as_u64())),
     )
     .await;
     let provider = handle.http_provider();
     let next_base_fee =
-    provider.get_block(BlockNumber::Latest).await.unwrap().unwrap().base_fee_per_gas.unwrap();
+    provider.get_block(block_num).await.unwrap().unwrap().base_fee_per_gas.unwrap();
     println!("{:?}", next_base_fee);
     let tx = TransactionRequest::new().to(Address::random()).value(1337u64);
     println!("{:?}", tx);
@@ -56,7 +57,7 @@ async fn test_basefee_half_block() {
     println!("{:?}", tx);
     provider.send_transaction(tx.clone(), None).await.unwrap().await.unwrap().unwrap();
     let next_base_fee =
-        provider.get_block(BlockNumber::Latest).await.unwrap().unwrap().base_fee_per_gas.unwrap();
+        provider.get_block(block_num).await.unwrap().unwrap().base_fee_per_gas.unwrap();
     println!("{:?}", next_base_fee);
 
 
