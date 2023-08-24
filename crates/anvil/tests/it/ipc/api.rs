@@ -178,7 +178,7 @@ async fn can_call_on_pending_block() {
 
     let wallet = handle.dev_wallets().next().unwrap();
     let sender = wallet.address();
-    println!("SEBDER {:?}", provider.get_transaction_count(sender, None));
+    println!("SEBDER {:?}", provider.get_transaction_count(sender, None).await);
     let client = Arc::new(SignerMiddleware::new(provider, wallet));
     let mut deploy_tx = MulticallContract::deploy(Arc::clone(&client), ()).unwrap().deployer.tx;
     deploy_tx.set_nonce(0);
