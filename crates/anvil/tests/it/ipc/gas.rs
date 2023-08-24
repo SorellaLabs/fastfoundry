@@ -38,17 +38,16 @@ async fn test_basefee_full_block() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_basefee_half_block() {
-    let block_num = BlockNumber::Latest.as_number().unwrap()-5;
+    let block_num = 17950849;
     let (_api, handle) = spawn(
         NodeConfig::test_ipc()
             .with_base_fee(Some(INITIAL_BASE_FEE))
             .with_gas_limit(Some(GAS_TRANSFER * 2))
-            .with_fork_block_number(Some(block_num.as_u64())),
+            .with_fork_block_number(Some(block_num)),
     )
     .await;
     let provider = handle.http_provider();
-    let next_base_fee =
-    provider.get_block(block_num).await.unwrap().unwrap().base_fee_per_gas.unwrap();
+    let next_base_fee = provider.get_block(block_num).await.unwrap().unwrap().base_fee_per_gas.unwrap();
     println!("{:?}", next_base_fee);
     let tx = TransactionRequest::new().to(Address::random()).value(1337u64);
     println!("{:?}", tx);
