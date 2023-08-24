@@ -168,7 +168,7 @@ async fn can_get_pending_block() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_call_on_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64)).with_hardfork(Some(anvil::Hardfork::Shanghai))).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc().with_hardfork(Some(anvil::Hardfork::Shanghai))).await;
     println!("NODE INFO IPC: {:?}", api.anvil_node_info().await);
     let provider = handle.http_provider();
 
@@ -177,11 +177,8 @@ async fn can_call_on_pending_block() {
     api.anvil_set_auto_mine(false).await.unwrap();
 
     let wallet = handle.dev_wallets().next().unwrap();
-    println!("WALLET : {:?}", wallet);
     let sender = wallet.address();
     let client = Arc::new(SignerMiddleware::new(provider, wallet));
-
-    println!("CLIENT : {:?}", client);
     let mut deploy_tx = MulticallContract::deploy(Arc::clone(&client), ()).unwrap().deployer.tx;
     deploy_tx.set_nonce(0);
     let pending_contract_address = get_contract_address(sender, deploy_tx.nonce().unwrap());
