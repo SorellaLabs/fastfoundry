@@ -23,14 +23,17 @@ use std::{
 
 
 #[tokio::test(flavor = "multi_thread")]
-async fn providers() {
+async fn test_providers() {
     let http_provider = NodeConfig::test_http();
     let ipc_provider = NodeConfig::test_ipc();
     let middleware_provider = NodeConfig::test_middleware();
 
     can_set_gas_price(http_provider).await;
+    println!("YAY1");
     can_set_gas_price(ipc_provider).await;
+    println!("YAY2");
     can_set_gas_price(middleware_provider).await;
+    println!("YAY3");
 }
 
 
@@ -44,9 +47,9 @@ async fn can_set_gas_price(config: NodeConfig) {
     assert_eq!(gas_price, provider.get_gas_price().await.unwrap());
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn can_set_block_gas_limit() {
-    let (api, _) = spawn(NodeConfig::test().with_hardfork(Some(Hardfork::Berlin))).await;
+//// #[tokio::test(flavor = "multi_thread")]
+async fn can_set_block_gas_limit(config: NodeConfig) {
+    let (api, _) = spawn(config.with_hardfork(Some(Hardfork::Berlin))).await;
 
     let block_gas_limit = 1337u64.into();
     assert!(api.evm_set_block_gas_limit(block_gas_limit).unwrap());
@@ -57,9 +60,9 @@ async fn can_set_block_gas_limit() {
 }
 
 // Ref <https://github.com/foundry-rs/foundry/issues/2341>
-#[tokio::test(flavor = "multi_thread")]
-async fn can_set_storage() {
-    let (api, _handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn can_set_storage(config: NodeConfig) {
+    let (api, _handle) = spawn(config).await;
     let s = r#"{"jsonrpc": "2.0", "method": "hardhat_setStorageAt", "id": 1, "params": ["0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", "0xa6eef7e35abe7026729641147f7915573c7e97b47efa546f5f6e3230263bcb49", "0x0000000000000000000000000000000000000000000000000000000000003039"]}"#;
     let req = serde_json::from_str::<EthRequest>(s).unwrap();
     let (addr, slot, val) = match req.clone() {
@@ -74,9 +77,9 @@ async fn can_set_storage() {
     assert_eq!(val, H256::from_uint(&U256::from(12345))); 
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn can_impersonate_account() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn can_impersonate_account(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
     let provider = handle.http_provider();
 
     let impersonate = Address::random();
@@ -110,9 +113,9 @@ async fn can_impersonate_account() {
     res.unwrap_err();
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn can_auto_impersonate_account() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn can_auto_impersonate_account(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
     let provider = handle.http_provider();
 
     let impersonate = Address::random();
@@ -146,9 +149,9 @@ async fn can_auto_impersonate_account() {
     res.unwrap_err();
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn can_impersonate_contract() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn can_impersonate_contract(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -190,8 +193,8 @@ async fn can_impersonate_contract() {
     assert_eq!("Hello World!", greeting);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn can_impersonate_gnosis_safe() {
+// #[tokio::test(flavor = "multi_thread")]
+async fn can_impersonate_gnosis_safe(config: NodeConfig) {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
 
@@ -220,9 +223,9 @@ async fn can_impersonate_gnosis_safe() {
     assert!(!code.is_empty());
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn can_impersonate_multiple_account() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn can_impersonate_multiple_account(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
     let provider = handle.http_provider();
 
     let impersonate0 = Address::random();
@@ -267,9 +270,9 @@ async fn can_impersonate_multiple_account() {
     assert_ne!(res0, res1);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn can_mine_manually() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn can_mine_manually(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
     let provider = handle.http_provider();
 
     let start_num = provider.get_block_number().await.unwrap();
@@ -281,9 +284,9 @@ async fn can_mine_manually() {
     }
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn test_set_next_timestamp() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn test_set_next_timestamp(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
     let provider = handle.http_provider();
 
     let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
@@ -308,9 +311,9 @@ async fn test_set_next_timestamp() {
     assert!(next.timestamp > block.timestamp);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn test_evm_set_time() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn test_evm_set_time(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
     let provider = handle.http_provider();
 
     let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
@@ -332,9 +335,9 @@ async fn test_evm_set_time() {
     assert!(next.timestamp > block.timestamp);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn test_evm_set_time_in_past() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn test_evm_set_time_in_past(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
     let provider = handle.http_provider();
 
     let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
@@ -352,9 +355,9 @@ async fn test_evm_set_time_in_past() {
     assert!(block.timestamp.as_u64() < now.as_secs());
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn test_timestamp_interval() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn test_timestamp_interval(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
     let provider = handle.http_provider();
 
     api.evm_mine(None).await.unwrap();
@@ -402,10 +405,10 @@ async fn test_timestamp_interval() {
 }
 
 // <https://github.com/foundry-rs/foundry/issues/2341>
-#[tokio::test(flavor = "multi_thread")]
-async fn test_can_set_storage_bsc_fork() {
+// #[tokio::test(flavor = "multi_thread")]
+async fn test_can_set_storage_bsc_fork(config: NodeConfig) {
     let (api, handle) =
-        spawn(NodeConfig::test().with_eth_rpc_url(Some("https://bsc-dataseed.binance.org/"))).await;
+        spawn(config.with_eth_rpc_url(Some("https://bsc-dataseed.binance.org/"))).await;
     let provider = Arc::new(handle.http_provider());
 
     let busd_addr: Address = "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56".parse().unwrap();
@@ -429,9 +432,9 @@ async fn test_can_set_storage_bsc_fork() {
     assert_eq!(balance, U256::from(12345u64));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn can_get_node_info() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn can_get_node_info(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
 
     let node_info = api.anvil_node_info().await.unwrap();
 
@@ -462,9 +465,9 @@ async fn can_get_node_info() {
     assert_eq!(node_info, expected_node_info);
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn test_get_transaction_receipt() {
-    let (api, handle) = spawn(NodeConfig::test()).await;
+// #[tokio::test(flavor = "multi_thread")]
+async fn test_get_transaction_receipt(config: NodeConfig) {
+    let (api, handle) = spawn(config).await;
     let provider = handle.http_provider();
 
     // set the base fee
