@@ -15,7 +15,7 @@ use futures::{future::join_all, FutureExt, StreamExt};
 use std::{collections::HashSet, sync::Arc, time::Duration};
 use tokio::time::timeout;
 use serial_test::serial;
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_transfer_eth() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -51,7 +51,7 @@ async fn can_transfer_eth() {
     assert_eq!(balance_before.saturating_add(amount), to_balance);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_order_transactions() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -86,7 +86,7 @@ async fn can_order_transactions() {
     assert_eq!(block.transactions, vec![higher_price, lower_price])
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_respect_nonces() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -122,7 +122,7 @@ async fn can_respect_nonces() {
     assert_eq!(vec![tx.transaction_hash, higher_tx.transaction_hash], block.transactions);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_replace_transaction() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -198,7 +198,7 @@ async fn can_reject_too_high_gas_limits() {
     pending.unwrap();
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_reject_underpriced_replacement() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -238,7 +238,7 @@ async fn can_reject_underpriced_replacement() {
     assert_eq!(vec![higher_priced_receipt.transaction_hash], block.transactions);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_deploy_greeter_http() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -264,7 +264,7 @@ async fn can_deploy_greeter_http() {
     assert_eq!("Hello World!", greeting);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_deploy_and_mine_manually() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -306,7 +306,7 @@ async fn can_deploy_and_mine_manually() {
     assert_eq!("Another Message", greeting);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_mine_automatically() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -328,7 +328,7 @@ async fn can_mine_automatically() {
     assert_eq!(receipt.status.unwrap().as_u64(), 1u64);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_call_greeter_historic() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -364,7 +364,7 @@ async fn can_call_greeter_historic() {
     assert_eq!("Hello World!", greeting);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_deploy_greeter_ws() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -390,7 +390,7 @@ async fn can_deploy_greeter_ws() {
     assert_eq!("Hello World!", greeting);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_deploy_get_code() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -410,7 +410,7 @@ async fn can_deploy_get_code() {
     assert!(!code.as_ref().is_empty());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn get_blocktimestamp_works() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -449,7 +449,7 @@ async fn get_blocktimestamp_works() {
     assert_eq!(timestamp, next_timestamp.into());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn call_past_state() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -630,7 +630,7 @@ async fn can_handle_multiple_concurrent_transactions_with_same_nonce() {
     assert_eq!(client.get_transaction_count(from, None).await.unwrap(), nonce + 1);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_pending_transaction() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -653,7 +653,7 @@ async fn can_get_pending_transaction() {
     assert_eq!(mined.hash, pending.unwrap().hash);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_first_noce_is_zero() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -671,7 +671,7 @@ async fn test_first_noce_is_zero() {
     assert_eq!(nonce, U256::zero());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_handle_different_sender_nonce_calculation() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -707,7 +707,7 @@ async fn can_handle_different_sender_nonce_calculation() {
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn includes_pending_tx_for_transaction_count() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -738,7 +738,7 @@ async fn includes_pending_tx_for_transaction_count() {
     assert_eq!(nonce, tx_count.into());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_historic_info() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -774,7 +774,7 @@ async fn can_get_historic_info() {
 }
 
 // <https://github.com/eth-brownie/brownie/issues/1549>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_tx_receipt() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -796,7 +796,7 @@ async fn test_tx_receipt() {
     assert!(tx.contract_address.is_some());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_stream_pending_transactions() {
     let (_api, handle) =
@@ -853,7 +853,7 @@ async fn can_stream_pending_transactions() {
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_tx_access_list() {
     /// returns a String representation of the AccessList, with sorted
@@ -949,7 +949,7 @@ async fn test_tx_access_list() {
 }
 
 // ensures that the gas estimate is running on pending block by default
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn estimates_gas_on_pending_by_default() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -973,7 +973,7 @@ async fn estimates_gas_on_pending_by_default() {
     api.estimate_gas(tx.into(), None).await.unwrap();
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_reject_gas_too_low() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -1015,7 +1015,7 @@ async fn can_call_with_high_gas_limit() {
     assert_eq!("Hello World!", greeting);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_reject_eip1559_pre_london() {
     let (api, handle) = spawn(NodeConfig::test_ipc().with_hardfork(Some(Hardfork::Berlin))).await;

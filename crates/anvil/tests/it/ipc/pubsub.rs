@@ -12,7 +12,7 @@ use ethers::{
 use futures::StreamExt;
 use std::sync::Arc;
 use serial_test::serial;
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_sub_new_heads() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -30,7 +30,7 @@ async fn test_sub_new_heads() {
     assert_eq!(block_numbers, vec![1, 2, 3]);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_sub_logs_legacy() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
@@ -70,7 +70,7 @@ async fn test_sub_logs_legacy() {
     assert_eq!(receipt.logs[0], log);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_sub_logs() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
@@ -109,7 +109,7 @@ async fn test_sub_logs() {
     assert_eq!(receipt.logs[0], log);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_sub_logs_impersonated() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
@@ -151,7 +151,7 @@ async fn test_sub_logs_impersonated() {
     assert_eq!(receipt.logs[0], log);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_filters_legacy() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
@@ -193,7 +193,7 @@ async fn test_filters_legacy() {
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_filters() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
@@ -234,7 +234,7 @@ async fn test_filters() {
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_subscriptions() {
     let (_api, handle) =
@@ -256,7 +256,7 @@ async fn test_subscriptions() {
     assert_eq!(blocks, vec![1, 2, 3])
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_sub_new_heads_fast() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;

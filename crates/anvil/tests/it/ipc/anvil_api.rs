@@ -21,7 +21,8 @@ use std::{
     time::{Duration, SystemTime},
 };
 use serial_test::serial;
-#[tokio::test]
+
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_set_gas_price() {
     let (api, handle) = spawn(NodeConfig::test_ipc().with_hardfork(Some(Hardfork::Berlin))).await;
@@ -46,7 +47,7 @@ async fn can_set_block_gas_limit() {
 }
 
 // Ref <https://github.com/foundry-rs/foundry/issues/2341>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_set_storage() {
     let (api, _handle) = spawn(NodeConfig::test_ipc()).await;
@@ -64,7 +65,7 @@ async fn can_set_storage() {
     assert_eq!(val, H256::from_uint(&U256::from(12345)));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_impersonate_account() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -101,7 +102,7 @@ async fn can_impersonate_account() {
     res.unwrap_err();
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_auto_impersonate_account() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -138,7 +139,7 @@ async fn can_auto_impersonate_account() {
     res.unwrap_err();
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_impersonate_contract() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -183,7 +184,7 @@ async fn can_impersonate_contract() {
     assert_eq!("Hello World!", greeting);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_impersonate_gnosis_safe() {
     let (api, handle) = spawn(fork_config()).await;
@@ -214,7 +215,7 @@ async fn can_impersonate_gnosis_safe() {
     assert!(!code.is_empty());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_impersonate_multiple_account() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -262,7 +263,7 @@ async fn can_impersonate_multiple_account() {
     assert_ne!(res0, res1);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_mine_manually() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -277,7 +278,7 @@ async fn can_mine_manually() {
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_set_next_timestamp() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -305,7 +306,7 @@ async fn test_set_next_timestamp() {
     assert!(next.timestamp > block.timestamp);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_evm_set_time() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -330,7 +331,7 @@ async fn test_evm_set_time() {
     assert!(next.timestamp > block.timestamp);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_evm_set_time_in_past() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -351,7 +352,7 @@ async fn test_evm_set_time_in_past() {
     assert!(block.timestamp.as_u64() < now.as_secs());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_timestamp_interval() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -402,7 +403,7 @@ async fn test_timestamp_interval() {
 }
 
 // <https://github.com/foundry-rs/foundry/issues/2341>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_can_set_storage_bsc_fork() {
     let (api, handle) =
@@ -431,7 +432,7 @@ async fn test_can_set_storage_bsc_fork() {
     assert_eq!(balance, U256::from(12345u64));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_node_info() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -465,7 +466,7 @@ async fn can_get_node_info() {
     assert_eq!(node_info, expected_node_info);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_get_transaction_receipt() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;

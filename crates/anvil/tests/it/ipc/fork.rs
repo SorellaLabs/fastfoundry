@@ -58,7 +58,7 @@ pub fn fork_config() -> NodeConfig {
         .silent()
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_spawn_fork() {
     let (api, _handle) = spawn(fork_config()).await;
@@ -68,7 +68,7 @@ async fn test_spawn_fork() {
     assert_eq!(head, BLOCK_NUMBER.into())
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_spawn_fork_ipc() {
     // spawn a first node with http
@@ -83,7 +83,7 @@ async fn test_spawn_fork_ipc() {
     assert_eq!(head, head2)
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_call_ipc() {
     let input: Bytes = "0x77c7b8fc".parse().unwrap();
@@ -120,7 +120,7 @@ async fn test_fork_call_ipc() {
 
 //TODO: Implement ethers-reth mock in the main repo + then use in test
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_eth_get_balance() {
     let (api, handle) = spawn(fork_config()).await;
@@ -134,7 +134,7 @@ async fn test_fork_eth_get_balance() {
 }
 
 // <https://github.com/foundry-rs/foundry/issues/4082>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_eth_get_balance_after_mine() {
     let (api, handle) = spawn(fork_config()).await;
@@ -159,7 +159,7 @@ async fn test_fork_eth_get_balance_after_mine() {
 }
 
 // <https://github.com/foundry-rs/foundry/issues/4082>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_eth_get_code_after_mine() {
     let (api, handle) = spawn(fork_config()).await;
@@ -179,7 +179,7 @@ async fn test_fork_eth_get_code_after_mine() {
         provider.get_code(address, Some(BlockNumber::Number(number.into()).into())).await.unwrap();
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_eth_get_code() {
     let (api, handle) = spawn(fork_config()).await;
@@ -204,7 +204,7 @@ async fn test_fork_eth_get_code() {
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_eth_get_nonce() {
     let (api, handle) = spawn(fork_config()).await;
@@ -223,7 +223,7 @@ async fn test_fork_eth_get_nonce() {
     assert_eq!(api_nonce, provider_nonce);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_eth_fee_history() {
     let (api, handle) = spawn(fork_config()).await;
@@ -234,7 +234,7 @@ async fn test_fork_eth_fee_history() {
     let _provider_history = provider.fee_history(count, BlockNumber::Latest, &[]).await.unwrap();
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_reset() {
     let (api, handle) = spawn(fork_config()).await;
@@ -283,7 +283,7 @@ async fn test_fork_reset() {
     assert!(new_block_num > block_number);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_snapshotting() {
     let (api, handle) = spawn(fork_config()).await;
@@ -323,7 +323,7 @@ async fn test_fork_snapshotting() {
 /// tests that the remote state and local state are kept separate.
 /// changes don't make into the read only Database that holds the remote state, which is flushed to
 /// a cache file.
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_separate_states() {
     let (api, handle) = spawn(fork_config().with_fork_block_number(Some(14723772u64))).await;
@@ -346,7 +346,7 @@ async fn test_separate_states() {
     assert_eq!(acc.balance, remote_balance.into())
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_deploy_greeter_on_fork() {
     let (_api, handle) = spawn(fork_config().with_fork_block_number(Some(14723772u64))).await;
@@ -371,7 +371,7 @@ async fn can_deploy_greeter_on_fork() {
     assert_eq!("Hello World!", greeting);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_reset_properly() {
     let (origin_api, origin_handle) = spawn(NodeConfig::test_ipc()).await;
@@ -409,7 +409,7 @@ async fn can_reset_properly() {
     assert!(fork_provider.get_transaction(tx.transaction_hash).await.unwrap().is_none())
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_timestamp() {
     let start = std::time::Instant::now();
@@ -472,7 +472,7 @@ async fn test_fork_timestamp() {
     assert!(diff <= elapsed.into());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_set_empty_code() {
     let (api, _handle) = spawn(fork_config()).await;
@@ -484,7 +484,7 @@ async fn test_fork_set_empty_code() {
     assert!(code.as_ref().is_empty());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_can_send_tx() {
     let (api, handle) =
@@ -508,7 +508,7 @@ async fn test_fork_can_send_tx() {
 }
 
 // <https://github.com/foundry-rs/foundry/issues/1920>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_nft_set_approve_all() {
     let (api, handle) = spawn(
@@ -582,7 +582,7 @@ async fn test_fork_with_custom_chain_id() {
 }
 
 // <https://github.com/foundry-rs/foundry/issues/1920>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_can_send_opensea_tx() {
     let (api, handle) = spawn(
@@ -613,7 +613,7 @@ async fn test_fork_can_send_opensea_tx() {
     assert_eq!(tx.status, Some(1u64.into()));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_base_fee() {
     let (api, handle) = spawn(fork_config()).await;
@@ -653,7 +653,7 @@ async fn test_fork_init_base_fee() {
     assert!(next_base_fee < init_base_fee);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_reset_fork_on_new_blocks() {
     let (api, handle) = spawn(
@@ -684,7 +684,7 @@ async fn test_reset_fork_on_new_blocks() {
     assert!(next_block > current_block, "nextblock={next_block} currentblock={current_block}")
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_call() {
     let input: Bytes = "0x77c7b8fc".parse().unwrap();
@@ -711,7 +711,7 @@ async fn test_fork_call() {
     assert_eq!(res0, res1);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_block_timestamp() {
     let (api, _) = spawn(fork_config()).await;
@@ -723,7 +723,7 @@ async fn test_fork_block_timestamp() {
     assert!(initial_block.timestamp.as_u64() < latest_block.timestamp.as_u64());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_snapshot_block_timestamp() {
     let (api, _) = spawn(fork_config()).await;
@@ -739,7 +739,7 @@ async fn test_fork_snapshot_block_timestamp() {
     assert_eq!(initial_block.timestamp.as_u64(), latest_block.timestamp.as_u64());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_uncles_fetch() {
     let (api, handle) = spawn(fork_config()).await;
@@ -778,7 +778,7 @@ async fn test_fork_uncles_fetch() {
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_block_transaction_count() {
     let (api, handle) = spawn(fork_config()).await;
@@ -831,7 +831,7 @@ async fn test_fork_block_transaction_count() {
 }
 
 // <https://github.com/foundry-rs/foundry/issues/2931>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_impersonate_in_fork() {
     let (api, handle) = spawn(fork_config().with_fork_block_number(Some(15347924u64))).await;
@@ -864,7 +864,7 @@ async fn can_impersonate_in_fork() {
 }
 
 // <https://etherscan.io/block/14608400>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_total_difficulty_fork() {
     let (api, handle) = spawn(fork_config()).await;
@@ -888,7 +888,7 @@ async fn test_total_difficulty_fork() {
 }
 
 // <https://etherscan.io/block/14608400>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_transaction_receipt() {
     let (api, _) = spawn(fork_config()).await;
@@ -912,7 +912,7 @@ async fn test_transaction_receipt() {
     assert!(receipt.is_none());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_override_fork_chain_id() {
     let chain_id_override = 5u64;

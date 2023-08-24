@@ -3,7 +3,7 @@
 use anvil::{spawn, NodeConfig};
 use ethers::{prelude::Middleware, types::Address};
 use serial_test::serial;
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_can_change_mining_mode() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -33,7 +33,7 @@ async fn test_can_change_mining_mode() {
     assert_eq!(num.as_u64(), 1);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_default_dev_keys() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -44,7 +44,7 @@ async fn can_get_default_dev_keys() {
     assert_eq!(dev_accounts, accounts);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_set_empty_code() {
     let (api, _handle) = spawn(NodeConfig::test_ipc()).await;
@@ -54,7 +54,7 @@ async fn can_set_empty_code() {
     assert!(code.as_ref().is_empty());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_can_set_genesis_timestamp() {
     let genesis_timestamp = 1000u64;
@@ -65,7 +65,7 @@ async fn test_can_set_genesis_timestamp() {
     assert_eq!(genesis_timestamp, provider.get_block(0).await.unwrap().unwrap().timestamp.as_u64());
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_can_use_default_genesis_timestamp() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;

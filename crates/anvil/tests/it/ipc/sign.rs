@@ -5,7 +5,7 @@ use ethers::{
     types::{transaction::eip712::TypedData, Address, Chain, TransactionRequest},
 };
 use serial_test::serial;
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_sign_typed_data() {
     let (api, _handle) = spawn(NodeConfig::test_ipc()).await;
@@ -94,7 +94,7 @@ async fn can_sign_typed_data() {
 }
 
 // <https://github.com/foundry-rs/foundry/issues/2458>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_sign_typed_data_os() {
     let (api, _handle) = spawn(NodeConfig::test_ipc()).await;
@@ -282,7 +282,7 @@ async fn can_sign_typed_data_os() {
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn rejects_different_chain_id() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -298,7 +298,7 @@ async fn rejects_different_chain_id() {
     assert!(err.to_string().contains("signed for another chain"));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn rejects_invalid_chain_id() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
@@ -311,7 +311,7 @@ async fn rejects_invalid_chain_id() {
 }
 
 // <https://github.com/foundry-rs/foundry/issues/3409>
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_sign_typed_seaport_data() {
     let (api, _handle) = spawn(NodeConfig::test_ipc()).await;
