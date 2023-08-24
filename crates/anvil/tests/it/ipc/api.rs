@@ -168,7 +168,7 @@ async fn can_get_pending_block() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_call_on_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64)).with_hardfork(Some(anvil::Hardfork::Shanghai)).with_fork_chain_id(Some(31337 as u64))).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc().with_hardfork(Some(anvil::Hardfork::Shanghai)).with_fork_chain_id(Some(31337 as u64))).await;
     println!("NODE INFO IPC: {:?}", api.anvil_node_info().await);
     let provider = handle.http_provider();
 
