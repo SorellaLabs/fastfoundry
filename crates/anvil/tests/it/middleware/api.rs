@@ -240,7 +240,7 @@ where
     decode_function_data(&call.function, result.as_ref(), false).unwrap()
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
 async fn can_call_with_state_override() {
     let (api, handle) = spawn(NodeConfig::test_middleware()).await;
     let provider = handle.http_provider();

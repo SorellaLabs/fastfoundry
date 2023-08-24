@@ -12,6 +12,7 @@ use ethers::{
     },
 };
 use futures::{future::join_all, FutureExt, StreamExt};
+use serial_test::serial;
 use std::{collections::HashSet, sync::Arc, time::Duration};
 use tokio::time::timeout;
 
@@ -492,7 +493,8 @@ async fn call_past_state() {
     assert_eq!(value, "initial value");
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_middleware()).await;
 
@@ -523,7 +525,8 @@ async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
     assert_eq!(provider.get_transaction_count(from, None).await.unwrap(), 1u64.into());
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_handle_multiple_concurrent_deploys_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_middleware()).await;
     let provider = handle.ws_provider().await;
@@ -557,7 +560,8 @@ async fn can_handle_multiple_concurrent_deploys_with_same_nonce() {
     assert_eq!(client.get_transaction_count(from, None).await.unwrap(), 1u64.into());
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
+#[serial]
 async fn can_handle_multiple_concurrent_transactions_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_middleware()).await;
     let provider = handle.ws_provider().await;

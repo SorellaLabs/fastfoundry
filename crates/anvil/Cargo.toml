@@ -54,6 +54,7 @@ tokio = { version = "1", features = ["time"] }
 parking_lot = "0.12"
 futures = "0.3"
 async-trait = "0.1.68"
+serial_test = "2.0.0"
 
 # misc
 flate2 = "1.0"
