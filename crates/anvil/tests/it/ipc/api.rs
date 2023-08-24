@@ -168,7 +168,7 @@ async fn can_get_pending_block() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_call_on_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_ipc()).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64))).await;
     let provider = handle.http_provider();
 
     let num_a = provider.get_block_number().await.unwrap();
