@@ -539,6 +539,7 @@ async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_handle_multiple_concurrent_deploys_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.ws_provider().await;
@@ -574,6 +575,7 @@ async fn can_handle_multiple_concurrent_deploys_with_same_nonce() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_handle_multiple_concurrent_transactions_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.ws_provider().await;
