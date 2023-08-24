@@ -184,7 +184,7 @@ async fn can_call_on_pending_block() {
     deploy_tx.set_nonce(0);
     let pending_contract_address = get_contract_address(sender, deploy_tx.nonce().unwrap());
 
-    client.send_transaction(deploy_tx, Some(1.into())).await.unwrap();
+    client.send_transaction(deploy_tx, None).await.unwrap();
 
     let pending_contract = MulticallContract::new(pending_contract_address, client.clone());
 
