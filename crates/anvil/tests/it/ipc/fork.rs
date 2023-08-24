@@ -556,8 +556,7 @@ async fn test_fork_nft_set_approve_all() {
 }
 
 // <https://github.com/foundry-rs/foundry/issues/2261>
-#[tokio::test]
-#[serial]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_fork_with_custom_chain_id() {
     // spawn a forked node with some random chainId
     let (api, handle) = spawn(
