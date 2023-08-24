@@ -6,7 +6,7 @@ use serial_test::serial;
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_can_change_mining_mode() {
-    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64))).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0u64))).await;
     let provider = handle.http_provider();
 
     assert!(api.anvil_get_auto_mine().unwrap());

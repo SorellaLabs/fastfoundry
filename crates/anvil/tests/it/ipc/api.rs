@@ -133,7 +133,7 @@ async fn can_get_block_by_number() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0u64))).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
 
     let block_num = provider.get_block_number().await.unwrap();
@@ -152,7 +152,7 @@ async fn can_get_pending_block() {
     let to = accounts[1].address();
     let tx = TransactionRequest::new().to(to).value(100u64).from(from);
 
-    let tx = provider.send_transaction(tx, Some(0.into())).await.unwrap();
+    let tx = provider.send_transaction(tx, Some(block_num.into())).await.unwrap();
 
     let num = provider.get_block_number().await.unwrap();
     assert_eq!(num, block_num);
