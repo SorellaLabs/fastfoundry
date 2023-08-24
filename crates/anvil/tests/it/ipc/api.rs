@@ -133,16 +133,18 @@ async fn can_get_block_by_number() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64))).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
+
+    let block_num = provider.get_block_number().await.unwrap();
     let accounts: Vec<_> = handle.dev_wallets().collect();
 
     let block = provider.get_block(BlockNumber::Pending).await.unwrap().unwrap();
 
-    assert_eq!(block.number.unwrap().as_u64(), 1u64);
+    assert_eq!(block.number.unwrap().as_u64(), block_num.as_u64()+1);
 
     let num = provider.get_block_number().await.unwrap();
-    assert_eq!(num.as_u64(), 0u64);
+    assert_eq!(num, block_num);
 
     api.anvil_set_auto_mine(false).await.unwrap();
 
@@ -153,15 +155,15 @@ async fn can_get_pending_block() {
     let tx = provider.send_transaction(tx, None).await.unwrap();
 
     let num = provider.get_block_number().await.unwrap();
-    assert_eq!(num.as_u64(), 0u64);
+    assert_eq!(num, block_num);
 
     let block = provider.get_block(BlockNumber::Pending).await.unwrap().unwrap();
-    assert_eq!(block.number.unwrap().as_u64(), 1u64);
+    assert_eq!(block.number.unwrap().as_u64(), block_num.as_u64()+1);
     assert_eq!(block.transactions.len(), 1);
     assert_eq!(block.transactions, vec![tx.tx_hash()]);
 
     let block = provider.get_block_with_txs(BlockNumber::Pending).await.unwrap().unwrap();
-    assert_eq!(block.number.unwrap().as_u64(), 1u64);
+    assert_eq!(block.number.unwrap().as_u64(), block_num.as_u64()+1);
     assert_eq!(block.transactions.len(), 1);
 }
 
