@@ -446,7 +446,7 @@ async fn can_get_node_info() {
 
     let expected_node_info = NodeInfo {
         current_block_number: U64([0]),
-        current_block_timestamp: 1,
+        current_block_timestamp: 0,
         current_block_hash: block.hash.unwrap(),
         hard_fork: SpecId::FRONTIER,
         transaction_order: "fees".to_owned(),

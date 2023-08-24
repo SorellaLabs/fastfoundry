@@ -59,7 +59,7 @@ async fn can_set_empty_code() {
 async fn test_can_set_genesis_timestamp() {
     let genesis_timestamp = 1000u64;
     let (_api, handle) =
-        spawn(NodeConfig::test_ipc().with_genesis_timestamp(genesis_timestamp.into())).await;
+        spawn(NodeConfig::test_ipc().with_genesis_timestamp(genesis_timestamp.into().with_fork_block_number(Some(0 as u64)))).await;
     let provider = handle.http_provider();
 
     assert_eq!(genesis_timestamp, provider.get_block(0).await.unwrap().unwrap().timestamp.as_u64());
