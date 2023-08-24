@@ -152,7 +152,7 @@ async fn can_get_pending_block() {
     let to = accounts[1].address();
     let tx = TransactionRequest::new().to(to).value(100u64).from(from);
 
-    let tx = provider.send_transaction(tx, Some(0)).await.unwrap();
+    let tx = provider.send_transaction(tx, Some(0 as u64)).await.unwrap();
 
     let num = provider.get_block_number().await.unwrap();
     assert_eq!(num, block_num);
