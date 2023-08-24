@@ -19,7 +19,7 @@ use crate::abi::{MulticallContract, SimpleStorage};
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_block_number() {
-    let (api, handle) = spawn(NodeConfig::test_ipc()).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64))).await;
 
     let block_num = api.block_number().unwrap();
     assert_eq!(block_num, U256::zero());
