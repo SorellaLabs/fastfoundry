@@ -108,7 +108,7 @@ async fn can_get_network_id() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_block_by_number() {
-    let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
+    let (_api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(1 as u64))).await;
     let provider = handle.http_provider();
     let accounts: Vec<_> = handle.dev_wallets().collect();
     let from = accounts[0].address();
