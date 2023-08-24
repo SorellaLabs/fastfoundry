@@ -47,8 +47,7 @@ async fn test_get_transfer_parity_traces() {
     assert_eq!(traces, block_traces);
 }
 
-#[tokio::test]
-#[serial]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_parity_suicide_trace() {
     let prj = TempProject::dapptools().unwrap();
     prj.add_source(

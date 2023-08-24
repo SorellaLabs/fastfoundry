@@ -506,6 +506,7 @@ async fn call_past_state() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
 
