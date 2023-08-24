@@ -46,8 +46,10 @@ async fn test_basefee_half_block() {
     .await;
     let provider = handle.http_provider();
     let tx = TransactionRequest::new().to(Address::random()).value(1337u64);
+    println!("{:?}", tx);
     provider.send_transaction(tx.clone(), None).await.unwrap().await.unwrap().unwrap();
     let tx = TransactionRequest::new().to(Address::random()).value(1337u64);
+    println!("{:?}", tx);
     provider.send_transaction(tx.clone(), None).await.unwrap().await.unwrap().unwrap();
     let next_base_fee =
         provider.get_block(BlockNumber::Latest).await.unwrap().unwrap().base_fee_per_gas.unwrap();
