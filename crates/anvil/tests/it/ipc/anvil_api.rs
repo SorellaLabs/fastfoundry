@@ -435,7 +435,7 @@ async fn test_can_set_storage_bsc_fork() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_get_node_info() {
-    let (api, handle) = spawn(NodeConfig::test_ipc()).await;
+    let (api, handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64))).await;
 
     let node_info = api.anvil_node_info().await.unwrap();
 
@@ -459,7 +459,7 @@ async fn can_get_node_info() {
         fork_config: NodeForkConfig {
             fork_url: Some("/tmp/reth.ipc".to_string()),
             fork_block_number: Some(0),
-            fork_retry_backoff: None,
+            fork_retry_backoff: Some(1),
         },
     };
 
