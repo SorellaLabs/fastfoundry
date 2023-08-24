@@ -13,8 +13,7 @@ use ethers_solc::{project_util::TempProject, Artifact};
 use serial_test::serial;
 use std::sync::Arc;
 
-#[tokio::test]
-#[serial]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_get_transfer_parity_traces() {
     let (_api, handle) = spawn(NodeConfig::test_middleware()).await;
     let provider = handle.http_provider();

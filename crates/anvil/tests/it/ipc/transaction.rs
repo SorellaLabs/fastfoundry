@@ -165,8 +165,7 @@ async fn can_replace_transaction() {
     assert_eq!(vec![higher_priced_receipt.transaction_hash], block.transactions);
 }
 
-#[tokio::test]
-#[serial]
+#[tokio::test(flavor = "multi_thread")]
 async fn can_reject_too_high_gas_limits() {
     let (api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.http_provider();
@@ -571,8 +570,7 @@ async fn can_handle_multiple_concurrent_deploys_with_same_nonce() {
     assert_eq!(client.get_transaction_count(from, None).await.unwrap(), 1u64.into());
 }
 
-#[tokio::test]
-#[serial]
+#[tokio::test(flavor = "multi_thread")]
 async fn can_handle_multiple_concurrent_transactions_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_ipc()).await;
     let provider = handle.ws_provider().await;
