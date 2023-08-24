@@ -14,6 +14,7 @@ use serial_test::serial;
 use std::sync::Arc;
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_get_transfer_parity_traces() {
     let (_api, handle) = spawn(NodeConfig::test_middleware()).await;
     let provider = handle.http_provider();
@@ -48,6 +49,7 @@ async fn test_get_transfer_parity_traces() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn test_parity_suicide_trace() {
     let prj = TempProject::dapptools().unwrap();
     prj.add_source(

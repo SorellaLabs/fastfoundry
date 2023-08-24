@@ -23,6 +23,7 @@ use std::{
 use serial_test::serial;
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_set_gas_price() {
     println!("{:?}", NodeConfig::test_middleware().with_hardfork(Some(Hardfork::Berlin)));
     let (api, handle) = spawn(NodeConfig::test_middleware().with_hardfork(Some(Hardfork::Berlin))).await;
@@ -34,6 +35,7 @@ async fn can_set_gas_price() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_set_block_gas_limit() {
     let (api, _) = spawn(NodeConfig::test_middleware().with_hardfork(Some(Hardfork::Berlin))).await;
 

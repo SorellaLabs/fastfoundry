@@ -33,6 +33,7 @@ async fn can_set_gas_price() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_set_block_gas_limit() {
     let (api, _) = spawn(NodeConfig::test_ipc().with_hardfork(Some(Hardfork::Berlin))).await;
 
