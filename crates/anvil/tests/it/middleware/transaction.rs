@@ -167,6 +167,7 @@ async fn can_replace_transaction() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_reject_too_high_gas_limits() {
     let (api, handle) = spawn(NodeConfig::test_middleware()).await;
     let provider = handle.http_provider();
@@ -507,6 +508,7 @@ async fn call_past_state() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_middleware()).await;
 
@@ -538,6 +540,7 @@ async fn can_handle_multiple_concurrent_transfers_with_same_nonce() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_handle_multiple_concurrent_deploys_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_middleware()).await;
     let provider = handle.ws_provider().await;
@@ -572,6 +575,7 @@ async fn can_handle_multiple_concurrent_deploys_with_same_nonce() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_handle_multiple_concurrent_transactions_with_same_nonce() {
     let (_api, handle) = spawn(NodeConfig::test_middleware()).await;
     let provider = handle.ws_provider().await;
@@ -992,6 +996,7 @@ async fn test_reject_gas_too_low() {
 
 // <https://github.com/foundry-rs/foundry/issues/3783>
 #[tokio::test(flavor = "multi_thread")]
+#[serial]
 async fn can_call_with_high_gas_limit() {
     let (_api, handle) =
         spawn(NodeConfig::test_middleware().with_gas_limit(Some(U256::from(100_000_000)))).await;
