@@ -108,6 +108,8 @@ async fn can_get_network_id() {
 async fn can_get_block_by_number() {
     let (_api, handle) = spawn(NodeConfig::test_middleware().with_fork_block_number(Some(1 as u64))).await;
     let provider = handle.http_provider();
+    let num = provider.get_block_number().await.unwrap();
+
     let accounts: Vec<_> = handle.dev_wallets().collect();
     let from = accounts[0].address();
     let to = accounts[1].address();
@@ -116,10 +118,10 @@ async fn can_get_block_by_number() {
     let tx = TransactionRequest::new().to(to).value(amount).from(from);
     let _ = provider.send_transaction(tx, None).await.unwrap().await.unwrap().unwrap();
 
-    let block: Block<Transaction> = provider.get_block_with_txs(1u64).await.unwrap().unwrap();
+    let block: Block<Transaction> = provider.get_block_with_txs(num+1).await.unwrap().unwrap();
     assert_eq!(block.transactions.len(), 1);
 
-    let block = provider.get_block(1u64).await.unwrap().unwrap();
+    let block = provider.get_block(num+1).await.unwrap().unwrap();
     assert_eq!(block.transactions.len(), 1);
 
     let block = provider.get_block(block.hash.unwrap()).await.unwrap().unwrap();
