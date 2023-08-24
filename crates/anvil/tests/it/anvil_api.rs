@@ -1,5 +1,6 @@
 //! tests for custom anvil endpoints
-use crate::{abi::*, fork::fork_config, ipc};
+//use crate::{abi::*, fork::fork_config};
+use crate::abi::*;
 use anvil::{spawn, Hardfork, NodeConfig};
 use anvil_core::{
     eth::EthRequest,
@@ -194,6 +195,7 @@ async fn can_impersonate_contract(config: NodeConfig) {
 }
 
 // #[tokio::test(flavor = "multi_thread")]
+/* 
 async fn can_impersonate_gnosis_safe(config: NodeConfig) {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -222,7 +224,7 @@ async fn can_impersonate_gnosis_safe(config: NodeConfig) {
     // code is added back after stop impersonating
     assert!(!code.is_empty());
 }
-
+*/
 // #[tokio::test(flavor = "multi_thread")]
 async fn can_impersonate_multiple_account(config: NodeConfig) {
     let (api, handle) = spawn(config).await;
