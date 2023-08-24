@@ -13,7 +13,7 @@ use ethers::{
     utils::get_contract_address,
 };
 use std::{collections::HashMap, sync::Arc, time::Duration};
-
+use serial_test::serial;
 use crate::abi::{MulticallContract, SimpleStorage};
 
 #[tokio::test(flavor = "multi_thread")]

@@ -11,6 +11,7 @@ use ethers::{
 };
 use futures::StreamExt;
 use std::sync::Arc;
+use serial_test::serial;
 
 #[tokio::test(flavor = "multi_thread")]
 #[serial]

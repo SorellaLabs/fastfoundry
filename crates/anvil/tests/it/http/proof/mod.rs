@@ -7,7 +7,7 @@ use ethers::{
 };
 
 use anvil_core::eth::proof::{AccountProof, BasicAccount};
-
+use serial_test::serial;
 use anvil_core::eth::trie::ExtensionLayout;
 use ethers::utils::{keccak256, rlp};
 use foundry_evm::revm::primitives::KECCAK_EMPTY;

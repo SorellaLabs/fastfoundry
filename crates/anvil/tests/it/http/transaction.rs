@@ -14,6 +14,7 @@ use ethers::{
 use futures::{future::join_all, FutureExt, StreamExt};
 use std::{collections::HashSet, sync::Arc, time::Duration};
 use tokio::time::timeout;
+use serial_test::serial;
 
 #[tokio::test(flavor = "multi_thread")]
 #[serial]

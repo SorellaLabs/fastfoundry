@@ -8,6 +8,7 @@ use ethers::{
         TransactionRequest,
     },
 };
+use serial_test::serial;
 
 const GAS_TRANSFER: u64 = 21_000u64;
 

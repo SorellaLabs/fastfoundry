@@ -4,6 +4,7 @@ use ethers::{
     signers::Signer,
     types::{transaction::eip712::TypedData, Address, Chain, TransactionRequest},
 };
+use serial_test::serial;
 
 #[tokio::test(flavor = "multi_thread")]
 #[serial]

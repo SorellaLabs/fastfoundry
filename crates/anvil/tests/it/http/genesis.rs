@@ -2,6 +2,7 @@
 
 use anvil::{genesis::Genesis, spawn, NodeConfig};
 use ethers::{abi::Address, prelude::Middleware, types::U256};
+use serial_test::serial;
 
 #[tokio::test(flavor = "multi_thread")]
 #[serial]

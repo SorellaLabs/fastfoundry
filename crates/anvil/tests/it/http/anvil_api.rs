@@ -20,7 +20,7 @@ use std::{
     sync::Arc,
     time::{Duration, SystemTime},
 };
-
+use serial_test::serial;
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_set_gas_price() {

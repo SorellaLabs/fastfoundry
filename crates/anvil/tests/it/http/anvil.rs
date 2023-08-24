@@ -2,7 +2,7 @@
 
 use anvil::{spawn, NodeConfig};
 use ethers::{prelude::Middleware, types::Address};
-
+use serial_test::serial;
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_can_change_mining_mode() {

@@ -19,7 +19,7 @@ use foundry_config::Config;
 use foundry_utils::{rpc, rpc::next_http_rpc_endpoint};
 use futures::StreamExt;
 use std::{sync::Arc, time::Duration};
-
+use serial_test::serial;
 const BLOCK_NUMBER: u64 = 14_608_400u64;
 
 const BLOCK_TIMESTAMP: u64 = 1_650_274_250u64;
