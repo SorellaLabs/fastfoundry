@@ -160,7 +160,7 @@ pub struct NodeConfig {
     pub fork_retry_backoff: Duration,
     /// available CUPS
     pub compute_units_per_second: u64,
-    /// The ipc path
+    /// The ipc path for the server
     pub ipc_path: Option<Option<String>>,
     /// Enable transaction/call steps tracing for debug calls returning geth-style traces
     pub enable_steps_tracing: bool,
@@ -361,8 +361,21 @@ impl NodeConfig {
     /// Returns a new config intended to be used in tests, which does not print and binds to a
     /// random, free port by setting it to `0`
     #[doc(hidden)]
-    pub fn test() -> Self {
+    pub fn test_http() -> Self {
         Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }
+    }
+
+    #[doc(hidden)]
+    pub fn test_ipc() -> Self {
+        Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }
+            .with_eth_ipc_path(Some("./tmp/reth.ipc"))
+    }
+
+    #[doc(hidden)]
+    pub fn test_middleware() -> Self {
+        Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }
+            .with_eth_ipc_path(Some("/tmp/reth.ipc"))
+            .with_eth_reth_db(Some("/home/data/reth/db"))
     }
 }
 

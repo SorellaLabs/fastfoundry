@@ -704,6 +704,24 @@ mod tests {
             fork,
             ForkUrl { url: "wss://user:password@example.com/".to_string(), block: Some(100000) }
         );
+
+        let fork: ForkUrl = "/home/path/to/test.ipc".parse().unwrap();
+        assert_eq!(
+            fork,
+            ForkUrl { url: "/home/path/to/test.ipc".to_string(), block: None }
+        );
+
+        let fork: ForkUrl = "/home/path/to/test.ipc/@latest".parse().unwrap();
+        assert_eq!(
+            fork,
+            ForkUrl { url: "/home/path/to/test.ipc/".to_string(), block: None }
+        );
+
+        let fork: ForkUrl = "/home/path/to/test.ipc@100000".parse().unwrap();
+        assert_eq!(
+            fork,
+            ForkUrl { url: "/home/path/to/test.ipc".to_string(), block: Some(100000) }
+        );
     }
 
     #[test]
@@ -759,6 +777,43 @@ mod tests {
         assert_eq!(
             args.host,
             ["::1", "1.1.1.1", "2.2.2.2"].map(|ip| ip.parse::<IpAddr>().unwrap()).to_vec()
+        );
+    }
+
+    #[test]
+    fn rpc_ipc_db() {
+        let args = NodeArgs::parse_from(["anvil"]);
+        assert_eq!(args.host, vec![IpAddr::V4(Ipv4Addr::LOCALHOST)]);
+
+        let args = NodeArgs::try_parse_from([
+            "anvil", "--fork_rpc_url", "http://localhost:8545", "--fork_ipc", "/home/test.ipc",
+        ]);
+        assert!(args.is_err());
+        
+        let args = NodeArgs::try_parse_from([
+            "anvil", "--fork_rpc_url", "http://localhost:8545", "--fork_db", "/home/test",
+        ]);
+        assert!(args.is_err());
+
+        let args = NodeArgs::try_parse_from([
+            "anvil", "--fork_db", "/home/test",
+        ]);
+        assert!(args.is_err());
+
+        let args = NodeArgs::parse_from([
+            "anvil", "--fork_ipc", "/home/test.ipc", "--fork_db", "/home/test",
+        ]);
+        assert_eq!(
+            args.ipc,
+            None
+        );
+
+        let args = NodeArgs::parse_from([
+            "anvil", "--ipc", "--fork_ipc", "/home/test.ipc@5000", "--fork_db", "/home/test",
+        ]);
+        assert_eq!(
+            args.evm_opts.fork_ipc,
+            Some(ForkUrl { url: "/home/test.ipc".to_string(), block: Some(5000) })
         );
     }
 }

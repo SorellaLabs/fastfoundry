@@ -1,5 +1,5 @@
 //! tests for custom anvil endpoints
-use crate::{abi::*, fork::fork_config};
+use crate::{abi::*, fork::fork_config, ipc};
 use anvil::{spawn, Hardfork, NodeConfig};
 use anvil_core::{
     eth::EthRequest,
@@ -21,9 +21,22 @@ use std::{
     time::{Duration, SystemTime},
 };
 
+
 #[tokio::test(flavor = "multi_thread")]
-async fn can_set_gas_price() {
-    let (api, handle) = spawn(NodeConfig::test().with_hardfork(Some(Hardfork::Berlin))).await;
+async fn providers() {
+    let http_provider = NodeConfig::test_http();
+    let ipc_provider = NodeConfig::test_ipc();
+    let middleware_provider = NodeConfig::test_middleware();
+
+    can_set_gas_price(http_provider).await;
+    can_set_gas_price(ipc_provider).await;
+    can_set_gas_price(middleware_provider).await;
+}
+
+
+
+async fn can_set_gas_price(config: NodeConfig) {
+    let (api, handle) = spawn(config.with_hardfork(Some(Hardfork::Berlin))).await;
     let provider = handle.http_provider();
 
     let gas_price = 1337u64.into();
@@ -58,7 +71,7 @@ async fn can_set_storage() {
 
     let storage_value = api.storage_at(addr, slot, None).await.unwrap();
     assert_eq!(val, storage_value);
-    assert_eq!(val, H256::from_uint(&U256::from(12345)));
+    assert_eq!(val, H256::from_uint(&U256::from(12345))); 
 }
 
 #[tokio::test(flavor = "multi_thread")]
