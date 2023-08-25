@@ -21,12 +21,12 @@ use futures::StreamExt;
 use serial_test::serial;
 use std::{sync::Arc, time::Duration};
 
-const BLOCK_NUMBER: u64 = 14_608_400u64;
+const BLOCK_NUMBER: u64 = 3u64;
 
 const BLOCK_TIMESTAMP: u64 = 1_650_274_250u64;
 
 const TEST_IPC_PATH: &str = "/tmp/reth.ipc";
-const TEST_RETH_DB_PATH: &str = "/home/data/reth/db";
+const TEST_RETH_DB_PATH: &str = "../test-data/db";
 
 const TEST_NODE_IPC_PATH: &str = "/tmp/anvil_test3.ipc";
 
