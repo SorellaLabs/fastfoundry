@@ -641,7 +641,7 @@ async fn test_reset_fork_on_new_blocks() {
     let (api, handle) =
         spawn(NodeConfig::test().with_eth_ipc_path(Some(TEST_IPC_PATH)).silent()).await;
 
-    let anvil_provider = handle.http_provider();
+    let anvil_provider = handle.ipc_provider();
 
     let endpoint = next_http_rpc_endpoint();
     let provider = Arc::new(get_http_provider(&endpoint).interval(Duration::from_secs(2)));
