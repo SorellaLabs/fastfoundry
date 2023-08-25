@@ -11,7 +11,7 @@ use ethers::{
 };
 use ethers_solc::{project_util::TempProject, Artifact};
 use std::sync::Arc;
-use serial_test::serial;
+
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_get_transfer_parity_traces() {

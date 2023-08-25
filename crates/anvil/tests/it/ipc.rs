@@ -3,7 +3,7 @@
 use anvil::{spawn, NodeConfig};
 use ethers::{core::rand, prelude::Middleware, types::U256};
 use futures::StreamExt;
-use serial_test::serial;
+
 
 pub fn rand_ipc_endpoint() -> String {
     let num: u64 = rand::Rng::gen(&mut rand::thread_rng());

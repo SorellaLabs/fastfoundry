@@ -5,7 +5,7 @@ use ethers::{
     prelude::Middleware,
     types::{TransactionRequest, U256},
 };
-use serial_test::serial;
+
 
 #[tokio::test(flavor = "multi_thread")]
 async fn geth_txpool() {

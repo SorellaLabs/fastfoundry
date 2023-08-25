@@ -354,6 +354,7 @@ async fn can_reset_properly() {
     let origin_nonce = 1u64.into();
     origin_api.anvil_set_nonce(account, origin_nonce).await.unwrap();
 
+    println!("API {:?}", origin_api);
     assert_eq!(origin_nonce, origin_provider.get_transaction_count(account, None).await.unwrap());
 
     let (fork_api, fork_handle) =

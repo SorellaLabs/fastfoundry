@@ -20,7 +20,7 @@ use std::{
     sync::Arc,
     time::{Duration, SystemTime},
 };
-use serial_test::serial;
+
 #[tokio::test(flavor = "multi_thread")]
 async fn can_set_gas_price() {
     let (api, handle) = spawn(NodeConfig::test_http().with_hardfork(Some(Hardfork::Berlin))).await;
