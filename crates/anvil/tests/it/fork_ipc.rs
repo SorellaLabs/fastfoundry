@@ -19,6 +19,7 @@ use foundry_config::Config;
 use foundry_utils::{rpc, rpc::next_http_rpc_endpoint};
 use futures::StreamExt;
 use std::{sync::Arc, time::Duration};
+use serial_test::serial;
 
 const BLOCK_NUMBER: u64 = 14_608_400u64;
 
@@ -44,6 +45,7 @@ async fn test_spawn_fork() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+[#serial]
 async fn test_spawn_fork_ipc() {
     // spawn a first node with http
     let (origin_api, origin_handle) = spawn(fork_config_ipc().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
