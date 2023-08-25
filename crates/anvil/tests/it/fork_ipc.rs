@@ -357,7 +357,7 @@ async fn can_reset_properly() {
     assert_eq!(origin_nonce, origin_provider.get_transaction_count(account, None).await.unwrap());
 
     let (fork_api, fork_handle) =
-        spawn(NodeConfig::test().with_eth_ipc_path(origin_handle.ipc_path())).await;
+        spawn(NodeConfig::test().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))).await;
 
     let fork_provider = fork_handle.http_provider();
     assert_eq!(origin_nonce, fork_provider.get_transaction_count(account, None).await.unwrap());
