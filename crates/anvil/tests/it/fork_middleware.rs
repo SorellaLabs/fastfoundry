@@ -54,7 +54,7 @@ async fn test_spawn_fork_ipc() {
 
     // spawn a second node that is a fork of the first, connected through ipc
     let (fork_api, _fork_handle) =
-        spawn(fork_config_middleware().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))).await;
+        spawn(fork_config_middleware().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap())).with_fork_block_number(Some(origin_api.block_number().unwrap().as_u64()))).await;
 
     let head = origin_api.block_number().unwrap();
     let head2 = fork_api.block_number().unwrap();
@@ -636,6 +636,7 @@ async fn test_fork_init_base_fee() {
 async fn test_reset_fork_on_new_blocks() {
     let (api, handle) = spawn(
         NodeConfig::test()
+            .with_eth_ipc_path(Some(TEST_IPC_PATH))
             .with_eth_reth_db(Some(TEST_RETH_DB_PATH))
             .silent(),
     )
