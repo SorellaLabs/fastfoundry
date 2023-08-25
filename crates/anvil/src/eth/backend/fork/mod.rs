@@ -1,11 +1,14 @@
 //! Support for forking off another client generic over HTTP, IPC or ethers-reth middleware
 
-use crate::eth::{backend::mem::fork_db::ForkedDatabase, error::BlockchainError};
+use crate::{
+    eth::{backend::mem::fork_db::ForkedDatabase, error::BlockchainError},
+    NodeConfig,
+};
 use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
 use async_trait::async_trait;
 use ethers::{
     prelude::BlockNumber,
-    providers::ProviderError,
+    providers::{Middleware, ProviderError},
     types::{
         transaction::eip2930::AccessListWithGasUsed, Address, Block, BlockId, Bytes, FeeHistory,
         Filter, GethDebugTracingOptions, GethTrace, Log, Trace, Transaction, TransactionReceipt,
@@ -17,14 +20,12 @@ use parking_lot::{
     RawRwLock,
 };
 use std::{collections::HashMap, fmt::Debug, sync::Arc, time::Duration};
-use tokio::sync::RwLock as AsyncRwLock;
+use tokio::{runtime::Handle, sync::RwLock as AsyncRwLock};
 
 pub mod http;
 pub mod ipc;
 pub mod middleware;
 use anyhow::anyhow;
-
-// use middleware::ClientForkConfigMiddleware;
 
 /// Represents a fork of a remote client
 ///
@@ -275,4 +276,28 @@ impl ForkedStorage {
         // simply replace with a completely new, empty instance
         *self = Self::default()
     }
+}
+
+/// trait abstraction over the different client forks
+/// allows for different providers
+#[async_trait::async_trait]
+pub trait ConfigAsProvider: Sync + Send {
+    type ProviderKind: Middleware + Unpin + 'static;
+    type ForkType: ClientForkTrait + Sync + Send;
+
+    /// builds the provider
+    async fn into_provider(node_config: &NodeConfig, handle: Option<Handle>) -> Self::ProviderKind;
+
+    /// builds the fork config
+    fn into_fork_config(
+        node_config: &NodeConfig,
+        block: Block<H256>,
+        chain_id: u64,
+        provider: Arc<Self::ProviderKind>,
+    ) -> Self
+    where
+        Self: Sized;
+
+    /// builds the fork
+    fn into_client_fork(self, backend_db: Arc<AsyncRwLock<ForkedDatabase>>) -> Self::ForkType;
 }

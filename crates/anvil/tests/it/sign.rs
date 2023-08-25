@@ -5,7 +5,6 @@ use ethers::{
     types::{transaction::eip712::TypedData, Address, Chain, TransactionRequest},
 };
 
-
 #[tokio::test(flavor = "multi_thread")]
 async fn can_sign_typed_data() {
     let (api, _handle) = spawn(NodeConfig::test()).await;

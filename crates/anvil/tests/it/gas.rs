@@ -9,15 +9,12 @@ use ethers::{
     },
 };
 
-
 const GAS_TRANSFER: u64 = 21_000u64;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_basefee_full_block() {
     let (_api, handle) = spawn(
-        NodeConfig::test()
-            .with_base_fee(Some(INITIAL_BASE_FEE))
-            .with_gas_limit(Some(GAS_TRANSFER)),
+        NodeConfig::test().with_base_fee(Some(INITIAL_BASE_FEE)).with_gas_limit(Some(GAS_TRANSFER)),
     )
     .await;
     let provider = handle.http_provider();

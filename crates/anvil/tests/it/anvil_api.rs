@@ -392,8 +392,7 @@ async fn test_timestamp_interval() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_can_set_storage_bsc_fork() {
     let (api, handle) =
-        spawn(NodeConfig::test().with_eth_rpc_url(Some("https://bsc-dataseed.binance.org/")))
-            .await;
+        spawn(NodeConfig::test().with_eth_rpc_url(Some("https://bsc-dataseed.binance.org/"))).await;
     let provider = Arc::new(handle.http_provider());
 
     let busd_addr: Address = "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56".parse().unwrap();

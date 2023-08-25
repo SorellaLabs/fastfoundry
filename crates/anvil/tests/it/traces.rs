@@ -12,7 +12,6 @@ use ethers::{
 use ethers_solc::{project_util::TempProject, Artifact};
 use std::sync::Arc;
 
-
 #[tokio::test(flavor = "multi_thread")]
 async fn test_get_transfer_parity_traces() {
     let (_api, handle) = spawn(NodeConfig::test()).await;

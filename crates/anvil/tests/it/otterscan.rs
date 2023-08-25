@@ -16,7 +16,6 @@ use ethers::{
 use ethers_solc::{project_util::TempProject, Artifact};
 use std::{collections::VecDeque, str::FromStr, sync::Arc};
 
-
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_erigon_get_header_by_number() {
     let (api, _handle) = spawn(NodeConfig::test()).await;

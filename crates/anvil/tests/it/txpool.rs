@@ -6,7 +6,6 @@ use ethers::{
     types::{TransactionRequest, U256},
 };
 
-
 #[tokio::test(flavor = "multi_thread")]
 async fn geth_txpool() {
     let (api, handle) = spawn(NodeConfig::test()).await;

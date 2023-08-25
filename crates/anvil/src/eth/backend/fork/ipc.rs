@@ -1,6 +1,9 @@
 //! Support for forking off another client generic over HTTP, IPC or ethers-reth middleware
 
-use crate::eth::{backend::mem::fork_db::ForkedDatabase, error::BlockchainError};
+use crate::{
+    eth::{backend::mem::fork_db::ForkedDatabase, error::BlockchainError},
+    NodeConfig,
+};
 use anvil_core::eth::{proof::AccountProof, transaction::EthTransactionRequest};
 use async_trait::async_trait;
 use ethers::{
@@ -18,10 +21,12 @@ use parking_lot::{
     RawRwLock, RwLock,
 };
 use std::{fmt::Debug, sync::Arc, time::Duration};
-use tokio::sync::RwLock as AsyncRwLock;
+use tokio::{runtime::Handle, sync::RwLock as AsyncRwLock};
 use tracing::trace;
 
 use crate::eth::backend::fork::{ClientForkTrait, ForkedStorage};
+
+use super::ConfigAsProvider;
 
 pub struct ClientForkIpc {
     /// Contains the cached data
@@ -588,5 +593,43 @@ impl ClientForkConfigIpc {
         self.base_fee = base_fee;
         self.total_difficulty = total_difficulty;
         trace!(target: "fork", "Updated block number={} hash={:?}", block_number, block_hash);
+    }
+}
+
+#[async_trait::async_trait]
+impl ConfigAsProvider for ClientForkConfigIpc {
+    type ProviderKind = Provider<Ipc>;
+    type ForkType = ClientForkIpc;
+
+    async fn into_provider(node_config: &NodeConfig, _handle: Option<Handle>) -> Provider<Ipc> {
+        Provider::connect_ipc(node_config.eth_ipc_path.clone().unwrap()).await.unwrap()
+    }
+
+    fn into_fork_config(
+        node_config: &NodeConfig,
+        block: Block<TxHash>,
+        chain_id: u64,
+        provider: Arc<Provider<Ipc>>,
+    ) -> Self {
+        ClientForkConfigIpc {
+            ipc_path: Some(node_config.eth_ipc_path.clone().unwrap().to_string()),
+            block_number: block.number.unwrap().as_u64(),
+            block_hash: block.hash.unwrap_or_default(),
+            provider,
+            chain_id,
+            override_chain_id: node_config.chain_id,
+            timestamp: block.timestamp.as_u64(),
+            base_fee: block.base_fee_per_gas,
+            timeout: Some(node_config.fork_request_timeout),
+            retries: Some(node_config.fork_request_retries),
+            backoff: Some(node_config.fork_retry_backoff),
+            compute_units_per_second: Some(node_config.compute_units_per_second),
+            total_difficulty: block.total_difficulty.unwrap_or_default(),
+            db_path: None,
+        }
+    }
+
+    fn into_client_fork(self, backend_db: Arc<AsyncRwLock<ForkedDatabase>>) -> ClientForkIpc {
+        ClientForkIpc::new_ipc(self.clone(), Arc::clone(&backend_db))
     }
 }

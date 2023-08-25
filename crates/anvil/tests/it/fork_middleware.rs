@@ -18,8 +18,8 @@ use foundry_common::get_http_provider;
 use foundry_config::Config;
 use foundry_utils::{rpc, rpc::next_http_rpc_endpoint};
 use futures::StreamExt;
-use std::{sync::Arc, time::Duration};
 use serial_test::serial;
+use std::{sync::Arc, time::Duration};
 
 const BLOCK_NUMBER: u64 = 14_608_400u64;
 
@@ -29,8 +29,6 @@ const TEST_IPC_PATH: &'static str = "/tmp/reth.ipc";
 const TEST_RETH_DB_PATH: &'static str = "/home/data/reth/db";
 
 const TEST_NODE_IPC_PATH: &'static str = "/tmp/anvil_test3.ipc";
-
-
 
 pub fn fork_config_middleware() -> NodeConfig {
     NodeConfig::test()
@@ -54,7 +52,8 @@ async fn test_spawn_fork() {
 #[serial]
 async fn test_spawn_fork_ipc() {
     // spawn a first node with http
-    let (origin_api, origin_handle) = spawn(fork_config_middleware().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
+    let (origin_api, origin_handle) =
+        spawn(fork_config_middleware().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
 
     // spawn a second node that is a fork of the first, connected through ipc
     let (fork_api, _fork_handle) =
@@ -78,14 +77,15 @@ async fn test_fork_call_ipc() {
     let res0 =
         provider.call(&tx, Some(BlockNumber::Number(block_number.into()).into())).await.unwrap();
 
-    let (_origin_api, origin_handle) =
-        spawn(fork_config_middleware().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string()))).with_fork_block_number(Some(block_number))).await;
-
-    let (fork_api, _fork_handle) = spawn(
-        NodeConfig::test()
-            .with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))
+    let (_origin_api, origin_handle) = spawn(
+        fork_config_middleware()
+            .with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))
+            .with_fork_block_number(Some(block_number)),
     )
     .await;
+
+    let (fork_api, _fork_handle) =
+        spawn(NodeConfig::test().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))).await;
 
     let res1 = fork_api
         .call(
@@ -307,7 +307,8 @@ async fn test_fork_snapshotting() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_separate_states() {
-    let (api, handle) = spawn(fork_config_middleware().with_fork_block_number(Some(14723772u64))).await;
+    let (api, handle) =
+        spawn(fork_config_middleware().with_fork_block_number(Some(14723772u64))).await;
     let provider = handle.http_provider();
 
     let addr: Address = "000000000000000000000000000000000000dEaD".parse().unwrap();
@@ -330,7 +331,8 @@ async fn test_separate_states() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_deploy_greeter_on_fork() {
-    let (_api, handle) = spawn(fork_config_middleware().with_fork_block_number(Some(14723772u64))).await;
+    let (_api, handle) =
+        spawn(fork_config_middleware().with_fork_block_number(Some(14723772u64))).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -355,7 +357,12 @@ async fn can_deploy_greeter_on_fork() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_reset_properly() {
-    let (origin_api, origin_handle) = spawn(NodeConfig::test().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string()))).with_chain_id(Some(1u64))).await;
+    let (origin_api, origin_handle) = spawn(
+        NodeConfig::test()
+            .with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))
+            .with_chain_id(Some(1u64)),
+    )
+    .await;
     let account = origin_handle.dev_accounts().next().unwrap();
     let origin_provider = origin_handle.http_provider();
     let origin_nonce = 1u64.into();
@@ -469,7 +476,8 @@ async fn test_fork_set_empty_code() {
 #[serial]
 async fn test_fork_can_send_tx() {
     let (api, handle) =
-        spawn(fork_config_middleware().with_blocktime(Some(std::time::Duration::from_millis(800)))).await;
+        spawn(fork_config_middleware().with_blocktime(Some(std::time::Duration::from_millis(800))))
+            .await;
 
     let wallet = LocalWallet::new(&mut rand::thread_rng());
 
@@ -616,7 +624,8 @@ async fn test_fork_base_fee() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn test_fork_init_base_fee() {
-    let (api, handle) = spawn(fork_config_middleware().with_fork_block_number(Some(13184859u64))).await;
+    let (api, handle) =
+        spawn(fork_config_middleware().with_fork_block_number(Some(13184859u64))).await;
 
     let provider = handle.http_provider();
 
@@ -816,7 +825,8 @@ async fn test_fork_block_transaction_count() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_impersonate_in_fork() {
-    let (api, handle) = spawn(fork_config_middleware().with_fork_block_number(Some(15347924u64))).await;
+    let (api, handle) =
+        spawn(fork_config_middleware().with_fork_block_number(Some(15347924u64))).await;
     let provider = handle.http_provider();
 
     let token_holder: Address = "0x2f0b23f53734252bda2277357e97e1517d6b042a".parse().unwrap();

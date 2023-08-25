@@ -12,7 +12,6 @@ use ethers::{
 use futures::StreamExt;
 use std::sync::Arc;
 
-
 #[tokio::test(flavor = "multi_thread")]
 async fn test_sub_new_heads() {
     let (api, handle) = spawn(NodeConfig::test()).await;
@@ -232,8 +231,7 @@ async fn test_filters() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_subscriptions() {
     let (_api, handle) =
-        spawn(NodeConfig::test().with_blocktime(Some(std::time::Duration::from_secs(1))))
-            .await;
+        spawn(NodeConfig::test().with_blocktime(Some(std::time::Duration::from_secs(1)))).await;
     let ws = Ws::connect(handle.ws_endpoint()).await.unwrap();
 
     // Subscribing requires sending the sub request and then subscribing to

@@ -6,11 +6,13 @@ use ethers::{
     types::{Address, H256, U256},
 };
 
-use anvil_core::eth::proof::{AccountProof, BasicAccount};
-use serial_test::serial;
-use anvil_core::eth::trie::ExtensionLayout;
+use anvil_core::eth::{
+    proof::{AccountProof, BasicAccount},
+    trie::ExtensionLayout,
+};
 use ethers::utils::{keccak256, rlp};
 use foundry_evm::revm::primitives::KECCAK_EMPTY;
+use serial_test::serial;
 
 mod eip1186;
 use crate::proof::eip1186::verify_proof;

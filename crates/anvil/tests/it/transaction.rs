@@ -15,7 +15,6 @@ use futures::{future::join_all, FutureExt, StreamExt};
 use std::{collections::HashSet, sync::Arc, time::Duration};
 use tokio::time::timeout;
 
-
 #[tokio::test(flavor = "multi_thread")]
 async fn can_transfer_eth() {
     let (_api, handle) = spawn(NodeConfig::test()).await;

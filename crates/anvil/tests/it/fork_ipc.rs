@@ -18,15 +18,14 @@ use foundry_common::get_http_provider;
 use foundry_config::Config;
 use foundry_utils::{rpc, rpc::next_http_rpc_endpoint};
 use futures::StreamExt;
-use std::{sync::Arc, time::Duration};
 use serial_test::serial;
+use std::{sync::Arc, time::Duration};
 
 const BLOCK_NUMBER: u64 = 14_608_400u64;
 
 const BLOCK_TIMESTAMP: u64 = 1_650_274_250u64;
 const TEST_IPC_PATH: &'static str = "/tmp/reth.ipc";
 const TEST_NODE_IPC_PATH: &'static str = "/tmp/anvil_test2.ipc";
-
 
 pub fn fork_config_ipc() -> NodeConfig {
     NodeConfig::test()
@@ -48,7 +47,8 @@ async fn test_spawn_fork() {
 #[serial]
 async fn test_spawn_fork_ipc() {
     // spawn a first node with http
-    let (origin_api, origin_handle) = spawn(fork_config_ipc().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
+    let (origin_api, origin_handle) =
+        spawn(fork_config_ipc().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
 
     // spawn a second node that is a fork of the first, connected through ipc
     let (fork_api, _fork_handle) =
@@ -71,8 +71,12 @@ async fn test_fork_call_ipc() {
     let res0 =
         provider.call(&tx, Some(BlockNumber::Number(block_number.into()).into())).await.unwrap();
 
-    let (_origin_api, origin_handle) =
-        spawn(fork_config_ipc().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string()))).with_fork_block_number(Some(block_number))).await;
+    let (_origin_api, origin_handle) = spawn(
+        fork_config_ipc()
+            .with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))
+            .with_fork_block_number(Some(block_number)),
+    )
+    .await;
 
     let (fork_api, _fork_handle) = spawn(
         fork_config_ipc()
@@ -338,7 +342,8 @@ async fn can_deploy_greeter_on_fork() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_reset_properly() {
-    let (origin_api, origin_handle) = spawn(NodeConfig::test().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
+    let (origin_api, origin_handle) =
+        spawn(NodeConfig::test().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
     let account = origin_handle.dev_accounts().next().unwrap();
     let origin_provider = origin_handle.http_provider();
     let origin_nonce = 1u64.into();
@@ -611,12 +616,8 @@ async fn test_fork_init_base_fee() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_reset_fork_on_new_blocks() {
-    let (api, handle) = spawn(
-        NodeConfig::test()
-            .with_eth_ipc_path(Some(TEST_IPC_PATH))
-            .silent(),
-    )
-    .await;
+    let (api, handle) =
+        spawn(NodeConfig::test().with_eth_ipc_path(Some(TEST_IPC_PATH)).silent()).await;
 
     let anvil_provider = handle.http_provider();
 

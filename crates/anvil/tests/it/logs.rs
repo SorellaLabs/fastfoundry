@@ -10,7 +10,6 @@ use ethers::{
 use futures::StreamExt;
 use std::sync::Arc;
 
-
 #[tokio::test(flavor = "multi_thread")]
 async fn get_past_events() {
     let (_api, handle) = spawn(NodeConfig::test()).await;

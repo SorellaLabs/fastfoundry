@@ -3,10 +3,8 @@ use crate::{
         backend::{
             db::{Db, SerializableState},
             fork::{
-                http::{ClientForkConfigHttp, ClientForkHttp},
-                ipc::{ClientForkConfigIpc, ClientForkIpc},
-                middleware::{ClientForkConfigMiddleware, ClientForkMiddleware},
-                ClientForkTrait,
+                http::ClientForkConfigHttp, ipc::ClientForkConfigIpc,
+                middleware::ClientForkConfigMiddleware, ClientForkTrait, ConfigAsProvider,
             },
             genesis::GenesisConfig,
             mem::fork_db::ForkedDatabase,
@@ -24,18 +22,18 @@ use anvil_server::ServerConfig;
 use ethers::{
     core::k256::ecdsa::SigningKey,
     prelude::{rand::thread_rng, Wallet, U256},
-    providers::{Middleware, Provider},
+    providers::{Ipc, Middleware, Provider},
     signers::{
         coins_bip39::{English, Mnemonic},
         MnemonicBuilder, Signer,
     },
-    types::{Block, BlockNumber, H256},
+    types::BlockNumber,
     utils::{format_ether, hex, to_checksum, WEI_IN_ETHER},
 };
 use ethers_reth::RethMiddleware;
 use forge::utils::{h256_to_b256, u256_to_ru256};
 use foundry_common::{
-    ProviderBuilder, ALCHEMY_FREE_TIER_CUPS, NON_ARCHIVE_NODE_WARNING, REQUEST_TIMEOUT,
+    RetryProvider, ALCHEMY_FREE_TIER_CUPS, NON_ARCHIVE_NODE_WARNING, REQUEST_TIMEOUT,
 };
 use foundry_config::Config;
 use foundry_evm::{
@@ -52,7 +50,7 @@ use std::{
     fmt::Write as FmtWrite,
     fs::File,
     net::{IpAddr, Ipv4Addr},
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::Arc,
     time::Duration,
 };
@@ -362,7 +360,7 @@ impl NodeConfig {
     /// random, free port by setting it to `0`
     #[doc(hidden)]
     pub fn test() -> Self {
-        Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }            
+        Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }
     }
 }
 
@@ -799,16 +797,18 @@ impl NodeConfig {
     }
 
     /// Portion of setup using the provider
-    pub(crate) async fn provider_setup<P>(
+    pub(crate) async fn provider_setup<P, K>(
         &mut self,
         provider: Arc<P>,
         prov_path: &str,
         env: &mut Env,
         fees: &FeeManager,
-    ) -> (Arc<tokio::sync::RwLock<ForkedDatabase>>, u64, Block<H256>)
+    ) -> (Arc<tokio::sync::RwLock<ForkedDatabase>>, Arc<<K as ConfigAsProvider>::ForkType>)
     // (forked_db, chain_id, block)
     where
         P: Middleware + Unpin + 'static,
+        K: ConfigAsProvider<ProviderKind = P>,
+        //F: ClientForkTrait
     {
         let (fork_block_number, fork_chain_id) = if let Some(fork_block_number) =
             self.fork_block_number
@@ -946,7 +946,15 @@ latest block number: {latest_block}"
 
         let db = Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
 
-        (db, chain_id, block)
+        let config = <K as ConfigAsProvider>::into_fork_config(
+            self,
+            block,
+            chain_id,
+            Arc::clone(&provider),
+        );
+        let client_fork_trait = config.into_client_fork(Arc::clone(&db));
+
+        (db, Arc::new(client_fork_trait))
     }
 
     /// Configures everything related to env, backend and database and returns the
@@ -985,103 +993,52 @@ latest block number: {latest_block}"
         // Http RPC Provider
         if let Some(eth_rpc_url) = self.eth_rpc_url.clone() {
             let provider = Arc::new(
-                ProviderBuilder::new(&eth_rpc_url)
-                    .timeout(self.fork_request_timeout)
-                    .timeout_retry(self.fork_request_retries)
-                    .initial_backoff(self.fork_retry_backoff.as_millis() as u64)
-                    .compute_units_per_second(self.compute_units_per_second)
-                    .max_retry(10)
-                    .initial_backoff(1000)
-                    .build()
-                    .expect("Failed to establish provider to fork RPC url"),
+                <ClientForkConfigHttp as ConfigAsProvider>::into_provider(self, None).await,
             );
-
-            let (db, chain_id, block) =
-                self.provider_setup(provider.clone(), &eth_rpc_url, &mut env, &fees).await;
-
-            let fork = ClientForkHttp::new_http(
-                ClientForkConfigHttp {
-                    eth_rpc_url: Some(eth_rpc_url.to_string()),
-                    block_number: block.number.unwrap().as_u64(),
-                    block_hash: block.hash.unwrap_or_default(),
-                    provider,
-                    chain_id,
-                    override_chain_id: self.chain_id,
-                    timestamp: block.timestamp.as_u64(),
-                    base_fee: block.base_fee_per_gas,
-                    timeout: Some(self.fork_request_timeout),
-                    retries: Some(self.fork_request_retries),
-                    backoff: Some(self.fork_retry_backoff),
-                    compute_units_per_second: Some(self.compute_units_per_second),
-                    total_difficulty: block.total_difficulty.unwrap_or_default(),
-                },
-                Arc::clone(&db),
-            );
-
+            let (db, fork) = self
+                .provider_setup::<RetryProvider, ClientForkConfigHttp>(
+                    provider.clone(),
+                    &eth_rpc_url,
+                    &mut env,
+                    &fees,
+                )
+                .await;
             backend_db = db;
-            client_fork = Some(Arc::new(fork));
+            client_fork = Some(fork);
         }
 
         // Ipc Provider
         if let Some(eth_ipc_path) = self.eth_ipc_path.clone() {
-            if let Some(db_path) = self.eth_reth_db.clone() {
-                let ipc_provider = Provider::connect_ipc(eth_ipc_path.clone()).await.unwrap();
-
-                let chain_id = ipc_provider.get_chainid().await.unwrap().as_u64();
+            if self.eth_reth_db.clone().is_some() {
                 let provider = Arc::new(
-                    RethMiddleware::new(ipc_provider, Path::new(&db_path), handle, chain_id)
-                        .unwrap(),
+                    <ClientForkConfigMiddleware as ConfigAsProvider>::into_provider(
+                        self,
+                        Some(handle),
+                    )
+                    .await,
                 );
-
-                let (db, chain_id, block) =
-                    self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &fees).await;
-
-                let fork = ClientForkMiddleware::new_middleware(
-                    ClientForkConfigMiddleware {
-                        ipc_path: Some(eth_ipc_path.to_string()),
-                        db_path: self.eth_reth_db.clone(),
-                        block_number: block.number.unwrap().as_u64(),
-                        block_hash: block.hash.unwrap_or_default(),
-                        provider,
-                        chain_id,
-                        override_chain_id: self.chain_id,
-                        timestamp: block.timestamp.as_u64(),
-                        base_fee: block.base_fee_per_gas,
-                        timeout: Some(self.fork_request_timeout),
-                        total_difficulty: block.total_difficulty.unwrap_or_default(),
-                    },
-                    Arc::clone(&db),
-                );
-
+                let (db, fork) = self
+                    .provider_setup::<RethMiddleware<Provider<Ipc>>, ClientForkConfigMiddleware>(
+                        provider.clone(),
+                        &eth_ipc_path,
+                        &mut env,
+                        &fees,
+                    )
+                    .await;
                 backend_db = db;
-                client_fork = Some(Arc::new(fork));
+                client_fork = Some(fork);
             } else {
                 let provider = Arc::new(Provider::connect_ipc(&eth_ipc_path).await.unwrap());
-
-                let (db, chain_id, block) =
-                    self.provider_setup(provider.clone(), &eth_ipc_path, &mut env, &fees).await;
-
-                let fork = ClientForkIpc::new_ipc(
-                    ClientForkConfigIpc {
-                        ipc_path: Some(eth_ipc_path.to_string()),
-                        block_number: block.number.unwrap().as_u64(),
-                        block_hash: block.hash.unwrap_or_default(),
-                        provider,
-                        chain_id,
-                        override_chain_id: self.chain_id,
-                        timestamp: block.timestamp.as_u64(),
-                        base_fee: block.base_fee_per_gas,
-                        timeout: Some(self.fork_request_timeout),
-                        retries: Some(self.fork_request_retries),
-                        backoff: Some(self.fork_retry_backoff),
-                        compute_units_per_second: Some(self.compute_units_per_second),
-                        total_difficulty: block.total_difficulty.unwrap_or_default(),
-                        db_path: None,
-                    },
-                    Arc::clone(&db),
-                );
+                let (db, fork) = self
+                    .provider_setup::<Provider<Ipc>, ClientForkConfigIpc>(
+                        provider.clone(),
+                        &eth_ipc_path,
+                        &mut env,
+                        &fees,
+                    )
+                    .await;
                 backend_db = db;
-                client_fork = Some(Arc::new(fork));
+                client_fork = Some(fork);
             }
         }
 

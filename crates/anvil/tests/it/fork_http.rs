@@ -71,7 +71,8 @@ async fn test_spawn_fork() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_spawn_fork_ipc() {
     // spawn a first node with http
-    let (origin_api, origin_handle) = spawn(fork_config().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
+    let (origin_api, origin_handle) =
+        spawn(fork_config().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
 
     // spawn a second node that is a fork of the first, connected through ipc
     let (fork_api, _fork_handle) =
@@ -94,8 +95,12 @@ async fn test_fork_call_ipc() {
     let res0 =
         provider.call(&tx, Some(BlockNumber::Number(block_number.into()).into())).await.unwrap();
 
-    let (_origin_api, origin_handle) =
-        spawn(fork_config().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string()))).with_fork_block_number(Some(block_number))).await;
+    let (_origin_api, origin_handle) = spawn(
+        fork_config()
+            .with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))
+            .with_fork_block_number(Some(block_number)),
+    )
+    .await;
 
     let (fork_api, _fork_handle) = spawn(
         fork_config()
@@ -635,9 +640,7 @@ async fn test_fork_init_base_fee() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_reset_fork_on_new_blocks() {
     let (api, handle) = spawn(
-        NodeConfig::test()
-            .with_eth_rpc_url(Some(rpc::next_http_archive_rpc_endpoint()))
-            .silent(),
+        NodeConfig::test().with_eth_rpc_url(Some(rpc::next_http_archive_rpc_endpoint())).silent(),
     )
     .await;
 
