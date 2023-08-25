@@ -23,7 +23,7 @@ use std::{sync::Arc, time::Duration};
 const BLOCK_NUMBER: u64 = 14_608_400u64;
 const BLOCK_TIMESTAMP: u64 = 1_650_274_250u64;
 
-const TEST_NODE_IPC_PATH: &'static str = "/tmp/anvil_test1.ipc";
+const TEST_NODE_IPC_PATH: &str = "/tmp/anvil_test1.ipc";
 
 /// Represents an anvil fork of an anvil node
 #[allow(unused)]
