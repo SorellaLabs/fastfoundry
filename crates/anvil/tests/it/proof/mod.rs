@@ -13,7 +13,7 @@ use ethers::utils::{keccak256, rlp};
 use foundry_evm::revm::primitives::KECCAK_EMPTY;
 
 mod eip1186;
-use crate::http::proof::eip1186::verify_proof;
+use crate::proof::eip1186::verify_proof;
 
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
