@@ -78,7 +78,7 @@ async fn test_fork_call_ipc() {
         spawn(fork_config_middleware().with_ipc(Some(None)).with_fork_block_number(Some(block_number))).await;
 
     let (fork_api, _fork_handle) = spawn(
-        fork_config_middleware()
+        NodeConfig::test()
             .with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))
     )
     .await;
