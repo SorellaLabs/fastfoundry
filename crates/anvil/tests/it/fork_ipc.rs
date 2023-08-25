@@ -348,15 +348,13 @@ async fn can_deploy_greeter_on_fork() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_reset_properly() {
-    let (origin_api, origin_handle) = spawn(fork_config_ipc()).await;
+    let (origin_api, origin_handle) = spawn(NodeConfig::test()).await;
     let account = origin_handle.dev_accounts().next().unwrap();
     let origin_provider = origin_handle.http_provider();
     let origin_nonce = 1u64.into();
     origin_api.anvil_set_nonce(account, origin_nonce).await.unwrap();
 
-    let block_num = origin_provider.get_block_number().await.unwrap();
-    println!("BLOCK NUM: {:?}\nTX COUNT A: {:?},\nTX COUNT B: {:?}", block_num, origin_provider.get_transaction_count(account, Some(block_num.into())).await.unwrap(), origin_provider.get_transaction_count(account, Some(block_num.into())).await.unwrap()+1);
-    assert_eq!(origin_nonce, origin_provider.get_transaction_count(account, Some(block_num.into())).await.unwrap());
+    assert_eq!(origin_nonce, origin_provider.get_transaction_count(account, None).await.unwrap());
 
     let (fork_api, fork_handle) =
         spawn(NodeConfig::test_http().with_eth_ipc_path(Some(TEST_IPC_PATH))).await;
