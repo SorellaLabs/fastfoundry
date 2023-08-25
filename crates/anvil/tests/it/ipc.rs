@@ -19,7 +19,6 @@ fn ipc_config() -> NodeConfig {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn can_get_block_number_ipc() {
     let (api, handle) = spawn(ipc_config()).await;
 
@@ -33,7 +32,6 @@ async fn can_get_block_number_ipc() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_sub_new_heads_ipc() {
     let (api, handle) = spawn(ipc_config()).await;
 

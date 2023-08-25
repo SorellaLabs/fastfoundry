@@ -5,7 +5,6 @@ use ethers::{abi::Address, prelude::Middleware, types::U256};
 use serial_test::serial;
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn can_apply_genesis() {
     let genesis = r#"{
   "config": {

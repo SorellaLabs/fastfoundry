@@ -59,7 +59,6 @@ pub fn fork_config() -> NodeConfig {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_spawn_fork() {
     let (api, _handle) = spawn(fork_config()).await;
     assert!(api.is_fork());
@@ -69,7 +68,6 @@ async fn test_spawn_fork() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_spawn_fork_ipc() {
     // spawn a first node with http
     let (origin_api, origin_handle) = spawn(fork_config().with_ipc(Some(None))).await;
@@ -84,7 +82,6 @@ async fn test_spawn_fork_ipc() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_call_ipc() {
     let input: Bytes = "0x77c7b8fc".parse().unwrap();
     let to: Address = "0x99d1Fa417f94dcD62BfE781a1213c092a47041Bc".parse().unwrap();
@@ -121,7 +118,6 @@ async fn test_fork_call_ipc() {
 //TODO: Implement ethers-reth mock in the main repo + then use in test
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_eth_get_balance() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -135,7 +131,6 @@ async fn test_fork_eth_get_balance() {
 
 // <https://github.com/foundry-rs/foundry/issues/4082>
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_eth_get_balance_after_mine() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -160,7 +155,6 @@ async fn test_fork_eth_get_balance_after_mine() {
 
 // <https://github.com/foundry-rs/foundry/issues/4082>
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_eth_get_code_after_mine() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -180,7 +174,6 @@ async fn test_fork_eth_get_code_after_mine() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_eth_get_code() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -205,7 +198,6 @@ async fn test_fork_eth_get_code() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_eth_get_nonce() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -224,7 +216,6 @@ async fn test_fork_eth_get_nonce() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_eth_fee_history() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -235,7 +226,6 @@ async fn test_fork_eth_fee_history() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_reset() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -284,7 +274,6 @@ async fn test_fork_reset() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_snapshotting() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -324,7 +313,6 @@ async fn test_fork_snapshotting() {
 /// changes don't make into the read only Database that holds the remote state, which is flushed to
 /// a cache file.
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_separate_states() {
     let (api, handle) = spawn(fork_config().with_fork_block_number(Some(14723772u64))).await;
     let provider = handle.http_provider();
@@ -347,7 +335,6 @@ async fn test_separate_states() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn can_deploy_greeter_on_fork() {
     let (_api, handle) = spawn(fork_config().with_fork_block_number(Some(14723772u64))).await;
     let provider = handle.http_provider();
@@ -372,7 +359,6 @@ async fn can_deploy_greeter_on_fork() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn can_reset_properly() {
     let (origin_api, origin_handle) = spawn(NodeConfig::test_http()).await;
     let account = origin_handle.dev_accounts().next().unwrap();
@@ -410,7 +396,6 @@ async fn can_reset_properly() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_timestamp() {
     let start = std::time::Instant::now();
 
@@ -473,7 +458,6 @@ async fn test_fork_timestamp() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_set_empty_code() {
     let (api, _handle) = spawn(fork_config()).await;
     let addr = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984".parse().unwrap();
@@ -485,7 +469,6 @@ async fn test_fork_set_empty_code() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_can_send_tx() {
     let (api, handle) =
         spawn(fork_config().with_blocktime(Some(std::time::Duration::from_millis(800)))).await;
@@ -509,7 +492,6 @@ async fn test_fork_can_send_tx() {
 
 // <https://github.com/foundry-rs/foundry/issues/1920>
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_nft_set_approve_all() {
     let (api, handle) = spawn(
         fork_config()
@@ -557,7 +539,6 @@ async fn test_fork_nft_set_approve_all() {
 
 // <https://github.com/foundry-rs/foundry/issues/2261>
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_with_custom_chain_id() {
     // spawn a forked node with some random chainId
     let (api, handle) = spawn(
@@ -583,7 +564,6 @@ async fn test_fork_with_custom_chain_id() {
 
 // <https://github.com/foundry-rs/foundry/issues/1920>
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_can_send_opensea_tx() {
     let (api, handle) = spawn(
         fork_config()
@@ -614,7 +594,6 @@ async fn test_fork_can_send_opensea_tx() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_base_fee() {
     let (api, handle) = spawn(fork_config()).await;
 
@@ -633,7 +612,6 @@ async fn test_fork_base_fee() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_init_base_fee() {
     let (api, handle) = spawn(fork_config().with_fork_block_number(Some(13184859u64))).await;
 
@@ -654,7 +632,6 @@ async fn test_fork_init_base_fee() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_reset_fork_on_new_blocks() {
     let (api, handle) = spawn(
         NodeConfig::test_http()
@@ -685,7 +662,6 @@ async fn test_reset_fork_on_new_blocks() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_call() {
     let input: Bytes = "0x77c7b8fc".parse().unwrap();
     let to: Address = "0x99d1Fa417f94dcD62BfE781a1213c092a47041Bc".parse().unwrap();
@@ -712,7 +688,6 @@ async fn test_fork_call() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_block_timestamp() {
     let (api, _) = spawn(fork_config()).await;
 
@@ -724,7 +699,6 @@ async fn test_fork_block_timestamp() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_snapshot_block_timestamp() {
     let (api, _) = spawn(fork_config()).await;
 
@@ -740,7 +714,6 @@ async fn test_fork_snapshot_block_timestamp() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_uncles_fetch() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -779,7 +752,6 @@ async fn test_fork_uncles_fetch() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_fork_block_transaction_count() {
     let (api, handle) = spawn(fork_config()).await;
     let provider = handle.http_provider();
@@ -832,7 +804,6 @@ async fn test_fork_block_transaction_count() {
 
 // <https://github.com/foundry-rs/foundry/issues/2931>
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn can_impersonate_in_fork() {
     let (api, handle) = spawn(fork_config().with_fork_block_number(Some(15347924u64))).await;
     let provider = handle.http_provider();
@@ -865,7 +836,6 @@ async fn can_impersonate_in_fork() {
 
 // <https://etherscan.io/block/14608400>
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_total_difficulty_fork() {
     let (api, handle) = spawn(fork_config()).await;
 
@@ -889,7 +859,6 @@ async fn test_total_difficulty_fork() {
 
 // <https://etherscan.io/block/14608400>
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_transaction_receipt() {
     let (api, _) = spawn(fork_config()).await;
 
@@ -913,7 +882,6 @@ async fn test_transaction_receipt() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn can_override_fork_chain_id() {
     let chain_id_override = 5u64;
     let (_api, handle) = spawn(

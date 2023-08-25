@@ -8,7 +8,6 @@ use ethers::{
 use serial_test::serial;
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn geth_txpool() {
     let (api, handle) = spawn(NodeConfig::test_http()).await;
     let provider = handle.http_provider();

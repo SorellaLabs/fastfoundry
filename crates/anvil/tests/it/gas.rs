@@ -13,7 +13,6 @@ use serial_test::serial;
 const GAS_TRANSFER: u64 = 21_000u64;
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_basefee_full_block() {
     let (_api, handle) = spawn(
         NodeConfig::test_http()
@@ -37,7 +36,6 @@ async fn test_basefee_full_block() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_basefee_half_block() {
     let (_api, handle) = spawn(
         NodeConfig::test_http()
@@ -57,7 +55,6 @@ async fn test_basefee_half_block() {
     assert_eq!(next_base_fee.as_u64(), INITIAL_BASE_FEE);
 }
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_basefee_empty_block() {
     let (api, handle) = spawn(NodeConfig::test_http().with_base_fee(Some(INITIAL_BASE_FEE))).await;
 
@@ -78,7 +75,6 @@ async fn test_basefee_empty_block() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_respect_base_fee() {
     let base_fee = 50u64;
     let (_api, handle) = spawn(NodeConfig::test_http().with_base_fee(Some(base_fee))).await;
@@ -99,7 +95,6 @@ async fn test_respect_base_fee() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[serial]
 async fn test_tip_above_fee_cap() {
     let base_fee = 50u64;
     let (_api, handle) = spawn(NodeConfig::test_http().with_base_fee(Some(base_fee))).await;
