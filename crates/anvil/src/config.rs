@@ -946,12 +946,8 @@ latest block number: {latest_block}"
 
         let db = Arc::new(tokio::sync::RwLock::new(ForkedDatabase::new(backend, block_chain_db)));
 
-        let config = <K as ConfigAsProvider>::into_fork_config(
-            self,
-            block,
-            chain_id,
-            Arc::clone(&provider),
-        );
+        let config =
+            <K as ConfigAsProvider>::into_fork_config(self, block, chain_id, Arc::clone(&provider));
         let client_fork_trait = config.into_client_fork(Arc::clone(&db));
 
         (db, Arc::new(client_fork_trait))
