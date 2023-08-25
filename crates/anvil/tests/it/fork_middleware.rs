@@ -52,14 +52,9 @@ async fn test_spawn_fork_ipc() {
     // spawn a first node with http
     let (origin_api, origin_handle) = spawn(fork_config_middleware().with_ipc(Some(None))).await;
 
-    let mut fork_config = fork_config_middleware();
-    println!("{:?}", fork_config);
-    fork_config = fork_config.with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap())).with_fork_block_number(Some(origin_api.block_number().unwrap().as_u64()));
-    println!("{:?}", fork_config);
-
     // spawn a second node that is a fork of the first, connected through ipc
     let (fork_api, _fork_handle) =
-        spawn(fork_config).await;
+        spawn(NodeConfig::test().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))).await;
 
     let head = origin_api.block_number().unwrap();
     let head2 = fork_api.block_number().unwrap();
