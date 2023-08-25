@@ -641,7 +641,7 @@ async fn test_reset_fork_on_new_blocks() {
     let (api, handle) =
         spawn(NodeConfig::test().with_eth_ipc_path(Some(TEST_IPC_PATH)).silent()).await;
 
-    let anvil_provider = handle.ipc_provider().await.unwrap();
+    let anvil_provider = handle.http_provider();
 
     let endpoint = next_http_rpc_endpoint();
     let provider = Arc::new(get_http_provider(&endpoint).interval(Duration::from_secs(2)));
@@ -654,6 +654,7 @@ async fn test_reset_fork_on_new_blocks() {
     // the http watcher may fetch multiple blocks at once, so we set a timeout here to offset edge
     // cases where the stream immediately returns a block
     tokio::time::sleep(Chain::Mainnet.average_blocktime_hint().unwrap()).await;
+    stream.next().await.unwrap();
     stream.next().await.unwrap();
     stream.next().await.unwrap();
 
