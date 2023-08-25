@@ -1,7 +1,7 @@
 //! various fork related test
 
 use crate::{abi::*, utils};
-use anvil::{eth::EthApi, spawn, NodeConfig, NodeHandle};
+use anvil::{spawn, NodeConfig};
 use anvil_core::{eth::transaction::EthTransactionRequest, types::Forking};
 use ethers::{
     core::rand,
@@ -24,33 +24,6 @@ const BLOCK_NUMBER: u64 = 14_608_400u64;
 
 const BLOCK_TIMESTAMP: u64 = 1_650_274_250u64;
 const TEST_IPC_PATH: &'static str = "/tmp/reth.ipc";
-
-/// Represents an anvil fork of an anvil node
-#[allow(unused)]
-pub struct LocalFork {
-    origin_api: EthApi,
-    origin_handle: NodeHandle,
-    fork_api: EthApi,
-    fork_handle: NodeHandle,
-}
-
-// === impl LocalFork ===
-#[allow(dead_code)]
-impl LocalFork {
-    /// Spawns two nodes with the test config
-    pub async fn new() -> Self {
-        Self::setup(NodeConfig::test(), NodeConfig::test()).await
-    }
-
-    /// Spawns two nodes where one is a fork of the other
-    pub async fn setup(origin: NodeConfig, fork: NodeConfig) -> Self {
-        let (origin_api, origin_handle) = spawn(origin).await;
-
-        let (fork_api, fork_handle) =
-            spawn(fork.with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))).await;
-        Self { origin_api, origin_handle, fork_api, fork_handle }
-    }
-}
 
 pub fn fork_config_ipc() -> NodeConfig {
     NodeConfig::test()
