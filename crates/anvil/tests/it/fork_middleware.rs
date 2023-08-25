@@ -54,7 +54,7 @@ async fn test_spawn_fork_ipc() {
 
     // spawn a second node that is a fork of the first, connected through ipc
     let (fork_api, _fork_handle) =
-        spawn(fork_config_middleware().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap())).with_fork_block_number(Some(origin_api.block_number().unwrap().as_u64()))).await;
+        spawn(NodeConfig::test().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))).await;
 
     let head = origin_api.block_number().unwrap();
     let head2 = fork_api.block_number().unwrap();
