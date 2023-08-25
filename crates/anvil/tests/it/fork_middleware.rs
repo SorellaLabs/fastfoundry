@@ -80,7 +80,6 @@ async fn test_fork_call_ipc() {
     let (fork_api, _fork_handle) = spawn(
         fork_config_middleware()
             .with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))
-            .with_fork_block_number(Some(block_number)),
     )
     .await;
 
