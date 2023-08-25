@@ -146,7 +146,7 @@ forgetest_async!(
     #[serial_test::serial]
     can_create_template_contract,
     |prj: TestProject, mut cmd: TestCommand| async move {
-        let (_api, handle) = spawn(NodeConfig::test_http()).await;
+        let (_api, handle) = spawn(NodeConfig::test()).await;
         let rpc = handle.http_endpoint();
         let wallet = handle.dev_wallets().next().unwrap();
         let pk = hex::encode(wallet.signer().to_bytes());
@@ -185,7 +185,7 @@ forgetest_async!(
     #[serial_test::serial]
     can_create_using_unlocked,
     |prj: TestProject, mut cmd: TestCommand| async move {
-        let (_api, handle) = spawn(NodeConfig::test_http()).await;
+        let (_api, handle) = spawn(NodeConfig::test()).await;
         let rpc = handle.http_endpoint();
         let dev = handle.dev_accounts().next().unwrap();
         cmd.args(["init", "--force"]);
