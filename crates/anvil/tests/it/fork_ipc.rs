@@ -45,7 +45,7 @@ async fn test_spawn_fork() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-[#serial]
+#[serial]
 async fn test_spawn_fork_ipc() {
     // spawn a first node with http
     let (origin_api, origin_handle) = spawn(fork_config_ipc().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
