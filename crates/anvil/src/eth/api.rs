@@ -56,8 +56,6 @@ use ethers::{
     },
     utils::rlp,
 };
-use forge::{executor::DatabaseRef, revm::primitives::BlockEnv};
-use foundry_common::ProviderBuilder;
 use foundry_evm::{
     executor::{backend::DatabaseError, DatabaseRef},
     revm::{

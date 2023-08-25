@@ -17,5 +17,5 @@ ethers.workspace = true
 
 crossterm = "0.26"
 eyre = "0.6"
-revm = { version = "3", features = ["std", "serde"] }
+revm = { git = "https://github.com/bluealloy/revm/", rev = "6b55b9c0ab264c000e087c2f54f2d8dc24b869aa",  version = "3",  default-features = false,  features = ["std", "serde"] }
 ratatui = { version = "0.22.0", default-features = false, features = ["crossterm"]}

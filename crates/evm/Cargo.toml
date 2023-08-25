@@ -40,14 +40,7 @@ once_cell = "1"
 # EVM
 bytes = "1"
 hashbrown = { version = "0.13", features = ["serde"] }
-revm = { version = "3", default-features = false, features = [
-  "std",
-  "serde",
-  "memory_limit",
-  "optional_eip3607",
-  "optional_block_gas_limit",
-  "optional_no_base_fee",
-] }
+revm = { git = "https://github.com/bluealloy/revm/", rev = "6b55b9c0ab264c000e087c2f54f2d8dc24b869aa",  version = "3",  default-features = false,  features = [ "std", "serde", "memory_limit", "optional_eip3607", "optional_block_gas_limit", "optional_no_base_fee" ] }
 
 # Fuzzer
 proptest = "1"

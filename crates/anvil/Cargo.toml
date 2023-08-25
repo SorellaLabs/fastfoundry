@@ -16,17 +16,21 @@ path = "src/anvil.rs"
 required-features = ["cli"]
 
 [build-dependencies]
-vergen = { version = "8", default-features = false, features = ["build", "git", "gitcl"] }
+vergen = { version = "8", default-features = false, features = ["build"] }
 
 [dependencies]
 # foundry internal
 anvil-core = { path = "core", features = ["fastrlp", "serde", "impersonated-tx"] }
 anvil-rpc = { path = "rpc" }
 anvil-server = { path = "server" }
-foundry-common.workspace = true
+forge = { path = "../forge", optional = true }
+foundry-common = {workspace = true, optional = true}
 foundry-config.workspace = true
 foundry-evm.workspace = true
 foundry-utils.workspace = true
+
+# ethers reth
+ethers-reth = {git = "https://github.com/SorellaLabs/ethers-reth"}
 
 # evm support
 bytes = "1.4.0"
@@ -34,9 +38,6 @@ ethers = { workspace = true, features = ["rustls", "ws", "ipc"] }
 trie-db = { version = "0.23" }
 hash-db = { version = "0.15" }
 memory-db = { version = "0.29" }
-
-# ethers reth
-ethers-reth = {git = "https://github.com/SorellaLabs/ethers-reth"}
 
 # axum related
 axum = { version = "0.5", features = ["ws"] }
@@ -52,8 +53,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tokio = { version = "1", features = ["time"] }
 parking_lot = "0.12"
 futures = "0.3"
-async-trait = "0.1.68"
-serial_test = "2.0.0"
+async-trait = "0.1"
 
 # misc
 flate2 = "1.0"
@@ -62,7 +62,9 @@ serde = { version = "1", features = ["derive"] }
 thiserror = "1"
 yansi = "0.5"
 tempfile = "3"
-itertools = "0.10"
+itertools.workspace = true
+anyhow = "1.0.71"
+serial_test = "2.0.0"
 
 # cli
 clap = { version = "4", features = ["derive", "env", "wrap_help"], optional = true }
@@ -75,7 +77,7 @@ clap_complete_fig = "4"
 ethereum-forkid = "0.12"
 
 [dev-dependencies]
-ethers = { workspace = true, features = ["abigen", "ipc"] }
+ethers = { workspace = true, features = ["abigen"] }
 ethers-solc = { workspace = true, features = ["project-util", "full"] }
 pretty_assertions = "1.3.0"
 tokio = { version = "1", features = ["full"] }
@@ -83,5 +85,5 @@ crc = "3.0.1"
 
 [features]
 default = ["cli"]
-cmd = ["clap", "clap_complete", "ctrlc", "anvil-server/clap"]
+cmd = ["foundry-common", "forge", "clap", "clap_complete", "ctrlc", "anvil-server/clap"]
 cli = ["tokio/full", "cmd", "fdlimit"]

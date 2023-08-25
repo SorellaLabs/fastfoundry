@@ -31,7 +31,6 @@ use ethers::{
     utils::{format_ether, hex, to_checksum, WEI_IN_ETHER},
 };
 use ethers_reth::RethMiddleware;
-use forge::utils::{h256_to_b256, u256_to_ru256};
 use foundry_common::{
     RetryProvider, ALCHEMY_FREE_TIER_CUPS, NON_ARCHIVE_NODE_WARNING, REQUEST_TIMEOUT,
 };
@@ -965,18 +964,18 @@ latest block number: {latest_block}"
     /// *Note*: only memory based backend for now
     pub(crate) async fn setup(&mut self, handle: Handle) -> mem::Backend {
         // configure the revm environment
+        let mut cfg = CfgEnv::default();
+        cfg.spec_id = self.get_hardfork().into();
+        cfg.chain_id = rU256::from(self.get_chain_id());
+        cfg.limit_contract_code_size = self.code_size_limit;
+        // EIP-3607 rejects transactions from senders with deployed code.
+        // If EIP-3607 is enabled it can cause issues during fuzz/invariant tests if the
+        // caller is a contract. So we disable the check by default.
+        cfg.disable_eip3607 = true;
+        cfg.disable_block_gas_limit = self.disable_block_gas_limit;
+
         let mut env = revm::primitives::Env {
-            cfg: CfgEnv {
-                spec_id: self.get_hardfork().into(),
-                chain_id: rU256::from(self.get_chain_id()),
-                limit_contract_code_size: self.code_size_limit,
-                // EIP-3607 rejects transactions from senders with deployed code.
-                // If EIP-3607 is enabled it can cause issues during fuzz/invariant tests if the
-                // caller is a contract. So we disable the check by default.
-                disable_eip3607: true,
-                disable_block_gas_limit: self.disable_block_gas_limit,
-                ..Default::default()
-            },
+            cfg,
             block: BlockEnv {
                 gas_limit: self.gas_limit.into(),
                 basefee: self.get_base_fee().into(),
@@ -984,6 +983,7 @@ latest block number: {latest_block}"
             },
             tx: TxEnv { chain_id: self.get_chain_id().into(), ..Default::default() },
         };
+
         let fees = FeeManager::new(env.cfg.spec_id, self.get_base_fee(), self.get_gas_price());
 
         #[allow(clippy::type_complexity)]
