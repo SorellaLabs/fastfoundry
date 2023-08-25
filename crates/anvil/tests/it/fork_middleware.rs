@@ -669,6 +669,7 @@ async fn test_reset_fork_on_new_blocks() {
     tokio::time::sleep(Chain::Mainnet.average_blocktime_hint().unwrap()).await;
     stream.next().await.unwrap();
     stream.next().await.unwrap();
+    stream.next().await.unwrap();
 
     let next_block = anvil_provider.get_block_number().await.unwrap();
 
