@@ -350,11 +350,11 @@ async fn can_deploy_greeter_on_fork() {
 async fn can_reset_properly() {
     let (origin_api, origin_handle) = spawn(fork_config_ipc()).await;
     let account = origin_handle.dev_accounts().next().unwrap();
-    let origin_provider = origin_handle.http_provider();
+    let origin_provider = origin_handle.ipc_provider().await.unwrap();
     let origin_nonce = 1u64.into();
     origin_api.anvil_set_nonce(account, origin_nonce).await.unwrap();
 
-    println!("API {:?}", origin_api);
+    //println!("API {:?}", origin_api.);
     assert_eq!(origin_nonce, origin_provider.get_transaction_count(account, None).await.unwrap());
 
     let (fork_api, fork_handle) =
