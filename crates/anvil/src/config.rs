@@ -37,10 +37,13 @@ use foundry_common::{
 };
 use foundry_config::Config;
 use foundry_evm::{
-    executor::fork::{BlockchainDb, BlockchainDbMeta, SharedBackend},
+    executor::{
+        fork::{BlockchainDb, BlockchainDbMeta, SharedBackend},
+        inspector::DEFAULT_CREATE2_DEPLOYER,
+    },
     revm,
     revm::primitives::{BlockEnv, CfgEnv, SpecId, TxEnv, U256 as rU256},
-    utils::apply_chain_and_block_specific_env_changes,
+    utils::{apply_chain_and_block_specific_env_changes, h256_to_b256, u256_to_ru256},
 };
 use parking_lot::RwLock;
 use revm::primitives::Env;
@@ -174,6 +177,8 @@ pub struct NodeConfig {
     pub init_state: Option<SerializableState>,
     /// max number of blocks with transactions in memory
     pub transaction_block_keeper: Option<usize>,
+    /// Disable the default CREATE2 deployer
+    pub disable_default_create2_deployer: bool,
 }
 
 impl NodeConfig {
@@ -411,6 +416,7 @@ impl Default for NodeConfig {
             prune_history: Default::default(),
             init_state: None,
             transaction_block_keeper: None,
+            disable_default_create2_deployer: false,
         }
     }
 }
@@ -1064,6 +1070,15 @@ latest block number: {latest_block}"
             self.block_time,
         )
         .await;
+
+        // Writes the default create2 deployer to the backend,
+        // if the option is not disabled and we are not forking.
+        if !self.disable_default_create2_deployer && self.eth_rpc_url.is_none() {
+            backend
+                .set_create2_deployer(DEFAULT_CREATE2_DEPLOYER)
+                .await
+                .expect("Failed to create default create2 deployer");
+        }
 
         if let Some(ref state) = self.init_state {
             backend

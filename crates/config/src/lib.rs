@@ -1,5 +1,6 @@
-//! foundry configuration.
-#![deny(missing_docs, unsafe_code, unused_crate_dependencies)]
+//! Foundry configuration.
+
+#![warn(missing_docs, unused_crate_dependencies)]
 
 use crate::cache::StorageCachingConfig;
 use ethers_core::types::{Address, Chain::Mainnet, H160, H256, U256};
@@ -204,6 +205,8 @@ pub struct Config {
     pub verbosity: u8,
     /// url of the rpc server that should be used for any rpc calls
     pub eth_rpc_url: Option<String>,
+    /// JWT secret that should be used for any rpc calls
+    pub eth_rpc_jwt: Option<String>,
     /// etherscan API key, or alias for an `EtherscanConfig` in `etherscan` table
     pub etherscan_api_key: Option<String>,
     /// Multiple etherscan api configs and their aliases
@@ -749,6 +752,25 @@ impl Config {
     /// ```
     pub fn get_all_remappings(&self) -> Vec<Remapping> {
         self.remappings.iter().map(|m| m.clone().into()).collect()
+    }
+
+    /// Returns the configured rpc jwt secret
+    ///
+    /// Returns:
+    ///    - The jwt secret, if configured
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// 
+    /// use foundry_config::Config;
+    /// # fn t() {
+    ///     let config = Config::with_root("./");
+    ///     let rpc_jwt = config.get_rpc_jwt_secret().unwrap().unwrap();
+    /// # }
+    /// ```
+    pub fn get_rpc_jwt_secret(&self) -> Result<Option<Cow<str>>, UnresolvedEnvVarError> {
+        Ok(self.eth_rpc_jwt.as_ref().map(|jwt| Cow::Borrowed(jwt.as_str())))
     }
 
     /// Returns the configured rpc url
@@ -1773,6 +1795,7 @@ impl Default for Config {
             block_gas_limit: None,
             memory_limit: 2u64.pow(25),
             eth_rpc_url: None,
+            eth_rpc_jwt: None,
             etherscan_api_key: None,
             verbosity: 0,
             remappings: vec![],
@@ -2439,7 +2462,7 @@ impl BasicConfig {
             "\
 [profile.{}]
 {s}
-# See more config options https://github.com/foundry-rs/foundry/tree/master/config\n",
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options\n",
             self.profile
         ))
     }
@@ -4139,7 +4162,7 @@ mod tests {
             out = 'out'
             libs = ['lib']
 
-            # See more config options https://github.com/foundry-rs/foundry/tree/master/config
+            # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
         "#;
         assert_eq!(
             parse_with_profile::<BasicConfig>(foundry_str).unwrap().unwrap(),
