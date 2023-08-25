@@ -352,7 +352,7 @@ async fn can_deploy_greeter_on_fork() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_reset_properly() {
-    let (origin_api, origin_handle) = spawn(NodeConfig::test_http()).await;
+    let (origin_api, origin_handle) = spawn(NodeConfig::test().with_ipc(Some(None))).await;
     let account = origin_handle.dev_accounts().next().unwrap();
     let origin_provider = origin_handle.http_provider();
     let origin_nonce = 1u64.into();
@@ -361,7 +361,7 @@ async fn can_reset_properly() {
     assert_eq!(origin_nonce, origin_provider.get_transaction_count(account, None).await.unwrap());
 
     let (fork_api, fork_handle) =
-        spawn(NodeConfig::test_http().with_eth_reth_db(Some(TEST_RETH_DB_PATH))).await;
+        spawn(NodeConfig::test().with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap())).with_eth_reth_db(Some(TEST_RETH_DB_PATH))).await;
 
     let fork_provider = fork_handle.http_provider();
     assert_eq!(origin_nonce, fork_provider.get_transaction_count(account, None).await.unwrap());
