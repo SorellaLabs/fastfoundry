@@ -1,4 +1,4 @@
-use crate::fork::fork_config;
+use crate::fork_http::fork_config;
 use anvil::{spawn, NodeConfig};
 use ethers::{
     contract::ContractInstance,

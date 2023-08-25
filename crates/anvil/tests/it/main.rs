@@ -4,7 +4,7 @@ mod geth;
 mod anvil;
 mod anvil_api;
 mod api;
-pub mod fork;
+pub mod fork_http;
 pub mod fork_ipc;
 pub mod fork_middleware;
 mod gas;
