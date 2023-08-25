@@ -15,7 +15,7 @@ pub fn rand_ipc_endpoint() -> String {
 }
 
 fn ipc_config() -> NodeConfig {
-    NodeConfig::test_http().with_ipc(Some(Some(rand_ipc_endpoint())))
+    NodeConfig::test().with_ipc(Some(Some(rand_ipc_endpoint())))
 }
 
 #[tokio::test(flavor = "multi_thread")]

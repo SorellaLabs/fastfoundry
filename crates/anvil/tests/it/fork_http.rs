@@ -38,7 +38,7 @@ pub struct LocalFork {
 impl LocalFork {
     /// Spawns two nodes with the test config
     pub async fn new() -> Self {
-        Self::setup(NodeConfig::test_http(), NodeConfig::test_http()).await
+        Self::setup(NodeConfig::test(), NodeConfig::test()).await
     }
 
     /// Spawns two nodes where one is a fork of the other
@@ -52,7 +52,7 @@ impl LocalFork {
 }
 
 pub fn fork_config() -> NodeConfig {
-    NodeConfig::test_http()
+    NodeConfig::test()
         .with_eth_rpc_url(Some(rpc::next_http_archive_rpc_endpoint()))
         .with_fork_block_number(Some(BLOCK_NUMBER))
         .silent()
@@ -360,7 +360,7 @@ async fn can_deploy_greeter_on_fork() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_reset_properly() {
-    let (origin_api, origin_handle) = spawn(NodeConfig::test_http()).await;
+    let (origin_api, origin_handle) = spawn(NodeConfig::test()).await;
     let account = origin_handle.dev_accounts().next().unwrap();
     let origin_provider = origin_handle.http_provider();
     let origin_nonce = 1u64.into();
@@ -369,7 +369,7 @@ async fn can_reset_properly() {
     assert_eq!(origin_nonce, origin_provider.get_transaction_count(account, None).await.unwrap());
 
     let (fork_api, fork_handle) =
-        spawn(NodeConfig::test_http().with_eth_rpc_url(Some(origin_handle.http_endpoint()))).await;
+        spawn(NodeConfig::test().with_eth_rpc_url(Some(origin_handle.http_endpoint()))).await;
 
     let fork_provider = fork_handle.http_provider();
     assert_eq!(origin_nonce, fork_provider.get_transaction_count(account, None).await.unwrap());
@@ -634,7 +634,7 @@ async fn test_fork_init_base_fee() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_reset_fork_on_new_blocks() {
     let (api, handle) = spawn(
-        NodeConfig::test_http()
+        NodeConfig::test()
             .with_eth_rpc_url(Some(rpc::next_http_archive_rpc_endpoint()))
             .silent(),
     )

@@ -34,7 +34,7 @@ async fn can_apply_genesis() {
 }
 "#;
     let genesis: Genesis = serde_json::from_str(genesis).unwrap();
-    let (_api, handle) = spawn(NodeConfig::test_http().with_genesis(Some(genesis))).await;
+    let (_api, handle) = spawn(NodeConfig::test().with_genesis(Some(genesis))).await;
 
     let provider = handle.http_provider();
 

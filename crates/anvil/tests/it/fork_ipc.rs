@@ -631,7 +631,7 @@ async fn test_fork_init_base_fee() {
 #[serial]
 async fn test_reset_fork_on_new_blocks() {
     let (api, handle) = spawn(
-        NodeConfig::test_http()
+        NodeConfig::test()
             .with_eth_ipc_path(Some(TEST_IPC_PATH))
             .silent(),
     )

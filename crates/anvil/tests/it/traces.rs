@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_get_transfer_parity_traces() {
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let accounts: Vec<_> = handle.dev_wallets().collect();
@@ -72,7 +72,7 @@ contract Contract {
     let contract = compiled.remove_first("Contract").unwrap();
     let (abi, bytecode, _) = contract.into_contract_bytecode().into_parts();
 
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.ws_provider().await;
     let wallets = handle.dev_wallets().collect::<Vec<_>>();
     let client = Arc::new(SignerMiddleware::new(provider, wallets[0].clone()));
@@ -119,7 +119,7 @@ contract Contract {
     let contract = compiled.remove_first("Contract").unwrap();
     let (abi, bytecode, _) = contract.into_contract_bytecode().into_parts();
 
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.ws_provider().await;
     let wallets = handle.dev_wallets().collect::<Vec<_>>();
     let client = Arc::new(SignerMiddleware::new(provider, wallets[0].clone()));

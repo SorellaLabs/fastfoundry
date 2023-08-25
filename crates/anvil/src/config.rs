@@ -364,23 +364,6 @@ impl NodeConfig {
     pub fn test() -> Self {
         Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }            
     }
-    #[doc(hidden)]
-    pub fn test_http() -> Self {
-        Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }            
-    }
-
-    #[doc(hidden)]
-    pub fn test_ipc() -> Self {
-        Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }
-            .with_eth_ipc_path(Some("/tmp/reth.ipc"))
-    }
-
-    #[doc(hidden)]
-    pub fn test_middleware() -> Self {
-        Self { enable_tracing: false, silent: true, port: 0, ..Default::default() }
-            .with_eth_ipc_path(Some("/tmp/reth.ipc"))
-            .with_eth_reth_db(Some("/home/data/reth/db"))
-    }
 }
 
 impl Default for NodeConfig {

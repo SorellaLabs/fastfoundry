@@ -18,7 +18,7 @@ use crate::abi::{MulticallContract, SimpleStorage};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_get_block_number() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
 
     let block_num = api.block_number().unwrap();
     assert_eq!(block_num, U256::zero());
@@ -31,7 +31,7 @@ async fn can_get_block_number() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_dev_get_balance() {
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let genesis_balance = handle.genesis_balance();
@@ -43,7 +43,7 @@ async fn can_dev_get_balance() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_get_price() {
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let _ = provider.get_gas_price().await.unwrap();
@@ -51,7 +51,7 @@ async fn can_get_price() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_get_accounts() {
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let _ = provider.get_accounts().await.unwrap();
@@ -59,7 +59,7 @@ async fn can_get_accounts() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_get_client_version() {
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let version = provider.client_version().await.unwrap();
@@ -68,7 +68,7 @@ async fn can_get_client_version() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_get_chain_id() {
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let chain_id = provider.get_chainid().await.unwrap();
@@ -77,7 +77,7 @@ async fn can_get_chain_id() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_modify_chain_id() {
-    let (_api, handle) = spawn(NodeConfig::test_http().with_chain_id(Some(Chain::Goerli))).await;
+    let (_api, handle) = spawn(NodeConfig::test().with_chain_id(Some(Chain::Goerli))).await;
     let provider = handle.http_provider();
 
     let chain_id = provider.get_chainid().await.unwrap();
@@ -89,7 +89,7 @@ async fn can_modify_chain_id() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_get_network_id() {
-    let (api, _handle) = spawn(NodeConfig::test_http()).await;
+    let (api, _handle) = spawn(NodeConfig::test()).await;
 
     let chain_id = api.network_id().unwrap().unwrap();
     assert_eq!(chain_id, CHAIN_ID.to_string());
@@ -97,7 +97,7 @@ async fn can_get_network_id() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_get_block_by_number() {
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
     let accounts: Vec<_> = handle.dev_wallets().collect();
     let from = accounts[0].address();
@@ -119,7 +119,7 @@ async fn can_get_block_by_number() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_get_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
     let accounts: Vec<_> = handle.dev_wallets().collect();
 
@@ -153,7 +153,7 @@ async fn can_get_pending_block() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_on_pending_block() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let num = provider.get_block_number().await.unwrap();
@@ -242,7 +242,7 @@ where
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_with_state_override() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     api.anvil_set_auto_mine(true).await.unwrap();

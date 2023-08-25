@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_sub_new_heads() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
 
     let provider = handle.ws_provider().await;
 
@@ -34,7 +34,7 @@ async fn test_sub_new_heads() {
 async fn test_sub_logs_legacy() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
 
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.ws_provider().await;
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -73,7 +73,7 @@ async fn test_sub_logs_legacy() {
 async fn test_sub_logs() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
 
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.ws_provider().await;
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -111,7 +111,7 @@ async fn test_sub_logs() {
 async fn test_sub_logs_impersonated() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
 
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.ws_provider().await;
 
     // impersonate account
@@ -152,7 +152,7 @@ async fn test_sub_logs_impersonated() {
 async fn test_filters_legacy() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
 
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -193,7 +193,7 @@ async fn test_filters_legacy() {
 async fn test_filters() {
     abigen!(EmitLogs, "test-data/emit_logs.json");
 
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -232,7 +232,7 @@ async fn test_filters() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_subscriptions() {
     let (_api, handle) =
-        spawn(NodeConfig::test_http().with_blocktime(Some(std::time::Duration::from_secs(1))))
+        spawn(NodeConfig::test().with_blocktime(Some(std::time::Duration::from_secs(1))))
             .await;
     let ws = Ws::connect(handle.ws_endpoint()).await.unwrap();
 
@@ -253,7 +253,7 @@ async fn test_subscriptions() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_sub_new_heads_fast() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
 
     let provider = handle.ws_provider().await;
 

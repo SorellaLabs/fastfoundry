@@ -19,7 +19,7 @@ use std::{collections::VecDeque, str::FromStr, sync::Arc};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_erigon_get_header_by_number() {
-    let (api, _handle) = spawn(NodeConfig::test_http()).await;
+    let (api, _handle) = spawn(NodeConfig::test()).await;
     api.mine_one().await;
 
     let res0 = api.erigon_get_header_by_number(0.into()).await.unwrap().unwrap();
@@ -31,14 +31,14 @@ async fn can_call_erigon_get_header_by_number() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_ots_get_api_level() {
-    let (api, _handle) = spawn(NodeConfig::test_http()).await;
+    let (api, _handle) = spawn(NodeConfig::test()).await;
 
     assert_eq!(api.ots_get_api_level().await.unwrap(), 8);
 }
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_ots_get_internal_operations_contract_deploy() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -67,7 +67,7 @@ async fn can_call_ots_get_internal_operations_contract_deploy() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_ots_has_code() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -137,7 +137,7 @@ contract Contract {
     let contract = compiled.remove_first("Contract").unwrap();
     let (abi, bytecode, _) = contract.into_contract_bytecode().into_parts();
 
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.ws_provider().await;
     let wallets = handle.dev_wallets().collect::<Vec<_>>();
     let client = Arc::new(SignerMiddleware::new(provider, wallets[0].clone()));
@@ -226,7 +226,7 @@ contract Contract {
     let contract = compiled.remove_first("Contract").unwrap();
     let (abi, bytecode, _) = contract.into_contract_bytecode().into_parts();
 
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.ws_provider().await;
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -249,7 +249,7 @@ contract Contract {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_ots_get_block_details() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -266,7 +266,7 @@ async fn can_call_ots_get_block_details() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_ots_get_block_details_by_hash() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -284,7 +284,7 @@ async fn can_call_ots_get_block_details_by_hash() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_ots_get_block_transactions() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -324,7 +324,7 @@ async fn can_call_ots_get_block_transactions() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_ots_search_transactions_before() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -359,7 +359,7 @@ async fn can_call_ots_search_transactions_before() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_ots_search_transactions_after() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -394,7 +394,7 @@ async fn can_call_ots_search_transactions_after() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_ots_get_transaction_by_sender_and_nonce() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
     api.mine_one().await;
 
@@ -417,7 +417,7 @@ async fn can_call_ots_get_transaction_by_sender_and_nonce() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_call_ots_get_contract_creator() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
     api.mine_one().await;
 

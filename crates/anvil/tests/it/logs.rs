@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn get_past_events() {
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -50,7 +50,7 @@ async fn get_past_events() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn get_all_events() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -87,7 +87,7 @@ async fn get_all_events() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_install_filter() {
-    let (api, handle) = spawn(NodeConfig::test_http()).await;
+    let (api, handle) = spawn(NodeConfig::test()).await;
     let provider = handle.http_provider();
 
     let wallet = handle.dev_wallets().next().unwrap();
@@ -129,7 +129,7 @@ async fn can_install_filter() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn watch_events() {
-    let (_api, handle) = spawn(NodeConfig::test_http()).await;
+    let (_api, handle) = spawn(NodeConfig::test()).await;
     let wallet = handle.dev_wallets().next().unwrap();
     let client = Arc::new(SignerMiddleware::new(handle.http_provider(), wallet));
 

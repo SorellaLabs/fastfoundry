@@ -29,7 +29,7 @@ const TEST_RETH_DB_PATH: &'static str = "/home/data/reth/db";
 
 
 pub fn fork_config_middleware() -> NodeConfig {
-    NodeConfig::test_http()
+    NodeConfig::test()
         .with_eth_ipc_path(Some(TEST_IPC_PATH))
         .with_eth_reth_db(Some(TEST_RETH_DB_PATH))
         .with_fork_block_number(Some(BLOCK_NUMBER))
@@ -635,7 +635,7 @@ async fn test_fork_init_base_fee() {
 #[serial]
 async fn test_reset_fork_on_new_blocks() {
     let (api, handle) = spawn(
-        NodeConfig::test_http()
+        NodeConfig::test()
             .with_eth_reth_db(Some(TEST_RETH_DB_PATH))
             .silent(),
     )
