@@ -24,6 +24,8 @@ const BLOCK_NUMBER: u64 = 14_608_400u64;
 
 const BLOCK_TIMESTAMP: u64 = 1_650_274_250u64;
 const TEST_IPC_PATH: &'static str = "/tmp/reth.ipc";
+const TEST_NODE_IPC_PATH: &'static str = "/tmp/anvil_test2.ipc";
+
 
 pub fn fork_config_ipc() -> NodeConfig {
     NodeConfig::test()
@@ -44,7 +46,7 @@ async fn test_spawn_fork() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_spawn_fork_ipc() {
     // spawn a first node with http
-    let (origin_api, origin_handle) = spawn(fork_config_ipc().with_ipc(Some(None))).await;
+    let (origin_api, origin_handle) = spawn(fork_config_ipc().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
 
     // spawn a second node that is a fork of the first, connected through ipc
     let (fork_api, _fork_handle) =
@@ -68,7 +70,7 @@ async fn test_fork_call_ipc() {
         provider.call(&tx, Some(BlockNumber::Number(block_number.into()).into())).await.unwrap();
 
     let (_origin_api, origin_handle) =
-        spawn(fork_config_ipc().with_ipc(Some(None)).with_fork_block_number(Some(block_number))).await;
+        spawn(fork_config_ipc().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string()))).with_fork_block_number(Some(block_number))).await;
 
     let (fork_api, _fork_handle) = spawn(
         fork_config_ipc()
@@ -334,7 +336,7 @@ async fn can_deploy_greeter_on_fork() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn can_reset_properly() {
-    let (origin_api, origin_handle) = spawn(NodeConfig::test().with_ipc(Some(None))).await;
+    let (origin_api, origin_handle) = spawn(NodeConfig::test().with_ipc(Some(Some(TEST_NODE_IPC_PATH.to_string())))).await;
     let account = origin_handle.dev_accounts().next().unwrap();
     let origin_provider = origin_handle.http_provider();
     let origin_nonce = 1u64.into();
