@@ -39,7 +39,7 @@ pub struct LocalFork {
 impl LocalFork {
     /// Spawns two nodes with the test config
     pub async fn new() -> Self {
-        Self::setup(NodeConfig::test_http(), NodeConfig::test_http()).await
+        Self::setup(NodeConfig::test(), NodeConfig::test()).await
     }
 
     /// Spawns two nodes where one is a fork of the other
@@ -47,7 +47,7 @@ impl LocalFork {
         let (origin_api, origin_handle) = spawn(origin).await;
 
         let (fork_api, fork_handle) =
-            spawn(fork.with_eth_rpc_url(Some(origin_handle.http_endpoint()))).await;
+            spawn(fork.with_eth_ipc_path(Some(origin_handle.ipc_path().unwrap()))).await;
         Self { origin_api, origin_handle, fork_api, fork_handle }
     }
 }
@@ -384,7 +384,7 @@ async fn can_reset_properly() {
     assert_eq!(origin_nonce, origin_provider.get_transaction_count(account, None).await.unwrap());
 
     let (fork_api, fork_handle) =
-        spawn(NodeConfig::test_http().with_eth_rpc_url(Some(origin_handle.http_endpoint()))).await;
+        spawn(NodeConfig::test_http().with_eth_ipc_path(Some(TEST_IPC_PATH))).await;
 
     let fork_provider = fork_handle.http_provider();
     assert_eq!(origin_nonce, fork_provider.get_transaction_count(account, None).await.unwrap());
@@ -659,7 +659,7 @@ async fn test_fork_init_base_fee() {
 async fn test_reset_fork_on_new_blocks() {
     let (api, handle) = spawn(
         NodeConfig::test_http()
-            .with_eth_rpc_url(Some(rpc::next_http_archive_rpc_endpoint()))
+            .with_eth_ipc_path(Some(TEST_IPC_PATH))
             .silent(),
     )
     .await;
