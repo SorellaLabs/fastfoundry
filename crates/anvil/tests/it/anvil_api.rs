@@ -1,5 +1,5 @@
 //! tests for custom anvil endpoints
-use crate::{abi::*, fork::fork_config};
+use crate::{abi::*, fork_http::fork_config};
 use anvil::{spawn, Hardfork, NodeConfig};
 use anvil_core::{
     eth::EthRequest,
