@@ -465,6 +465,94 @@ pub mod hevm {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("createWallet"),
+                    ::std::vec![
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("createWallet"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::String,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Tuple(
+                                        ::std::vec![
+                                            ::ethers_core::abi::ethabi::ParamType::Address,
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                        ],
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("createWallet"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Tuple(
+                                        ::std::vec![
+                                            ::ethers_core::abi::ethabi::ParamType::Address,
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                        ],
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("createWallet"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::String,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Tuple(
+                                        ::std::vec![
+                                            ::ethers_core::abi::ethabi::ParamType::Address,
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                        ],
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("deal"),
                     ::std::vec![
                         ::ethers_core::abi::ethabi::Function {
@@ -1452,6 +1540,93 @@ pub mod hevm {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("eth_getLogs"),
+                    ::std::vec![
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("eth_getLogs"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Array(
+                                        ::std::boxed::Box::new(
+                                            ::ethers_core::abi::ethabi::ParamType::FixedBytes(32usize),
+                                        ),
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Array(
+                                        ::std::boxed::Box::new(
+                                            ::ethers_core::abi::ethabi::ParamType::Tuple(
+                                                ::std::vec![
+                                                    ::ethers_core::abi::ethabi::ParamType::Address,
+                                                    ::ethers_core::abi::ethabi::ParamType::Array(
+                                                        ::std::boxed::Box::new(
+                                                            ::ethers_core::abi::ethabi::ParamType::FixedBytes(32usize),
+                                                        ),
+                                                    ),
+                                                    ::ethers_core::abi::ethabi::ParamType::Bytes,
+                                                    ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                                    ::ethers_core::abi::ethabi::ParamType::FixedBytes(32usize),
+                                                    ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                                    ::ethers_core::abi::ethabi::ParamType::FixedBytes(32usize),
+                                                    ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                                    ::ethers_core::abi::ethabi::ParamType::Bool,
+                                                ],
+                                            ),
+                                        ),
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("exists"),
+                    ::std::vec![
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("exists"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::String,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Bool,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("expectCall"),
                     ::std::vec![
                         ::ethers_core::abi::ethabi::Function {
@@ -2079,6 +2254,32 @@ pub mod hevm {
                             inputs: ::std::vec![
                                 ::ethers_core::abi::ethabi::Param {
                                     name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Tuple(
+                                        ::std::vec![
+                                            ::ethers_core::abi::ethabi::ParamType::Address,
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                        ],
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Uint(64usize),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("getNonce"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
                                     kind: ::ethers_core::abi::ethabi::ParamType::Address,
                                     internal_type: ::core::option::Option::None,
                                 },
@@ -2112,6 +2313,54 @@ pub mod hevm {
                                             ),
                                         ),
                                     ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("isDir"),
+                    ::std::vec![
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("isDir"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::String,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Bool,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("isFile"),
+                    ::std::vec![
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("isFile"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::String,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Bool,
                                     internal_type: ::core::option::Option::None,
                                 },
                             ],
@@ -3697,6 +3946,35 @@ pub mod hevm {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("rpc"),
+                    ::std::vec![
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("rpc"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::String,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::String,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Bytes,
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("rpcUrl"),
                     ::std::vec![
                         ::ethers_core::abi::ethabi::Function {
@@ -4375,6 +4653,53 @@ pub mod hevm {
                             constant: ::core::option::Option::None,
                             state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
                         },
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("sign"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Tuple(
+                                        ::std::vec![
+                                            ::ethers_core::abi::ethabi::ParamType::Address,
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Uint(256usize),
+                                        ],
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::FixedBytes(
+                                        32usize,
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Uint(8usize),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::FixedBytes(
+                                        32usize,
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::FixedBytes(
+                                        32usize,
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
                     ],
                 ),
                 (
@@ -4709,6 +5034,40 @@ pub mod hevm {
                                 },
                             ],
                             outputs: ::std::vec![],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("tryFfi"),
+                    ::std::vec![
+                        ::ethers_core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("tryFfi"),
+                            inputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Array(
+                                        ::std::boxed::Box::new(
+                                            ::ethers_core::abi::ethabi::ParamType::String,
+                                        ),
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers_core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers_core::abi::ethabi::ParamType::Tuple(
+                                        ::std::vec![
+                                            ::ethers_core::abi::ethabi::ParamType::Int(32usize),
+                                            ::ethers_core::abi::ethabi::ParamType::Bytes,
+                                            ::ethers_core::abi::ethabi::ParamType::Bytes,
+                                        ],
+                                    ),
+                                    internal_type: ::core::option::Option::None,
+                                },
+                            ],
                             constant: ::core::option::Option::None,
                             state_mutability: ::ethers_core::abi::ethabi::StateMutability::NonPayable,
                         },
@@ -5119,6 +5478,58 @@ pub mod hevm {
                 .method_hash([152, 104, 0, 52], p0)
                 .expect("method not found (this should never happen)")
         }
+        ///Calls the contract's `createWallet` (0x7404f1d2) function
+        pub fn create_wallet_0(
+            &self,
+            p0: ::std::string::String,
+        ) -> ::ethers_contract::builders::ContractCall<
+            M,
+            (
+                ::ethers_core::types::Address,
+                ::ethers_core::types::U256,
+                ::ethers_core::types::U256,
+                ::ethers_core::types::U256,
+            ),
+        > {
+            self.0
+                .method_hash([116, 4, 241, 210], p0)
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `createWallet` (0x7a675bb6) function
+        pub fn create_wallet_1(
+            &self,
+            p0: ::ethers_core::types::U256,
+        ) -> ::ethers_contract::builders::ContractCall<
+            M,
+            (
+                ::ethers_core::types::Address,
+                ::ethers_core::types::U256,
+                ::ethers_core::types::U256,
+                ::ethers_core::types::U256,
+            ),
+        > {
+            self.0
+                .method_hash([122, 103, 91, 182], p0)
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `createWallet` (0xed7c5462) function
+        pub fn create_wallet_2(
+            &self,
+            p0: ::ethers_core::types::U256,
+            p1: ::std::string::String,
+        ) -> ::ethers_contract::builders::ContractCall<
+            M,
+            (
+                ::ethers_core::types::Address,
+                ::ethers_core::types::U256,
+                ::ethers_core::types::U256,
+                ::ethers_core::types::U256,
+            ),
+        > {
+            self.0
+                .method_hash([237, 124, 84, 98], (p0, p1))
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `deal` (0xc88a5e6d) function
         pub fn deal(
             &self,
@@ -5508,6 +5919,42 @@ pub mod hevm {
                 .method_hash([180, 214, 199, 130], (p0, p1))
                 .expect("method not found (this should never happen)")
         }
+        ///Calls the contract's `eth_getLogs` (0x35e1349b) function
+        pub fn eth_get_logs(
+            &self,
+            p0: ::ethers_core::types::U256,
+            p1: ::ethers_core::types::U256,
+            p2: ::ethers_core::types::Address,
+            p3: ::std::vec::Vec<[u8; 32]>,
+        ) -> ::ethers_contract::builders::ContractCall<
+            M,
+            ::std::vec::Vec<
+                (
+                    ::ethers_core::types::Address,
+                    ::std::vec::Vec<[u8; 32]>,
+                    ::ethers_core::types::Bytes,
+                    ::ethers_core::types::U256,
+                    [u8; 32],
+                    ::ethers_core::types::U256,
+                    [u8; 32],
+                    ::ethers_core::types::U256,
+                    bool,
+                ),
+            >,
+        > {
+            self.0
+                .method_hash([53, 225, 52, 155], (p0, p1, p2, p3))
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `exists` (0x261a323e) function
+        pub fn exists(
+            &self,
+            p0: ::std::string::String,
+        ) -> ::ethers_contract::builders::ContractCall<M, bool> {
+            self.0
+                .method_hash([38, 26, 50, 62], p0)
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `expectCall` (0xbd6af434) function
         pub fn expect_call_0(
             &self,
@@ -5784,8 +6231,17 @@ pub mod hevm {
                 .method_hash([235, 199, 58, 180], (p0, p1, p2))
                 .expect("method not found (this should never happen)")
         }
+        ///Calls the contract's `getNonce` (0xa5748aad) function
+        pub fn get_nonce_0(
+            &self,
+            p0: Wallet,
+        ) -> ::ethers_contract::builders::ContractCall<M, u64> {
+            self.0
+                .method_hash([165, 116, 138, 173], (p0,))
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `getNonce` (0x2d0335ab) function
-        pub fn get_nonce(
+        pub fn get_nonce_1(
             &self,
             p0: ::ethers_core::types::Address,
         ) -> ::ethers_contract::builders::ContractCall<M, ()> {
@@ -5802,6 +6258,24 @@ pub mod hevm {
         > {
             self.0
                 .method_hash([25, 21, 83, 164], ())
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `isDir` (0x7d15d019) function
+        pub fn is_dir(
+            &self,
+            p0: ::std::string::String,
+        ) -> ::ethers_contract::builders::ContractCall<M, bool> {
+            self.0
+                .method_hash([125, 21, 208, 25], p0)
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `isFile` (0xe0eb04d4) function
+        pub fn is_file(
+            &self,
+            p0: ::std::string::String,
+        ) -> ::ethers_contract::builders::ContractCall<M, bool> {
+            self.0
+                .method_hash([224, 235, 4, 212], p0)
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `isPersistent` (0xd92d8efd) function
@@ -6458,6 +6932,16 @@ pub mod hevm {
                 .method_hash([242, 131, 15, 123], (p0, p1))
                 .expect("method not found (this should never happen)")
         }
+        ///Calls the contract's `rpc` (0x1206c8a8) function
+        pub fn rpc(
+            &self,
+            p0: ::std::string::String,
+            p1: ::std::string::String,
+        ) -> ::ethers_contract::builders::ContractCall<M, ::ethers_core::types::Bytes> {
+            self.0
+                .method_hash([18, 6, 200, 168], (p0, p1))
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `rpcUrl` (0x975a6ce9) function
         pub fn rpc_url(
             &self,
@@ -6683,13 +7167,23 @@ pub mod hevm {
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `sign` (0xe341eaa4) function
-        pub fn sign(
+        pub fn sign_0(
             &self,
             p0: ::ethers_core::types::U256,
             p1: [u8; 32],
         ) -> ::ethers_contract::builders::ContractCall<M, (u8, [u8; 32], [u8; 32])> {
             self.0
                 .method_hash([227, 65, 234, 164], (p0, p1))
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `sign` (0xb25c5a25) function
+        pub fn sign_1(
+            &self,
+            p0: Wallet,
+            p1: [u8; 32],
+        ) -> ::ethers_contract::builders::ContractCall<M, (u8, [u8; 32], [u8; 32])> {
+            self.0
+                .method_hash([178, 92, 90, 37], (p0, p1))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `skip` (0xdd82d13e) function
@@ -6875,6 +7369,18 @@ pub mod hevm {
         ) -> ::ethers_contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash([77, 138, 188, 75], (p0, p1))
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `tryFfi` (0xf45c1ce7) function
+        pub fn try_ffi(
+            &self,
+            p0: ::std::vec::Vec<::std::string::String>,
+        ) -> ::ethers_contract::builders::ContractCall<
+            M,
+            (i32, ::ethers_core::types::Bytes, ::ethers_core::types::Bytes),
+        > {
+            self.0
+                .method_hash([244, 92, 28, 231], p0)
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `txGasPrice` (0x48f50c0f) function
@@ -7245,6 +7751,48 @@ pub mod hevm {
     )]
     #[ethcall(name = "createSelectFork", abi = "createSelectFork(string)")]
     pub struct CreateSelectFork0Call(pub ::std::string::String);
+    ///Container type for all input parameters for the `createWallet` function with signature `createWallet(string)` and selector `0x7404f1d2`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "createWallet", abi = "createWallet(string)")]
+    pub struct CreateWallet0Call(pub ::std::string::String);
+    ///Container type for all input parameters for the `createWallet` function with signature `createWallet(uint256)` and selector `0x7a675bb6`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "createWallet", abi = "createWallet(uint256)")]
+    pub struct CreateWallet1Call(pub ::ethers_core::types::U256);
+    ///Container type for all input parameters for the `createWallet` function with signature `createWallet(uint256,string)` and selector `0xed7c5462`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "createWallet", abi = "createWallet(uint256,string)")]
+    pub struct CreateWallet2Call(
+        pub ::ethers_core::types::U256,
+        pub ::std::string::String,
+    );
     ///Container type for all input parameters for the `deal` function with signature `deal(address,uint256)` and selector `0xc88a5e6d`
     #[derive(
         Clone,
@@ -7747,6 +8295,40 @@ pub mod hevm {
         pub ::ethers_core::types::Address,
         pub ::ethers_core::types::Bytes,
     );
+    ///Container type for all input parameters for the `eth_getLogs` function with signature `eth_getLogs(uint256,uint256,address,bytes32[])` and selector `0x35e1349b`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(
+        name = "eth_getLogs",
+        abi = "eth_getLogs(uint256,uint256,address,bytes32[])"
+    )]
+    pub struct EthGetLogsCall(
+        pub ::ethers_core::types::U256,
+        pub ::ethers_core::types::U256,
+        pub ::ethers_core::types::Address,
+        pub ::std::vec::Vec<[u8; 32]>,
+    );
+    ///Container type for all input parameters for the `exists` function with signature `exists(string)` and selector `0x261a323e`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "exists", abi = "exists(string)")]
+    pub struct ExistsCall(pub ::std::string::String);
     ///Container type for all input parameters for the `expectCall` function with signature `expectCall(address,bytes)` and selector `0xbd6af434`
     #[derive(
         Clone,
@@ -8154,6 +8736,19 @@ pub mod hevm {
         pub [u8; 32],
         pub ::ethers_core::types::U256,
     );
+    ///Container type for all input parameters for the `getNonce` function with signature `getNonce((address,uint256,uint256,uint256))` and selector `0xa5748aad`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "getNonce", abi = "getNonce((address,uint256,uint256,uint256))")]
+    pub struct GetNonce0Call(pub Wallet);
     ///Container type for all input parameters for the `getNonce` function with signature `getNonce(address)` and selector `0x2d0335ab`
     #[derive(
         Clone,
@@ -8166,7 +8761,7 @@ pub mod hevm {
         Hash
     )]
     #[ethcall(name = "getNonce", abi = "getNonce(address)")]
-    pub struct GetNonceCall(pub ::ethers_core::types::Address);
+    pub struct GetNonce1Call(pub ::ethers_core::types::Address);
     ///Container type for all input parameters for the `getRecordedLogs` function with signature `getRecordedLogs()` and selector `0x191553a4`
     #[derive(
         Clone,
@@ -8180,6 +8775,32 @@ pub mod hevm {
     )]
     #[ethcall(name = "getRecordedLogs", abi = "getRecordedLogs()")]
     pub struct GetRecordedLogsCall;
+    ///Container type for all input parameters for the `isDir` function with signature `isDir(string)` and selector `0x7d15d019`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "isDir", abi = "isDir(string)")]
+    pub struct IsDirCall(pub ::std::string::String);
+    ///Container type for all input parameters for the `isFile` function with signature `isFile(string)` and selector `0xe0eb04d4`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "isFile", abi = "isFile(string)")]
+    pub struct IsFileCall(pub ::std::string::String);
     ///Container type for all input parameters for the `isPersistent` function with signature `isPersistent(address)` and selector `0xd92d8efd`
     #[derive(
         Clone,
@@ -9082,6 +9703,19 @@ pub mod hevm {
     )]
     #[ethcall(name = "rollFork", abi = "rollFork(uint256,bytes32)")]
     pub struct RollFork3Call(pub ::ethers_core::types::U256, pub [u8; 32]);
+    ///Container type for all input parameters for the `rpc` function with signature `rpc(string,string)` and selector `0x1206c8a8`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "rpc", abi = "rpc(string,string)")]
+    pub struct RpcCall(pub ::std::string::String, pub ::std::string::String);
     ///Container type for all input parameters for the `rpcUrl` function with signature `rpcUrl(string)` and selector `0x975a6ce9`
     #[derive(
         Clone,
@@ -9435,7 +10069,20 @@ pub mod hevm {
         Hash
     )]
     #[ethcall(name = "sign", abi = "sign(uint256,bytes32)")]
-    pub struct SignCall(pub ::ethers_core::types::U256, pub [u8; 32]);
+    pub struct Sign0Call(pub ::ethers_core::types::U256, pub [u8; 32]);
+    ///Container type for all input parameters for the `sign` function with signature `sign((address,uint256,uint256,uint256),bytes32)` and selector `0xb25c5a25`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "sign", abi = "sign((address,uint256,uint256,uint256),bytes32)")]
+    pub struct Sign1Call(pub Wallet, pub [u8; 32]);
     ///Container type for all input parameters for the `skip` function with signature `skip(bool)` and selector `0xdd82d13e`
     #[derive(
         Clone,
@@ -9712,6 +10359,19 @@ pub mod hevm {
     )]
     #[ethcall(name = "transact", abi = "transact(uint256,bytes32)")]
     pub struct Transact1Call(pub ::ethers_core::types::U256, pub [u8; 32]);
+    ///Container type for all input parameters for the `tryFfi` function with signature `tryFfi(string[])` and selector `0xf45c1ce7`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthCall,
+        ::ethers_contract::EthDisplay,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "tryFfi", abi = "tryFfi(string[])")]
+    pub struct TryFfiCall(pub ::std::vec::Vec<::std::string::String>);
     ///Container type for all input parameters for the `txGasPrice` function with signature `txGasPrice(uint256)` and selector `0x48f50c0f`
     #[derive(
         Clone,
@@ -9835,6 +10495,9 @@ pub mod hevm {
         CreateSelectFork1(CreateSelectFork1Call),
         CreateSelectFork2(CreateSelectFork2Call),
         CreateSelectFork0(CreateSelectFork0Call),
+        CreateWallet0(CreateWallet0Call),
+        CreateWallet1(CreateWallet1Call),
+        CreateWallet2(CreateWallet2Call),
         Deal(DealCall),
         DeriveKey0(DeriveKey0Call),
         DeriveKey1(DeriveKey1Call),
@@ -9870,6 +10533,8 @@ pub mod hevm {
         EnvUint0(EnvUint0Call),
         EnvUint1(EnvUint1Call),
         Etch(EtchCall),
+        EthGetLogs(EthGetLogsCall),
+        Exists(ExistsCall),
         ExpectCall0(ExpectCall0Call),
         ExpectCall1(ExpectCall1Call),
         ExpectCall2(ExpectCall2Call),
@@ -9896,8 +10561,11 @@ pub mod hevm {
         GetMappingKeyAndParentOf(GetMappingKeyAndParentOfCall),
         GetMappingLength(GetMappingLengthCall),
         GetMappingSlotAt(GetMappingSlotAtCall),
-        GetNonce(GetNonceCall),
+        GetNonce0(GetNonce0Call),
+        GetNonce1(GetNonce1Call),
         GetRecordedLogs(GetRecordedLogsCall),
+        IsDir(IsDirCall),
+        IsFile(IsFileCall),
         IsPersistent(IsPersistentCall),
         KeyExists(KeyExistsCall),
         Label(LabelCall),
@@ -9962,6 +10630,7 @@ pub mod hevm {
         RollFork1(RollFork1Call),
         RollFork2(RollFork2Call),
         RollFork3(RollFork3Call),
+        Rpc(RpcCall),
         RpcUrl(RpcUrlCall),
         RpcUrlStructs(RpcUrlStructsCall),
         RpcUrls(RpcUrlsCall),
@@ -9983,7 +10652,8 @@ pub mod hevm {
         SetEnv(SetEnvCall),
         SetNonce(SetNonceCall),
         SetNonceUnsafe(SetNonceUnsafeCall),
-        Sign(SignCall),
+        Sign0(Sign0Call),
+        Sign1(Sign1Call),
         Skip(SkipCall),
         Sleep(SleepCall),
         Snapshot(SnapshotCall),
@@ -10005,6 +10675,7 @@ pub mod hevm {
         ToString5(ToString5Call),
         Transact0(Transact0Call),
         Transact1(Transact1Call),
+        TryFfi(TryFfiCall),
         TxGasPrice(TxGasPriceCall),
         Warp(WarpCall),
         WriteFile(WriteFileCall),
@@ -10111,6 +10782,18 @@ pub mod hevm {
                     data,
                 ) {
                 return Ok(Self::CreateSelectFork0(decoded));
+            }
+            if let Ok(decoded)
+                = <CreateWallet0Call as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::CreateWallet0(decoded));
+            }
+            if let Ok(decoded)
+                = <CreateWallet1Call as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::CreateWallet1(decoded));
+            }
+            if let Ok(decoded)
+                = <CreateWallet2Call as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::CreateWallet2(decoded));
             }
             if let Ok(decoded)
                 = <DealCall as ::ethers_core::abi::AbiDecode>::decode(data) {
@@ -10253,6 +10936,14 @@ pub mod hevm {
                 return Ok(Self::Etch(decoded));
             }
             if let Ok(decoded)
+                = <EthGetLogsCall as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::EthGetLogs(decoded));
+            }
+            if let Ok(decoded)
+                = <ExistsCall as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::Exists(decoded));
+            }
+            if let Ok(decoded)
                 = <ExpectCall0Call as ::ethers_core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::ExpectCall0(decoded));
             }
@@ -10365,12 +11056,24 @@ pub mod hevm {
                 return Ok(Self::GetMappingSlotAt(decoded));
             }
             if let Ok(decoded)
-                = <GetNonceCall as ::ethers_core::abi::AbiDecode>::decode(data) {
-                return Ok(Self::GetNonce(decoded));
+                = <GetNonce0Call as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::GetNonce0(decoded));
+            }
+            if let Ok(decoded)
+                = <GetNonce1Call as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::GetNonce1(decoded));
             }
             if let Ok(decoded)
                 = <GetRecordedLogsCall as ::ethers_core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::GetRecordedLogs(decoded));
+            }
+            if let Ok(decoded)
+                = <IsDirCall as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::IsDir(decoded));
+            }
+            if let Ok(decoded)
+                = <IsFileCall as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::IsFile(decoded));
             }
             if let Ok(decoded)
                 = <IsPersistentCall as ::ethers_core::abi::AbiDecode>::decode(data) {
@@ -10649,6 +11352,10 @@ pub mod hevm {
                 return Ok(Self::RollFork3(decoded));
             }
             if let Ok(decoded)
+                = <RpcCall as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::Rpc(decoded));
+            }
+            if let Ok(decoded)
                 = <RpcUrlCall as ::ethers_core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::RpcUrl(decoded));
             }
@@ -10741,8 +11448,12 @@ pub mod hevm {
                 return Ok(Self::SetNonceUnsafe(decoded));
             }
             if let Ok(decoded)
-                = <SignCall as ::ethers_core::abi::AbiDecode>::decode(data) {
-                return Ok(Self::Sign(decoded));
+                = <Sign0Call as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::Sign0(decoded));
+            }
+            if let Ok(decoded)
+                = <Sign1Call as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::Sign1(decoded));
             }
             if let Ok(decoded)
                 = <SkipCall as ::ethers_core::abi::AbiDecode>::decode(data) {
@@ -10833,6 +11544,10 @@ pub mod hevm {
                 return Ok(Self::Transact1(decoded));
             }
             if let Ok(decoded)
+                = <TryFfiCall as ::ethers_core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::TryFfi(decoded));
+            }
+            if let Ok(decoded)
                 = <TxGasPriceCall as ::ethers_core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::TxGasPrice(decoded));
             }
@@ -10920,6 +11635,15 @@ pub mod hevm {
                 Self::CreateSelectFork0(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
                 }
+                Self::CreateWallet0(element) => {
+                    ::ethers_core::abi::AbiEncode::encode(element)
+                }
+                Self::CreateWallet1(element) => {
+                    ::ethers_core::abi::AbiEncode::encode(element)
+                }
+                Self::CreateWallet2(element) => {
+                    ::ethers_core::abi::AbiEncode::encode(element)
+                }
                 Self::Deal(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::DeriveKey0(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
@@ -10981,6 +11705,10 @@ pub mod hevm {
                 Self::EnvUint0(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::EnvUint1(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::Etch(element) => ::ethers_core::abi::AbiEncode::encode(element),
+                Self::EthGetLogs(element) => {
+                    ::ethers_core::abi::AbiEncode::encode(element)
+                }
+                Self::Exists(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::ExpectCall0(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
                 }
@@ -11051,10 +11779,17 @@ pub mod hevm {
                 Self::GetMappingSlotAt(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
                 }
-                Self::GetNonce(element) => ::ethers_core::abi::AbiEncode::encode(element),
+                Self::GetNonce0(element) => {
+                    ::ethers_core::abi::AbiEncode::encode(element)
+                }
+                Self::GetNonce1(element) => {
+                    ::ethers_core::abi::AbiEncode::encode(element)
+                }
                 Self::GetRecordedLogs(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
                 }
+                Self::IsDir(element) => ::ethers_core::abi::AbiEncode::encode(element),
+                Self::IsFile(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::IsPersistent(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
                 }
@@ -11217,6 +11952,7 @@ pub mod hevm {
                 Self::RollFork3(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
                 }
+                Self::Rpc(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::RpcUrl(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::RpcUrlStructs(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
@@ -11272,7 +12008,8 @@ pub mod hevm {
                 Self::SetNonceUnsafe(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
                 }
-                Self::Sign(element) => ::ethers_core::abi::AbiEncode::encode(element),
+                Self::Sign0(element) => ::ethers_core::abi::AbiEncode::encode(element),
+                Self::Sign1(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::Skip(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::Sleep(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::Snapshot(element) => ::ethers_core::abi::AbiEncode::encode(element),
@@ -11328,6 +12065,7 @@ pub mod hevm {
                 Self::Transact1(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
                 }
+                Self::TryFfi(element) => ::ethers_core::abi::AbiEncode::encode(element),
                 Self::TxGasPrice(element) => {
                     ::ethers_core::abi::AbiEncode::encode(element)
                 }
@@ -11375,6 +12113,9 @@ pub mod hevm {
                 Self::CreateSelectFork1(element) => ::core::fmt::Display::fmt(element, f),
                 Self::CreateSelectFork2(element) => ::core::fmt::Display::fmt(element, f),
                 Self::CreateSelectFork0(element) => ::core::fmt::Display::fmt(element, f),
+                Self::CreateWallet0(element) => ::core::fmt::Display::fmt(element, f),
+                Self::CreateWallet1(element) => ::core::fmt::Display::fmt(element, f),
+                Self::CreateWallet2(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Deal(element) => ::core::fmt::Display::fmt(element, f),
                 Self::DeriveKey0(element) => ::core::fmt::Display::fmt(element, f),
                 Self::DeriveKey1(element) => ::core::fmt::Display::fmt(element, f),
@@ -11410,6 +12151,8 @@ pub mod hevm {
                 Self::EnvUint0(element) => ::core::fmt::Display::fmt(element, f),
                 Self::EnvUint1(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Etch(element) => ::core::fmt::Display::fmt(element, f),
+                Self::EthGetLogs(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Exists(element) => ::core::fmt::Display::fmt(element, f),
                 Self::ExpectCall0(element) => ::core::fmt::Display::fmt(element, f),
                 Self::ExpectCall1(element) => ::core::fmt::Display::fmt(element, f),
                 Self::ExpectCall2(element) => ::core::fmt::Display::fmt(element, f),
@@ -11440,8 +12183,11 @@ pub mod hevm {
                 }
                 Self::GetMappingLength(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetMappingSlotAt(element) => ::core::fmt::Display::fmt(element, f),
-                Self::GetNonce(element) => ::core::fmt::Display::fmt(element, f),
+                Self::GetNonce0(element) => ::core::fmt::Display::fmt(element, f),
+                Self::GetNonce1(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetRecordedLogs(element) => ::core::fmt::Display::fmt(element, f),
+                Self::IsDir(element) => ::core::fmt::Display::fmt(element, f),
+                Self::IsFile(element) => ::core::fmt::Display::fmt(element, f),
                 Self::IsPersistent(element) => ::core::fmt::Display::fmt(element, f),
                 Self::KeyExists(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Label(element) => ::core::fmt::Display::fmt(element, f),
@@ -11518,6 +12264,7 @@ pub mod hevm {
                 Self::RollFork1(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RollFork2(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RollFork3(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Rpc(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RpcUrl(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RpcUrlStructs(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RpcUrls(element) => ::core::fmt::Display::fmt(element, f),
@@ -11539,7 +12286,8 @@ pub mod hevm {
                 Self::SetEnv(element) => ::core::fmt::Display::fmt(element, f),
                 Self::SetNonce(element) => ::core::fmt::Display::fmt(element, f),
                 Self::SetNonceUnsafe(element) => ::core::fmt::Display::fmt(element, f),
-                Self::Sign(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Sign0(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Sign1(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Skip(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Sleep(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Snapshot(element) => ::core::fmt::Display::fmt(element, f),
@@ -11565,6 +12313,7 @@ pub mod hevm {
                 Self::ToString5(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Transact0(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Transact1(element) => ::core::fmt::Display::fmt(element, f),
+                Self::TryFfi(element) => ::core::fmt::Display::fmt(element, f),
                 Self::TxGasPrice(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Warp(element) => ::core::fmt::Display::fmt(element, f),
                 Self::WriteFile(element) => ::core::fmt::Display::fmt(element, f),
@@ -11683,6 +12432,21 @@ pub mod hevm {
     impl ::core::convert::From<CreateSelectFork0Call> for HEVMCalls {
         fn from(value: CreateSelectFork0Call) -> Self {
             Self::CreateSelectFork0(value)
+        }
+    }
+    impl ::core::convert::From<CreateWallet0Call> for HEVMCalls {
+        fn from(value: CreateWallet0Call) -> Self {
+            Self::CreateWallet0(value)
+        }
+    }
+    impl ::core::convert::From<CreateWallet1Call> for HEVMCalls {
+        fn from(value: CreateWallet1Call) -> Self {
+            Self::CreateWallet1(value)
+        }
+    }
+    impl ::core::convert::From<CreateWallet2Call> for HEVMCalls {
+        fn from(value: CreateWallet2Call) -> Self {
+            Self::CreateWallet2(value)
         }
     }
     impl ::core::convert::From<DealCall> for HEVMCalls {
@@ -11860,6 +12624,16 @@ pub mod hevm {
             Self::Etch(value)
         }
     }
+    impl ::core::convert::From<EthGetLogsCall> for HEVMCalls {
+        fn from(value: EthGetLogsCall) -> Self {
+            Self::EthGetLogs(value)
+        }
+    }
+    impl ::core::convert::From<ExistsCall> for HEVMCalls {
+        fn from(value: ExistsCall) -> Self {
+            Self::Exists(value)
+        }
+    }
     impl ::core::convert::From<ExpectCall0Call> for HEVMCalls {
         fn from(value: ExpectCall0Call) -> Self {
             Self::ExpectCall0(value)
@@ -11990,14 +12764,29 @@ pub mod hevm {
             Self::GetMappingSlotAt(value)
         }
     }
-    impl ::core::convert::From<GetNonceCall> for HEVMCalls {
-        fn from(value: GetNonceCall) -> Self {
-            Self::GetNonce(value)
+    impl ::core::convert::From<GetNonce0Call> for HEVMCalls {
+        fn from(value: GetNonce0Call) -> Self {
+            Self::GetNonce0(value)
+        }
+    }
+    impl ::core::convert::From<GetNonce1Call> for HEVMCalls {
+        fn from(value: GetNonce1Call) -> Self {
+            Self::GetNonce1(value)
         }
     }
     impl ::core::convert::From<GetRecordedLogsCall> for HEVMCalls {
         fn from(value: GetRecordedLogsCall) -> Self {
             Self::GetRecordedLogs(value)
+        }
+    }
+    impl ::core::convert::From<IsDirCall> for HEVMCalls {
+        fn from(value: IsDirCall) -> Self {
+            Self::IsDir(value)
+        }
+    }
+    impl ::core::convert::From<IsFileCall> for HEVMCalls {
+        fn from(value: IsFileCall) -> Self {
+            Self::IsFile(value)
         }
     }
     impl ::core::convert::From<IsPersistentCall> for HEVMCalls {
@@ -12320,6 +13109,11 @@ pub mod hevm {
             Self::RollFork3(value)
         }
     }
+    impl ::core::convert::From<RpcCall> for HEVMCalls {
+        fn from(value: RpcCall) -> Self {
+            Self::Rpc(value)
+        }
+    }
     impl ::core::convert::From<RpcUrlCall> for HEVMCalls {
         fn from(value: RpcUrlCall) -> Self {
             Self::RpcUrl(value)
@@ -12425,9 +13219,14 @@ pub mod hevm {
             Self::SetNonceUnsafe(value)
         }
     }
-    impl ::core::convert::From<SignCall> for HEVMCalls {
-        fn from(value: SignCall) -> Self {
-            Self::Sign(value)
+    impl ::core::convert::From<Sign0Call> for HEVMCalls {
+        fn from(value: Sign0Call) -> Self {
+            Self::Sign0(value)
+        }
+    }
+    impl ::core::convert::From<Sign1Call> for HEVMCalls {
+        fn from(value: Sign1Call) -> Self {
+            Self::Sign1(value)
         }
     }
     impl ::core::convert::From<SkipCall> for HEVMCalls {
@@ -12533,6 +13332,11 @@ pub mod hevm {
     impl ::core::convert::From<Transact1Call> for HEVMCalls {
         fn from(value: Transact1Call) -> Self {
             Self::Transact1(value)
+        }
+    }
+    impl ::core::convert::From<TryFfiCall> for HEVMCalls {
+        fn from(value: TryFfiCall) -> Self {
+            Self::TryFfi(value)
         }
     }
     impl ::core::convert::From<TxGasPriceCall> for HEVMCalls {
@@ -12681,6 +13485,63 @@ pub mod hevm {
         Hash
     )]
     pub struct CreateSelectFork0Return(pub ::ethers_core::types::U256);
+    ///Container type for all return fields from the `createWallet` function with signature `createWallet(string)` and selector `0x7404f1d2`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct CreateWallet0Return(
+        pub (
+            ::ethers_core::types::Address,
+            ::ethers_core::types::U256,
+            ::ethers_core::types::U256,
+            ::ethers_core::types::U256,
+        ),
+    );
+    ///Container type for all return fields from the `createWallet` function with signature `createWallet(uint256)` and selector `0x7a675bb6`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct CreateWallet1Return(
+        pub (
+            ::ethers_core::types::Address,
+            ::ethers_core::types::U256,
+            ::ethers_core::types::U256,
+            ::ethers_core::types::U256,
+        ),
+    );
+    ///Container type for all return fields from the `createWallet` function with signature `createWallet(uint256,string)` and selector `0xed7c5462`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct CreateWallet2Return(
+        pub (
+            ::ethers_core::types::Address,
+            ::ethers_core::types::U256,
+            ::ethers_core::types::U256,
+            ::ethers_core::types::U256,
+        ),
+    );
     ///Container type for all return fields from the `deriveKey` function with signature `deriveKey(string,uint32)` and selector `0x6229498b`
     #[derive(
         Clone,
@@ -13065,6 +13926,44 @@ pub mod hevm {
         Hash
     )]
     pub struct EnvUint1Return(pub ::std::vec::Vec<::ethers_core::types::U256>);
+    ///Container type for all return fields from the `eth_getLogs` function with signature `eth_getLogs(uint256,uint256,address,bytes32[])` and selector `0x35e1349b`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct EthGetLogsReturn(
+        pub ::std::vec::Vec<
+            (
+                ::ethers_core::types::Address,
+                ::std::vec::Vec<[u8; 32]>,
+                ::ethers_core::types::Bytes,
+                ::ethers_core::types::U256,
+                [u8; 32],
+                ::ethers_core::types::U256,
+                [u8; 32],
+                ::ethers_core::types::U256,
+                bool,
+            ),
+        >,
+    );
+    ///Container type for all return fields from the `exists` function with signature `exists(string)` and selector `0x261a323e`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct ExistsReturn(pub bool);
     ///Container type for all return fields from the `ffi` function with signature `ffi(string[])` and selector `0x89160467`
     #[derive(
         Clone,
@@ -13111,6 +14010,18 @@ pub mod hevm {
         Hash
     )]
     pub struct GetLabelReturn(pub ::std::string::String);
+    ///Container type for all return fields from the `getNonce` function with signature `getNonce((address,uint256,uint256,uint256))` and selector `0xa5748aad`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct GetNonce0Return(pub u64);
     ///Container type for all return fields from the `getRecordedLogs` function with signature `getRecordedLogs()` and selector `0x191553a4`
     #[derive(
         Clone,
@@ -13125,6 +14036,30 @@ pub mod hevm {
     pub struct GetRecordedLogsReturn(
         pub ::std::vec::Vec<(::std::vec::Vec<[u8; 32]>, ::ethers_core::types::Bytes)>,
     );
+    ///Container type for all return fields from the `isDir` function with signature `isDir(string)` and selector `0x7d15d019`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct IsDirReturn(pub bool);
+    ///Container type for all return fields from the `isFile` function with signature `isFile(string)` and selector `0xe0eb04d4`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct IsFileReturn(pub bool);
     ///Container type for all return fields from the `isPersistent` function with signature `isPersistent(address)` and selector `0xd92d8efd`
     #[derive(
         Clone,
@@ -13589,6 +14524,18 @@ pub mod hevm {
         Hash
     )]
     pub struct RevertToReturn(pub bool);
+    ///Container type for all return fields from the `rpc` function with signature `rpc(string,string)` and selector `0x1206c8a8`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct RpcReturn(pub ::ethers_core::types::Bytes);
     ///Container type for all return fields from the `rpcUrl` function with signature `rpcUrl(string)` and selector `0x975a6ce9`
     #[derive(
         Clone,
@@ -13806,7 +14753,19 @@ pub mod hevm {
         Eq,
         Hash
     )]
-    pub struct SignReturn(pub u8, pub [u8; 32], pub [u8; 32]);
+    pub struct Sign0Return(pub u8, pub [u8; 32], pub [u8; 32]);
+    ///Container type for all return fields from the `sign` function with signature `sign((address,uint256,uint256,uint256),bytes32)` and selector `0xb25c5a25`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct Sign1Return(pub u8, pub [u8; 32], pub [u8; 32]);
     ///Container type for all return fields from the `snapshot` function with signature `snapshot()` and selector `0x9711715a`
     #[derive(
         Clone,
@@ -13819,6 +14778,20 @@ pub mod hevm {
         Hash
     )]
     pub struct SnapshotReturn(pub ::ethers_core::types::U256);
+    ///Container type for all return fields from the `tryFfi` function with signature `tryFfi(string[])` and selector `0xf45c1ce7`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct TryFfiReturn(
+        pub (i32, ::ethers_core::types::Bytes, ::ethers_core::types::Bytes),
+    );
     ///`DirEntry(string,string,uint64,bool,bool)`
     #[derive(
         Clone,
@@ -13836,6 +14809,44 @@ pub mod hevm {
         pub depth: u64,
         pub is_dir: bool,
         pub is_symlink: bool,
+    }
+    ///`EthGetLogs(address,bytes32[],bytes,uint256,bytes32,uint256,bytes32,uint256,bool)`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct EthGetLogs {
+        pub emitter: ::ethers_core::types::Address,
+        pub topics: ::std::vec::Vec<[u8; 32]>,
+        pub data: ::ethers_core::types::Bytes,
+        pub block_number: ::ethers_core::types::U256,
+        pub transaction_hash: [u8; 32],
+        pub transaction_index: ::ethers_core::types::U256,
+        pub block_hash: [u8; 32],
+        pub log_index: ::ethers_core::types::U256,
+        pub removed: bool,
+    }
+    ///`FfiResult(int32,bytes,bytes)`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct FfiResult {
+        pub exit_code: i32,
+        pub stdout: ::ethers_core::types::Bytes,
+        pub stderr: ::ethers_core::types::Bytes,
     }
     ///`FsMetadata(bool,bool,uint256,bool,uint256,uint256,uint256)`
     #[derive(
@@ -13886,5 +14897,22 @@ pub mod hevm {
     pub struct Rpc {
         pub name: ::std::string::String,
         pub url: ::std::string::String,
+    }
+    ///`Wallet(address,uint256,uint256,uint256)`
+    #[derive(
+        Clone,
+        ::ethers_contract::EthAbiType,
+        ::ethers_contract::EthAbiCodec,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct Wallet {
+        pub addr: ::ethers_core::types::Address,
+        pub public_key_x: ::ethers_core::types::U256,
+        pub public_key_y: ::ethers_core::types::U256,
+        pub private_key: ::ethers_core::types::U256,
     }
 }

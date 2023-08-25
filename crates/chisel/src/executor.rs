@@ -3,7 +3,7 @@
 //! This module contains the execution logic for the [SessionSource].
 
 use crate::prelude::{
-    ChiselDispatcher, ChiselResult, ChiselRunner, IntermediateOutput, SessionSource,
+    ChiselDispatcher, ChiselResult, ChiselRunner, IntermediateOutput, SessionSource, SolidityHelper,
 };
 use core::fmt::Debug;
 use ethers::{
@@ -13,7 +13,7 @@ use ethers::{
 };
 use ethers_solc::Artifact;
 use eyre::{Result, WrapErr};
-use forge::{
+use foundry_evm::{
     decode::decode_console_logs,
     executor::{inspector::CheatsConfig, Backend, ExecutorBuilder},
     utils::ru256_to_u256,
@@ -136,16 +136,43 @@ impl SessionSource {
             Err(_) => return Ok((true, None)),
         };
 
-        // TODO: Any tuple fails compilation due to it not being able to be encoded in `inspectoor`
-        let mut res = match source.execute().await {
-            Ok((_, res)) => res,
-            Err(e) => {
-                if self.config.foundry_config.verbosity >= 3 {
-                    eprintln!("Could not inspect: {e}");
+        let mut source_without_inspector = self.clone();
+
+        // Events and tuples fails compilation due to it not being able to be encoded in
+        // `inspectoor`. If that happens, try executing without the inspector.
+        let (mut res, has_inspector) = match source.execute().await {
+            Ok((_, res)) => (res, true),
+            Err(e) => match source_without_inspector.execute().await {
+                Ok((_, res)) => (res, false),
+                Err(_) => {
+                    if self.config.foundry_config.verbosity >= 3 {
+                        eprintln!("Could not inspect: {e}");
+                    }
+                    return Ok((true, None))
                 }
-                return Ok((true, None))
-            }
+            },
         };
+
+        // If abi-encoding the input failed, check whether it is an event
+        if !has_inspector {
+            let generated_output = source_without_inspector
+                .generated_output
+                .as_ref()
+                .ok_or_else(|| eyre::eyre!("Could not find generated output!"))?;
+
+            let intermediate_contract = generated_output
+                .intermediate
+                .intermediate_contracts
+                .get("REPL")
+                .ok_or_else(|| eyre::eyre!("Could not find intermediate contract!"))?;
+
+            if let Some(event_definition) = intermediate_contract.event_definitions.get(input) {
+                let formatted = format_event_definition(event_definition)?;
+                return Ok((false, Some(formatted)))
+            }
+
+            return Ok((false, None))
+        }
 
         let Some((stack, memory, _)) = &res.state else {
             // Show traces and logs, if there are any, and return an error
@@ -176,12 +203,22 @@ impl SessionSource {
             .get(input)
             .or_else(|| source.infer_inner_expr_type());
 
-        let (contract_expr, ty) = match contract_expr
-            .and_then(|e| Type::ethabi(e, Some(&generated_output.intermediate)).map(|ty| (e, ty)))
+        // If the current action is a function call, we get its return type
+        // otherwise it returns None
+        let function_call_return_type =
+            Type::get_function_return_type(contract_expr, &generated_output.intermediate);
+
+        let (contract_expr, ty) = if let Some(function_call_return_type) = function_call_return_type
         {
-            Some(res) => res,
-            // this type was denied for inspection, continue
-            None => return Ok((true, None)),
+            (function_call_return_type.0, function_call_return_type.1)
+        } else {
+            match contract_expr.and_then(|e| {
+                Type::ethabi(e, Some(&generated_output.intermediate)).map(|ty| (e, ty))
+            }) {
+                Some(res) => res,
+                // this type was denied for inspection, continue
+                None => return Ok((true, None)),
+            }
         };
 
         // the file compiled correctly, thus the last stack item must be the memory offset of
@@ -253,14 +290,15 @@ impl SessionSource {
         };
 
         // Build a new executor
-        let executor = ExecutorBuilder::default()
-            .with_config(env)
-            .with_chisel_state(final_pc)
-            .set_tracing(true)
-            .with_spec(foundry_evm::utils::evm_spec(&self.config.foundry_config.evm_version))
-            .with_gas_limit(self.config.evm_opts.gas_limit())
-            .with_cheatcodes(CheatsConfig::new(&self.config.foundry_config, &self.config.evm_opts))
-            .build(backend);
+        let executor = ExecutorBuilder::new()
+            .inspectors(|stack| {
+                stack.chisel_state(final_pc).trace(true).cheatcodes(
+                    CheatsConfig::new(&self.config.foundry_config, &self.config.evm_opts).into(),
+                )
+            })
+            .gas_limit(self.config.evm_opts.gas_limit())
+            .spec(foundry_evm::utils::evm_spec(self.config.foundry_config.evm_version))
+            .build(env, backend);
 
         // Create a [ChiselRunner] with a default balance of [U256::MAX] and
         // the sender [Address::zero].
@@ -364,6 +402,62 @@ fn format_token(token: Token) -> String {
             out
         }
     }
+}
+
+/// Formats a [pt::EventDefinition] into an inspection message
+///
+/// ### Takes
+///
+/// An borrowed [pt::EventDefinition]
+///
+/// ### Returns
+///
+/// A formatted [pt::EventDefinition] for use in inspection output.
+///
+/// TODO: Verbosity option
+fn format_event_definition(event_definition: &pt::EventDefinition) -> Result<String> {
+    let event_name = event_definition.name.as_ref().expect("Event has a name").to_string();
+    let inputs = event_definition
+        .fields
+        .iter()
+        .map(|param| {
+            let name = param
+                .name
+                .as_ref()
+                .map(ToString::to_string)
+                .unwrap_or_else(|| "<anonymous>".to_string());
+            let kind = Type::from_expression(&param.ty)
+                .and_then(Type::into_builtin)
+                .ok_or_else(|| eyre::eyre!("Invalid type in event {event_name}"))?;
+            Ok(ethabi::EventParam { name, kind, indexed: param.indexed })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let event = ethabi::Event { name: event_name, inputs, anonymous: event_definition.anonymous };
+
+    Ok(format!(
+        "Type: {}\n├ Name: {}\n└ Signature: {:?}",
+        Paint::red("event"),
+        SolidityHelper::highlight(&format!(
+            "{}({})",
+            &event.name,
+            &event
+                .inputs
+                .iter()
+                .map(|param| format!(
+                    "{}{}{}",
+                    param.kind,
+                    if param.indexed { " indexed" } else { "" },
+                    if param.name.is_empty() {
+                        String::default()
+                    } else {
+                        format!(" {}", &param.name)
+                    },
+                ))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )),
+        Paint::cyan(event.signature()),
+    ))
 }
 
 // =============================================
@@ -988,6 +1082,41 @@ impl Type {
             .and_then(|ty| ty.try_as_ethabi(intermediate))
     }
 
+    /// Get the return type of a function call expression.
+    fn get_function_return_type<'a>(
+        contract_expr: Option<&'a pt::Expression>,
+        intermediate: &IntermediateOutput,
+    ) -> Option<(&'a pt::Expression, ParamType)> {
+        let function_call = match contract_expr? {
+            pt::Expression::FunctionCall(_, function_call, _) => function_call,
+            _ => return None,
+        };
+        let (contract_name, function_name) = match function_call.as_ref() {
+            pt::Expression::MemberAccess(_, contract_name, function_name) => {
+                (contract_name, function_name)
+            }
+            _ => return None,
+        };
+        let contract_name = match contract_name.as_ref() {
+            pt::Expression::Variable(contract_name) => contract_name.to_owned(),
+            _ => return None,
+        };
+
+        let pt::Expression::Variable(contract_name) =
+            intermediate.repl_contract_expressions.get(&contract_name.name)?
+        else {
+            return None
+        };
+
+        let contract = intermediate
+            .intermediate_contracts
+            .get(&contract_name.name)?
+            .function_definitions
+            .get(&function_name.name)?;
+        let return_parameter = contract.as_ref().returns.first()?.to_owned().1?;
+        Type::ethabi(&return_parameter.ty, Some(intermediate)).map(|p| (contract_expr.unwrap(), p))
+    }
+
     /// Inverts Int to Uint and viceversa.
     fn invert_int(self) -> Self {
         match self {
@@ -1214,7 +1343,6 @@ impl<'a> Iterator for InstructionIter<'a> {
 mod tests {
     use super::*;
     use ethers_solc::{error::SolcError, Solc};
-    use once_cell::sync::Lazy;
     use std::sync::Mutex;
 
     #[test]
@@ -1484,25 +1612,31 @@ mod tests {
     #[track_caller]
     fn source() -> SessionSource {
         // synchronize solc install
-        static PRE_INSTALL_SOLC_LOCK: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
+        static PRE_INSTALL_SOLC_LOCK: Mutex<bool> = Mutex::new(false);
 
         // on some CI targets installing results in weird malformed solc files, we try installing it
         // multiple times
+        let version = "0.8.19";
         for _ in 0..3 {
             let mut is_preinstalled = PRE_INSTALL_SOLC_LOCK.lock().unwrap();
             if !*is_preinstalled {
-                let solc =
-                    Solc::find_or_install_svm_version("0.8.19").and_then(|solc| solc.version());
-                if solc.is_err() {
-                    // try reinstalling
-                    let solc = Solc::blocking_install(&"0.8.19".parse().unwrap());
-                    if solc.map_err(SolcError::from).and_then(|solc| solc.version()).is_ok() {
-                        *is_preinstalled = true;
+                let solc = Solc::find_or_install_svm_version(version)
+                    .and_then(|solc| solc.version().map(|v| (solc, v)));
+                match solc {
+                    Ok((solc, v)) => {
+                        // successfully installed
+                        eprintln!("found installed Solc v{v} @ {}", solc.solc.display());
                         break
                     }
-                } else {
-                    // successfully installed
-                    break
+                    Err(e) => {
+                        // try reinstalling
+                        eprintln!("error: {e}\n trying to re-install Solc v{version}");
+                        let solc = Solc::blocking_install(&version.parse().unwrap());
+                        if solc.map_err(SolcError::from).and_then(|solc| solc.version()).is_ok() {
+                            *is_preinstalled = true;
+                            break
+                        }
+                    }
                 }
             }
         }
