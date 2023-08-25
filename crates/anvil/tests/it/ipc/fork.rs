@@ -374,7 +374,7 @@ async fn can_deploy_greeter_on_fork() {
 #[tokio::test(flavor = "multi_thread")]
 #[serial]
 async fn can_reset_properly() {
-    let (origin_api, origin_handle) = spawn(NodeConfig::test_ipc()).await;
+    let (origin_api, origin_handle) = spawn(NodeConfig::test_ipc().with_fork_block_number(Some(0 as u64))).await;
     let account = origin_handle.dev_accounts().next().unwrap();
     let origin_provider = origin_handle.http_provider();
     let origin_nonce = 1u64.into();
